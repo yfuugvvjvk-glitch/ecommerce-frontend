@@ -1,0 +1,164 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { apiClient } from '@/lib/api-client';
+
+export default function OrdersManagement() {
+  const [orders, setOrders] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState('');
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  useEffect(() => {
+    fetchOrders();
+  }, [filter]);
+
+  const fetchOrders = async () => {
+    try {
+      const params = filter ? { status: filter } : {};
+      const response = await apiClient.get('/api/admin/orders', { params });
+      setOrders(response.data.orders);
+    } catch (error) {
+      console.error('Failed to fetch orders:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStatusChange = async (orderId: string, newStatus: string) => {
+    console.log('Changing status:', { orderId, newStatus });
+    try {
+      const response = await apiClient.put(`/api/admin/orders/${orderId}/status`, { status: newStatus });
+      console.log('Status changed successfully:', response.data);
+      setToast({ message: 'Status actualizat!', type: 'success' });
+      await fetchOrders();
+    } catch (error: any) {
+      console.error('Status change error:', error);
+      setToast({ message: error.response?.data?.error || 'Eroare la actualizare status', type: 'error' });
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    const statusLower = status.toLowerCase();
+    const colors: any = {
+      pending: 'bg-yellow-100 text-yellow-800',
+      processing: 'bg-blue-100 text-blue-800',
+      shipped: 'bg-purple-100 text-purple-800',
+      delivered: 'bg-green-100 text-green-800',
+      cancelled: 'bg-red-100 text-red-800',
+    };
+    return colors[statusLower] || 'bg-gray-100 text-gray-800';
+  };
+
+  if (loading) {
+    return <div className="text-center py-8">Se încarcă...</div>;
+  }
+
+  return (
+    <div>
+      {toast && (
+        <div className={`mb-4 p-3 rounded ${toast.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+          {toast.message}
+        </div>
+      )}
+
+      <div className="mb-4 flex gap-2 flex-wrap">
+        <button
+          onClick={() => setFilter('')}
+          className={`px-4 py-2 rounded ${!filter ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
+        >
+          Toate
+        </button>
+        <button
+          onClick={() => setFilter('PENDING')}
+          className={`px-4 py-2 rounded ${filter === 'PENDING' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
+        >
+          ⏳ În așteptare
+        </button>
+        <button
+          onClick={() => setFilter('PROCESSING')}
+          className={`px-4 py-2 rounded ${filter === 'PROCESSING' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
+        >
+          📦 În procesare
+        </button>
+        <button
+          onClick={() => setFilter('SHIPPED')}
+          className={`px-4 py-2 rounded ${filter === 'SHIPPED' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
+        >
+          🚚 Expediate
+        </button>
+        <button
+          onClick={() => setFilter('DELIVERED')}
+          className={`px-4 py-2 rounded ${filter === 'DELIVERED' ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
+        >
+          ✅ Livrate
+        </button>
+      </div>
+
+      <div className="space-y-4">
+        {orders.map((order) => (
+          <div key={order.id} className="bg-white border rounded-lg p-4">
+            <div className="flex justify-between items-start mb-3">
+              <div>
+                <p className="font-semibold">Comandă #{order.id.slice(0, 8)}</p>
+                <p className="text-sm text-gray-600">{order.user.name} ({order.user.email})</p>
+                <p className="text-sm text-gray-600">
+                  {new Date(order.createdAt).toLocaleDateString('ro-RO')}
+                </p>
+              </div>
+              <div className="text-right">
+                <p className="text-xl font-bold text-blue-600">{order.total.toFixed(2)} RON</p>
+                <select
+                  value={order.status}
+                  onChange={(e) => {
+                    e.preventDefault();
+                    handleStatusChange(order.id, e.target.value);
+                  }}
+                  className={`mt-2 px-3 py-1 rounded text-sm font-medium border cursor-pointer ${getStatusColor(order.status)}`}
+                  title="Schimbă statusul comenzii"
+                >
+                  <option value="PENDING">⏳ În așteptare</option>
+                  <option value="PROCESSING">📦 În procesare</option>
+                  <option value="SHIPPED">🚚 Expediată</option>
+                  <option value="DELIVERED">✅ Livrată</option>
+                  <option value="CANCELLED">❌ Anulată</option>
+                </select>
+              </div>
+            </div>
+            <div className="text-sm mb-3">
+              <strong>Produse:</strong>
+              {order.orderItems.map((item: any) => (
+                <div key={item.id} className="ml-4">
+                  • {item.dataItem.title} x {item.quantity} = {(item.price * item.quantity).toFixed(2)} RON
+                </div>
+              ))}
+            </div>
+            <div className="text-sm text-gray-600 mb-3">
+              <p><strong>Adresă:</strong> {order.shippingAddress}</p>
+              <p><strong>Plată:</strong> {order.paymentMethod}</p>
+              <p><strong>Livrare:</strong> {order.deliveryMethod}</p>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={async () => {
+                  if (confirm('Sigur vrei să ștergi această comandă?')) {
+                    try {
+                      await apiClient.delete(`/api/admin/orders/${order.id}`);
+                      setToast({ message: 'Comandă ștearsă!', type: 'success' });
+                      fetchOrders();
+                    } catch (error: any) {
+                      setToast({ message: error.response?.data?.error || 'Eroare', type: 'error' });
+                    }
+                  }
+                }}
+                className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
+              >
+                🗑️ Șterge
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}

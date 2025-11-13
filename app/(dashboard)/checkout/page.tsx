@@ -1,0 +1,509 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { cartAPI, voucherAPI, orderAPI } from '@/lib/api-client';
+import { useAuth } from '@/lib/auth-context';
+import { useCart } from '@/lib/cart-context';
+
+export default function CheckoutPage() {
+  const { user } = useAuth();
+  const router = useRouter();
+  const { refreshCartCount } = useCart();
+  const [cart, setCart] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [voucherCode, setVoucherCode] = useState('');
+  const [appliedVoucher, setAppliedVoucher] = useState<any>(null);
+  const [shippingAddress, setShippingAddress] = useState('');
+  const [paymentMethod, setPaymentMethod] = useState<'card' | 'cash' | 'transfer'>('cash');
+  const [deliveryMethod, setDeliveryMethod] = useState<'courier' | 'pickup'>('courier');
+  const [submitting, setSubmitting] = useState(false);
+  const [showReview, setShowReview] = useState(false);
+
+  useEffect(() => {
+    fetchCart();
+    if (user?.address) {
+      setShippingAddress(user.address);
+    }
+  }, [user]);
+
+  // Refresh cart when returning to page
+  useEffect(() => {
+    const handleFocus = () => {
+      fetchCart();
+    };
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  }, []);
+
+  const fetchCart = async () => {
+    try {
+      const response = await cartAPI.getCart();
+      setCart(response.data);
+    } catch (error) {
+      console.error('Failed to fetch cart:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const applyVoucher = async () => {
+    if (!voucherCode.trim()) return;
+
+    try {
+      const response = await voucherAPI.validate(voucherCode, cart.total);
+      setAppliedVoucher(response.data);
+    } catch (error: any) {
+      alert(error.response?.data?.error || 'Voucher invalid');
+    }
+  };
+
+  const removeVoucher = () => {
+    setAppliedVoucher(null);
+    setVoucherCode('');
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!shippingAddress.trim()) {
+      alert('Te rog introdu adresa de livrare');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      
+      const orderData = {
+        items: cart.items.map((item: any) => ({
+          dataItemId: item.dataItemId || item.dataItem?.id,
+          quantity: item.quantity,
+          price: item.dataItem?.price || item.price,
+        })),
+        total: appliedVoucher ? appliedVoucher.finalTotal : cart.total,
+        shippingAddress,
+        paymentMethod,
+        deliveryMethod,
+        voucherCode: appliedVoucher ? voucherCode : undefined,
+      };
+
+      console.log('Creating order:', orderData);
+      const orderResponse = await orderAPI.create(orderData);
+      console.log('Order created:', orderResponse.data);
+      
+      // Try to clear cart, but don't fail if it's already empty
+      try {
+        await cartAPI.clearCart();
+        console.log('Cart cleared');
+      } catch (cartError) {
+        console.warn('Cart clear failed (may already be empty):', cartError);
+      }
+      
+      // Refresh cart count in navbar
+      await refreshCartCount();
+      
+      alert('Comandă plasată cu succes!');
+      router.push('/orders?success=true');
+    } catch (error: any) {
+      console.error('Order error:', error);
+      const errorMessage = error.response?.data?.error || error.message || 'Eroare la plasare comandă';
+      alert(errorMessage);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-gray-200 rounded w-1/3"></div>
+          <div className="h-64 bg-gray-200 rounded"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!cart || cart.items.length === 0) {
+    return (
+      <div className="max-w-4xl mx-auto p-6 text-center">
+        <div className="text-6xl mb-4">🛒</div>
+        <h1 className="text-2xl font-bold mb-4">Coșul tău este gol</h1>
+        <button
+          onClick={() => router.push('/products')}
+          className="px-6 py-3 bg-blue-600 text-white rounded hover:bg-blue-700"
+        >
+          Continuă cumpărăturile
+        </button>
+      </div>
+    );
+  }
+
+  const finalTotal = appliedVoucher ? appliedVoucher.finalTotal : cart.total;
+
+  // Review Modal
+  if (showReview) {
+    const deliveryCost = deliveryMethod === 'courier' ? 15 : 0;
+    const totalWithDelivery = finalTotal + deliveryCost;
+
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="bg-white rounded-lg shadow-lg p-8">
+          <h1 className="text-3xl font-bold mb-6">✅ Verifică comanda</h1>
+          
+          {/* Order Summary */}
+          <div className="space-y-6">
+            {/* Products */}
+            <div className="border-b pb-4">
+              <h2 className="text-xl font-semibold mb-3">📦 Produse comandate</h2>
+              <div className="space-y-2">
+                {cart.items.map((item: any) => (
+                  <div key={item.id} className="flex justify-between text-sm">
+                    <span>{item.dataItem.title} x {item.quantity}</span>
+                    <span className="font-semibold">{(item.quantity * item.dataItem.price).toFixed(2)} RON</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Delivery */}
+            <div className="border-b pb-4">
+              <h2 className="text-xl font-semibold mb-3">🚚 Livrare</h2>
+              <div className="text-sm space-y-1">
+                <p><strong>Metodă:</strong> {deliveryMethod === 'courier' ? 'Curier la domiciliu' : 'Ridicare personală'}</p>
+                {deliveryMethod === 'courier' && (
+                  <p><strong>Adresă:</strong> {shippingAddress}</p>
+                )}
+                <p><strong>Cost livrare:</strong> {deliveryCost.toFixed(2)} RON</p>
+              </div>
+            </div>
+
+            {/* Payment */}
+            <div className="border-b pb-4">
+              <h2 className="text-xl font-semibold mb-3">💳 Plată</h2>
+              <p className="text-sm">
+                <strong>Metodă:</strong> {
+                  paymentMethod === 'cash' ? '💵 Numerar la livrare' :
+                  paymentMethod === 'card' ? '💳 Card bancar' :
+                  '🏦 Transfer bancar'
+                }
+              </p>
+            </div>
+
+            {/* Total */}
+            <div className="bg-blue-50 p-4 rounded-lg">
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>Subtotal produse:</span>
+                  <span>{cart.total.toFixed(2)} RON</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span>Livrare:</span>
+                  <span>{deliveryCost.toFixed(2)} RON</span>
+                </div>
+                {appliedVoucher && (
+                  <div className="flex justify-between text-sm text-green-600">
+                    <span>Discount ({appliedVoucher.voucher.code}):</span>
+                    <span>-{appliedVoucher.discount.toFixed(2)} RON</span>
+                  </div>
+                )}
+                <div className="border-t pt-2 flex justify-between text-xl font-bold">
+                  <span>Total de plată:</span>
+                  <span className="text-blue-600">{totalWithDelivery.toFixed(2)} RON</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-4">
+              <button
+                onClick={() => setShowReview(false)}
+                className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
+              >
+                ← Înapoi la editare
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={submitting}
+                className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium disabled:opacity-50"
+              >
+                {submitting ? 'Se procesează...' : '✓ Confirmă comanda'}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-4xl mx-auto p-6">
+      <h1 className="text-3xl font-bold mb-6">🛍️ Finalizare comandă</h1>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Order Summary */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Products */}
+          <div className="bg-white p-6 rounded-lg shadow">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold">Produse ({cart.itemCount})</h2>
+              <button
+                onClick={() => router.push('/cart')}
+                className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+              >
+                ✏️ Editează coșul
+              </button>
+            </div>
+            <div className="space-y-4">
+              {cart.items.map((item: any) => (
+                <div key={item.id} className="flex gap-4 items-center border-b pb-4 last:border-b-0">
+                  <img
+                    src={item.dataItem.image}
+                    alt={item.dataItem.title}
+                    className="w-20 h-20 object-cover rounded"
+                  />
+                  <div className="flex-1">
+                    <h3 className="font-semibold">{item.dataItem.title}</h3>
+                    <div className="flex items-center gap-4 mt-2">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={async () => {
+                            try {
+                              await cartAPI.updateQuantity(item.id, Math.max(1, item.quantity - 1));
+                              fetchCart();
+                            } catch (error) {
+                              console.error('Failed to update quantity:', error);
+                            }
+                          }}
+                          className="w-8 h-8 bg-gray-200 rounded hover:bg-gray-300 flex items-center justify-center"
+                          disabled={item.quantity <= 1}
+                        >
+                          -
+                        </button>
+                        <span className="w-12 text-center font-semibold">{item.quantity}</span>
+                        <button
+                          onClick={async () => {
+                            try {
+                              await cartAPI.updateQuantity(item.id, item.quantity + 1);
+                              fetchCart();
+                            } catch (error) {
+                              console.error('Failed to update quantity:', error);
+                            }
+                          }}
+                          className="w-8 h-8 bg-gray-200 rounded hover:bg-gray-300 flex items-center justify-center"
+                          disabled={item.quantity >= item.dataItem.stock}
+                        >
+                          +
+                        </button>
+                      </div>
+                      <span className="text-sm text-gray-600">
+                        {item.dataItem.price.toFixed(2)} RON / buc
+                      </span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-bold text-blue-600 mb-2">
+                      {(item.quantity * item.dataItem.price).toFixed(2)} RON
+                    </div>
+                    <button
+                      onClick={async () => {
+                        if (confirm('Sigur vrei să ștergi acest produs?')) {
+                          try {
+                            await cartAPI.removeFromCart(item.id);
+                            fetchCart();
+                          } catch (error) {
+                            console.error('Failed to remove item:', error);
+                          }
+                        }
+                      }}
+                      className="text-red-600 hover:text-red-800 text-sm"
+                    >
+                      🗑️ Șterge
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Delivery Method */}
+          <div className="bg-white p-6 rounded-lg shadow">
+            <h2 className="text-xl font-bold mb-4">🚚 Metodă de livrare</h2>
+            <div className="space-y-3">
+              <label className="flex items-center gap-3 p-3 border rounded cursor-pointer hover:bg-gray-50">
+                <input
+                  type="radio"
+                  name="delivery"
+                  value="courier"
+                  checked={deliveryMethod === 'courier'}
+                  onChange={(e) => setDeliveryMethod(e.target.value as 'courier')}
+                  className="w-4 h-4"
+                />
+                <div className="flex-1">
+                  <div className="font-semibold">Curier la domiciliu</div>
+                  <div className="text-sm text-gray-600">Livrare în 2-3 zile lucrătoare</div>
+                </div>
+                <div className="font-bold text-blue-600">15 RON</div>
+              </label>
+              <label className="flex items-center gap-3 p-3 border rounded cursor-pointer hover:bg-gray-50">
+                <input
+                  type="radio"
+                  name="delivery"
+                  value="pickup"
+                  checked={deliveryMethod === 'pickup'}
+                  onChange={(e) => setDeliveryMethod(e.target.value as 'pickup')}
+                  className="w-4 h-4"
+                />
+                <div className="flex-1">
+                  <div className="font-semibold">Ridicare personală</div>
+                  <div className="text-sm text-gray-600">Disponibil în 24h</div>
+                </div>
+                <div className="font-bold text-green-600">GRATUIT</div>
+              </label>
+            </div>
+          </div>
+
+          {/* Shipping Address */}
+          {deliveryMethod === 'courier' && (
+            <div className="bg-white p-6 rounded-lg shadow">
+              <h2 className="text-xl font-bold mb-4">📍 Adresa de livrare</h2>
+              <textarea
+                value={shippingAddress}
+                onChange={(e) => setShippingAddress(e.target.value)}
+                className="w-full px-4 py-3 border rounded focus:ring-2 focus:ring-blue-500"
+                rows={3}
+                placeholder="Introdu adresa completă de livrare"
+                required
+              />
+            </div>
+          )}
+
+          {/* Payment Method */}
+          <div className="bg-white p-6 rounded-lg shadow">
+            <h2 className="text-xl font-bold mb-4">💳 Metodă de plată</h2>
+            <div className="space-y-3">
+              <label className="flex items-center gap-3 p-3 border rounded cursor-pointer hover:bg-gray-50">
+                <input
+                  type="radio"
+                  name="payment"
+                  value="cash"
+                  checked={paymentMethod === 'cash'}
+                  onChange={(e) => setPaymentMethod(e.target.value as 'cash')}
+                  className="w-4 h-4"
+                />
+                <div className="flex-1">
+                  <div className="font-semibold">💵 Numerar la livrare</div>
+                  <div className="text-sm text-gray-600">Plătești când primești produsele</div>
+                </div>
+              </label>
+              <label className="flex items-center gap-3 p-3 border rounded cursor-pointer hover:bg-gray-50">
+                <input
+                  type="radio"
+                  name="payment"
+                  value="card"
+                  checked={paymentMethod === 'card'}
+                  onChange={(e) => setPaymentMethod(e.target.value as 'card')}
+                  className="w-4 h-4"
+                />
+                <div className="flex-1">
+                  <div className="font-semibold">💳 Card bancar</div>
+                  <div className="text-sm text-gray-600">Plată online securizată</div>
+                </div>
+              </label>
+              <label className="flex items-center gap-3 p-3 border rounded cursor-pointer hover:bg-gray-50">
+                <input
+                  type="radio"
+                  name="payment"
+                  value="transfer"
+                  checked={paymentMethod === 'transfer'}
+                  onChange={(e) => setPaymentMethod(e.target.value as 'transfer')}
+                  className="w-4 h-4"
+                />
+                <div className="flex-1">
+                  <div className="font-semibold">🏦 Transfer bancar</div>
+                  <div className="text-sm text-gray-600">Vei primi detaliile pe email</div>
+                </div>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        {/* Order Total */}
+        <div className="space-y-6">
+          {/* Voucher */}
+          <div className="bg-white p-6 rounded-lg shadow">
+            <h2 className="text-xl font-bold mb-4">🎟️ Voucher</h2>
+            {!appliedVoucher ? (
+              <div className="space-y-2">
+                <input
+                  type="text"
+                  value={voucherCode}
+                  onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
+                  className="w-full px-4 py-2 border rounded focus:ring-2 focus:ring-blue-500"
+                  placeholder="Cod voucher"
+                />
+                <button
+                  onClick={applyVoucher}
+                  className="w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
+                >
+                  Aplică
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex justify-between items-center p-3 bg-green-50 rounded">
+                  <span className="font-semibold text-green-700">
+                    {appliedVoucher.voucher.code}
+                  </span>
+                  <button
+                    onClick={removeVoucher}
+                    className="text-red-600 hover:text-red-800"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <p className="text-sm text-green-600">
+                  Discount: -{appliedVoucher.discount.toFixed(2)} RON
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Total */}
+          <div className="bg-white p-6 rounded-lg shadow">
+            <h2 className="text-xl font-bold mb-4">💰 Sumar</h2>
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <span>Subtotal produse:</span>
+                <span>{cart.total.toFixed(2)} RON</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Livrare:</span>
+                <span>{deliveryMethod === 'courier' ? '15.00' : '0.00'} RON</span>
+              </div>
+              {appliedVoucher && (
+                <div className="flex justify-between text-green-600">
+                  <span>Discount voucher:</span>
+                  <span>-{appliedVoucher.discount.toFixed(2)} RON</span>
+                </div>
+              )}
+              <div className="border-t pt-2 flex justify-between text-xl font-bold">
+                <span>Total de plată:</span>
+                <span className="text-blue-600">
+                  {(finalTotal + (deliveryMethod === 'courier' ? 15 : 0)).toFixed(2)} RON
+                </span>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowReview(true)}
+              disabled={submitting || (deliveryMethod === 'courier' && !shippingAddress.trim())}
+              className="w-full mt-4 px-4 py-3 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium disabled:opacity-50"
+            >
+              Continuă la verificare →
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
