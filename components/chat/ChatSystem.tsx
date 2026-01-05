@@ -162,7 +162,7 @@ export default function ChatSystem() {
   const loadAvailableUsers = async () => {
     console.log('🔍 Loading available users...');
     console.log('👤 Current user:', user);
-    console.log('🔑 Token:', token?.substring(0, 20) + '...');
+    console.log('🔑 Token:', token ? `${token.substring(0, 20)}...` : 'No token');
     
     try {
       // First test if we can reach the auth endpoint
@@ -170,6 +170,7 @@ export default function ChatSystem() {
       console.log('🌐 API URL:', apiUrl);
       
       // Test auth endpoint first
+      console.log('🔐 Testing auth endpoint...');
       const authResponse = await fetch(`${apiUrl}/api/auth/me`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -177,7 +178,11 @@ export default function ChatSystem() {
       
       if (!authResponse.ok) {
         console.error('❌ Auth test failed, token might be invalid');
+        const authError = await authResponse.text();
+        console.error('❌ Auth error:', authError);
         return;
+      } else {
+        console.log('✅ Auth test passed, token is valid');
       }
       
       // Now test available users endpoint
@@ -200,6 +205,7 @@ export default function ChatSystem() {
         console.log('👥 Received users:', users);
         console.log('📈 Number of users:', users.length);
         setAvailableUsers(users);
+        console.log('✅ Users set in state successfully');
       } else {
         const errorText = await response.text();
         console.error('❌ Response not ok:', response.status, errorText);
@@ -791,13 +797,16 @@ export default function ChatSystem() {
             </div>
 
             <div className="space-y-3 max-h-60 overflow-y-auto">
-              {console.log('🎨 Rendering users in modal:', availableUsers)}
-              {availableUsers.map(availableUser => (
-                <div
-                  key={availableUser.id}
-                  onClick={() => createDirectChat(availableUser.id)}
-                  className="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors"
-                >
+              {console.log('🎨 Rendering modal with availableUsers:', availableUsers)}
+              {console.log('🎨 availableUsers.length:', availableUsers.length)}
+              {availableUsers.map(availableUser => {
+                console.log('🎨 Rendering user:', availableUser);
+                return (
+                  <div
+                    key={availableUser.id}
+                    onClick={() => createDirectChat(availableUser.id)}
+                    className="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors"
+                  >
                   <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
                     {availableUser.avatar ? (
                       <img src={availableUser.avatar} alt={availableUser.name} className="w-10 h-10 rounded-full" />
@@ -813,13 +822,25 @@ export default function ChatSystem() {
                     <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full">Admin</span>
                   )}
                 </div>
-              ))}
+                );
+              })}
             </div>
 
             {availableUsers.length === 0 && (
               <div className="text-center text-gray-500 py-4">
                 <p>No users available for new chats</p>
                 <p className="text-xs mt-1">Debug: Check console for details</p>
+                <p className="text-xs mt-1">Token: {token ? 'Present' : 'Missing'}</p>
+                <p className="text-xs mt-1">User: {user?.name || 'Not loaded'}</p>
+                <button
+                  onClick={() => {
+                    console.log('🔄 Manual refresh triggered');
+                    loadAvailableUsers();
+                  }}
+                  className="mt-2 px-3 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600"
+                >
+                  Refresh Users
+                </button>
               </div>
             )}
           </div>
