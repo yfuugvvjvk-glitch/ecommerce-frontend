@@ -161,17 +161,39 @@ export default function ChatSystem() {
 
   const loadAvailableUsers = async () => {
     console.log('🔍 Loading available users...');
+    console.log('👤 Current user:', user);
+    console.log('🔑 Token:', token?.substring(0, 20) + '...');
+    
     try {
+      // First test if we can reach the auth endpoint
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      console.log('🌐 API URL:', apiUrl);
+      
+      // Test auth endpoint first
+      const authResponse = await fetch(`${apiUrl}/api/auth/me`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      console.log('🔐 Auth test status:', authResponse.status);
+      
+      if (!authResponse.ok) {
+        console.error('❌ Auth test failed, token might be invalid');
+        return;
+      }
+      
+      // Now test available users endpoint
       const url = `${apiUrl}/api/chat/available-users`;
       console.log('📡 Making request to:', url);
-      console.log('🔑 Using token:', token ? 'Token present' : 'No token');
       
       const response = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${token}` }
+        method: 'GET',
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
       });
       
       console.log('📊 Response status:', response.status);
+      console.log('📊 Response ok:', response.ok);
       
       if (response.ok) {
         const users = await response.json();
