@@ -124,9 +124,13 @@ export default function ChatSystem() {
   // Load available users when opening new chat modal
   useEffect(() => {
     if (showNewChatModal && token) {
+      console.log('🚀 New chat modal opened, loading users...');
       loadAvailableUsers();
       // Reîncarcă utilizatorii la fiecare 5 secunde pentru actualizare în timp real
-      const interval = setInterval(loadAvailableUsers, 5000);
+      const interval = setInterval(() => {
+        console.log('🔄 Refreshing users list...');
+        loadAvailableUsers();
+      }, 5000);
       return () => clearInterval(interval);
     }
   }, [showNewChatModal, token]);
@@ -156,16 +160,30 @@ export default function ChatSystem() {
   };
 
   const loadAvailableUsers = async () => {
+    console.log('🔍 Loading available users...');
     try {
-      const response = await fetch('/api/chat/available-users', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const url = `${apiUrl}/api/chat/available-users`;
+      console.log('📡 Making request to:', url);
+      console.log('🔑 Using token:', token ? 'Token present' : 'No token');
+      
+      const response = await fetch(url, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
+      
+      console.log('📊 Response status:', response.status);
+      
       if (response.ok) {
         const users = await response.json();
+        console.log('👥 Received users:', users);
+        console.log('📈 Number of users:', users.length);
         setAvailableUsers(users);
+      } else {
+        const errorText = await response.text();
+        console.error('❌ Response not ok:', response.status, errorText);
       }
     } catch (error) {
-      console.error('Error loading available users:', error);
+      console.error('❌ Error loading available users:', error);
     }
   };
 
@@ -751,6 +769,7 @@ export default function ChatSystem() {
             </div>
 
             <div className="space-y-3 max-h-60 overflow-y-auto">
+              {console.log('🎨 Rendering users in modal:', availableUsers)}
               {availableUsers.map(availableUser => (
                 <div
                   key={availableUser.id}
@@ -776,9 +795,10 @@ export default function ChatSystem() {
             </div>
 
             {availableUsers.length === 0 && (
-              <p className="text-center text-gray-500 py-4">
-                No users available for new chats
-              </p>
+              <div className="text-center text-gray-500 py-4">
+                <p>No users available for new chats</p>
+                <p className="text-xs mt-1">Debug: Check console for details</p>
+              </div>
             )}
           </div>
         </div>
