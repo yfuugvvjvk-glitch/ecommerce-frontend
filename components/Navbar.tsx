@@ -97,14 +97,33 @@ export default function Navbar({ cartItemCount = 0 }: NavbarProps) {
             <LanguageSwitcher />
 
             {/* Shopping Cart */}
-            <Link href="/cart" className="relative p-2 hover:bg-gray-100 rounded-full transition-colors">
-              <ShoppingCart className="h-6 w-6 text-gray-700" />
+            <div className="relative group">
+              <Link href="/cart" className="relative p-2 hover:bg-gray-100 rounded-full transition-colors block">
+                <ShoppingCart className="h-6 w-6 text-gray-700" />
+                {cartItemCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center animate-pulse">
+                    {cartItemCount > 9 ? '9+' : cartItemCount}
+                  </span>
+                )}
+              </Link>
+              
+              {/* Tooltip cu informații coș */}
               {cartItemCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
-                  {cartItemCount > 9 ? '9+' : cartItemCount}
-                </span>
+                <div className="absolute top-full right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                  <div className="p-3">
+                    <p className="text-sm font-semibold text-gray-800">
+                      🛒 Coș de cumpărături
+                    </p>
+                    <p className="text-xs text-gray-600 mt-1">
+                      {cartItemCount} {cartItemCount === 1 ? 'produs' : 'produse'}
+                    </p>
+                    <p className="text-xs text-blue-600 font-medium mt-1">
+                      Click pentru a vizualiza
+                    </p>
+                  </div>
+                </div>
               )}
-            </Link>
+            </div>
 
             {/* User Menu */}
             {user ? (
@@ -151,6 +170,20 @@ export default function Navbar({ cartItemCount = 0 }: NavbarProps) {
                       📦 {t('myOrders')}
                     </Link>
                     <Link
+                      href="/my-cards"
+                      onClick={() => setIsDropdownOpen(false)}
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      💳 Cardurile Mele
+                    </Link>
+                    <Link
+                      href="/chat"
+                      onClick={() => setIsDropdownOpen(false)}
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      💬 Chat & Mesagerie
+                    </Link>
+                    <Link
                       href="/vouchers"
                       onClick={() => setIsDropdownOpen(false)}
                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
@@ -163,6 +196,13 @@ export default function Navbar({ cartItemCount = 0 }: NavbarProps) {
                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                     >
                       📋 {t('orderHistory')}
+                    </Link>
+                    <Link
+                      href="/invoices"
+                      onClick={() => setIsDropdownOpen(false)}
+                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      📄 Facturile Mele
                     </Link>
                     {user.role === 'admin' && (
                       <>

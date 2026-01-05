@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { cartAPI } from '@/lib/api-client';
 import { useRouter } from 'next/navigation';
+import { useCart } from '@/lib/cart-context';
 
 interface CartItem {
   id: string;
@@ -26,6 +27,7 @@ export default function ShoppingCart({ onClose }: { onClose?: () => void }) {
   const [cart, setCart] = useState<CartData | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
+  const { refreshCartCount } = useCart();
 
   useEffect(() => {
     fetchCart();
@@ -46,6 +48,7 @@ export default function ShoppingCart({ onClose }: { onClose?: () => void }) {
     try {
       await cartAPI.updateQuantity(cartItemId, quantity);
       await fetchCart();
+      await refreshCartCount(); // Actualizează indicatorul global
     } catch (error) {
       console.error('Failed to update quantity:', error);
     }
@@ -55,6 +58,7 @@ export default function ShoppingCart({ onClose }: { onClose?: () => void }) {
     try {
       await cartAPI.removeFromCart(cartItemId);
       await fetchCart();
+      await refreshCartCount(); // Actualizează indicatorul global
     } catch (error) {
       console.error('Failed to remove item:', error);
     }
@@ -65,6 +69,7 @@ export default function ShoppingCart({ onClose }: { onClose?: () => void }) {
     try {
       await cartAPI.clearCart();
       await fetchCart();
+      await refreshCartCount(); // Actualizează indicatorul global
     } catch (error) {
       console.error('Failed to clear cart:', error);
     }

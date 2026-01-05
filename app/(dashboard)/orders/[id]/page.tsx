@@ -125,6 +125,11 @@ export default function OrderDetailPage() {
                 hour: '2-digit',
                 minute: '2-digit',
               })}
+              {order.orderLocation && (
+                <span className="ml-2">
+                  📍 {order.orderLocation}
+                </span>
+              )}
             </p>
           </div>
           <span className={`px-4 py-2 rounded-full text-sm font-semibold ${getStatusColor(order.status)}`}>
@@ -224,7 +229,103 @@ export default function OrderDetailPage() {
               <strong>Metodă livrare:</strong>{' '}
               {order.deliveryMethod === 'courier' ? '🚚 Curier' : '🏪 Ridicare personală'}
             </p>
+            {order.orderLocalTime && (
+              <p><strong>🕐 Timp plasare:</strong> {order.orderLocalTime}</p>
+            )}
+            {order.orderLocation && (
+              <p><strong>📍 Locație plasare:</strong> {order.orderLocation}</p>
+            )}
+            {order.orderTimezone && (
+              <p><strong>🌍 Fus orar:</strong> {order.orderTimezone}</p>
+            )}
           </div>
+        </div>
+
+        {/* Invoice Section */}
+        <div className="border-t pt-6">
+          <h3 className="font-semibold mb-4 text-lg">📄 Factură:</h3>
+          <div className="flex flex-col sm:flex-row gap-3">
+            {!order.invoiceGenerated ? (
+              <button
+                onClick={async () => {
+                  try {
+                    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/invoices/admin/generate/${order.id}`, {
+                      method: 'POST',
+                      headers: {
+                        'Authorization': `Bearer ${localStorage.getItem('token')}`
+                      }
+                    });
+                    
+                    if (response.ok) {
+                      alert('Factură generată cu succes!');
+                      window.location.reload();
+                    } else {
+                      alert('Eroare la generarea facturii');
+                    }
+                  } catch (error) {
+                    console.error('Failed to generate invoice:', error);
+                    alert('Eroare la generarea facturii');
+                  }
+                }}
+                className="flex items-center justify-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                <span className="mr-2">📄</span>
+                Generează Factură
+              </button>
+            ) : (
+              <>
+                <button
+                  onClick={() => window.open(`${process.env.NEXT_PUBLIC_API_URL}/api/invoices/order/${order.id}/print`, '_blank')}
+                  className="flex items-center justify-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <span className="mr-2">👁️</span>
+                  Vizualizează Factura
+                </button>
+                <button
+                  onClick={async () => {
+                    try {
+                      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/invoices/order/${order.id}/print`, {
+                        headers: {
+                          'Authorization': `Bearer ${localStorage.getItem('token')}`
+                        }
+                      });
+                      
+                      if (response.ok) {
+                        const blob = await response.blob();
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = `Factura_${order.invoiceNumber || order.id.slice(0, 8)}.html`;
+                        document.body.appendChild(a);
+                        a.click();
+                        window.URL.revokeObjectURL(url);
+                        document.body.removeChild(a);
+                      }
+                    } catch (error) {
+                      console.error('Failed to download invoice:', error);
+                    }
+                  }}
+                  className="flex items-center justify-center px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                >
+                  <span className="mr-2">💾</span>
+                  Descarcă Factura
+                </button>
+                <button
+                  onClick={() => window.print()}
+                  className="flex items-center justify-center px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                >
+                  <span className="mr-2">🖨️</span>
+                  Printează
+                </button>
+              </>
+            )}
+          </div>
+          <p className="text-sm text-gray-600 mt-2">
+            {order.invoiceGenerated 
+              ? `Factură ${order.invoiceNumber} - Generată automat la plasarea comenzii`
+              : 'Factura poate fi generată manual pentru această comandă'
+            }
+          </p>
         </div>
       </div>
     </div>

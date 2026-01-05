@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation';
 import { cartAPI, voucherAPI, orderAPI } from '@/lib/api-client';
 import { useAuth } from '@/lib/auth-context';
 import { useCart } from '@/lib/cart-context';
+import { useStockCheck } from '@/components/StockIndicator';
+import StockIndicator from '@/components/StockIndicator';
+import PaymentSimulator from '@/components/PaymentSimulator';
 
 export default function CheckoutPage() {
   const { user } = useAuth();
@@ -19,6 +22,16 @@ export default function CheckoutPage() {
   const [deliveryMethod, setDeliveryMethod] = useState<'courier' | 'pickup'>('courier');
   const [submitting, setSubmitting] = useState(false);
   const [showReview, setShowReview] = useState(false);
+  const [showPaymentSimulator, setShowPaymentSimulator] = useState(false);
+  const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
+  
+  // Stock check hook
+  const { stockErrors, checking, checkAllStock } = useStockCheck(
+    cart?.items?.map((item: any) => ({
+      productId: item.dataItemId || item.dataItem?.id,
+      quantity: item.quantity
+    })) || []
+  );
 
   useEffect(() => {
     fetchCart();
@@ -66,14 +79,79 @@ export default function CheckoutPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!shippingAddress.trim()) {
+    if (!shippingAddress.trim() && deliveryMethod === 'courier') {
       alert('Te rog introdu adresa de livrare');
+      return;
+    }
+
+    // Verifică stocul înainte de a plasa comanda
+    const stockAvailable = await checkAllStock();
+    if (!stockAvailable) {
+      alert('Unele produse nu mai sunt disponibile în cantitatea dorită. Te rugăm să verifici coșul.');
       return;
     }
 
     try {
       setSubmitting(true);
       
+      // Obține timpul local și locația
+      const now = new Date();
+      const orderLocalTime = now.toLocaleString('ro-RO', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        timeZoneName: 'short'
+      });
+      const orderTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      
+      // Obține locația - versiune simplificată și robustă
+      let orderLocation = 'București, România'; // Default pentru România
+      
+      console.log('🌍 Începe obținerea locației...');
+      
+      try {
+        // Încearcă API-ul de geolocație cu timeout scurt
+        const response = await Promise.race([
+          fetch('https://ipapi.co/json/', {
+            headers: { 'Accept': 'application/json' }
+          }),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Timeout')), 3000)
+          )
+        ]) as Response;
+        
+        if (response && response.ok) {
+          const data = await response.json();
+          console.log('📍 Date API locație:', data);
+          
+          if (data && !data.error) {
+            if (data.city && data.country_name) {
+              orderLocation = `${data.city}, ${data.country_name}`;
+            } else if (data.country_name) {
+              orderLocation = data.country_name;
+            } else if (data.city) {
+              orderLocation = `${data.city}, România`;
+            }
+            console.log('✅ Locație obținută din API:', orderLocation);
+          }
+        }
+      } catch (error) {
+        console.log('⚠️ Nu s-a putut obține locația din API:', error);
+        
+        // Fallback la timezone
+        if (orderTimezone.includes('Bucharest')) {
+          orderLocation = 'București, România';
+        } else if (orderTimezone.includes('Europe')) {
+          orderLocation = 'Europa';
+        }
+        console.log('🕐 Folosesc locația din timezone:', orderLocation);
+      }
+      
+      console.log('🎯 LOCAȚIE FINALĂ PENTRU SALVARE:', orderLocation);
+
       const orderData = {
         items: cart.items.map((item: any) => ({
           dataItemId: item.dataItemId || item.dataItem?.id,
@@ -85,12 +163,35 @@ export default function CheckoutPage() {
         paymentMethod,
         deliveryMethod,
         voucherCode: appliedVoucher ? voucherCode : undefined,
+        orderLocalTime,
+        orderLocation,
+        orderTimezone,
       };
 
       console.log('Creating order:', orderData);
       const orderResponse = await orderAPI.create(orderData);
       console.log('Order created:', orderResponse.data);
       
+      // Dacă metoda de plată este card, afișează simulatorul de plată
+      if (paymentMethod === 'card') {
+        setPendingOrderId(orderResponse.data.id);
+        setShowPaymentSimulator(true);
+        return; // Nu continuă cu finalizarea comenzii încă
+      }
+      
+      // Pentru alte metode de plată, finalizează comanda direct
+      await finalizeOrder();
+    } catch (error: any) {
+      console.error('Order error:', error);
+      const errorMessage = error.response?.data?.error || error.message || 'Eroare la plasare comandă';
+      alert(errorMessage);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const finalizeOrder = async () => {
+    try {
       // Try to clear cart, but don't fail if it's already empty
       try {
         await cartAPI.clearCart();
@@ -104,13 +205,22 @@ export default function CheckoutPage() {
       
       alert('Comandă plasată cu succes!');
       router.push('/orders?success=true');
-    } catch (error: any) {
-      console.error('Order error:', error);
-      const errorMessage = error.response?.data?.error || error.message || 'Eroare la plasare comandă';
-      alert(errorMessage);
-    } finally {
-      setSubmitting(false);
+    } catch (error) {
+      console.error('Finalize order error:', error);
     }
+  };
+
+  const handlePaymentSuccess = () => {
+    setShowPaymentSimulator(false);
+    setPendingOrderId(null);
+    finalizeOrder();
+  };
+
+  const handlePaymentCancel = () => {
+    setShowPaymentSimulator(false);
+    setPendingOrderId(null);
+    // Opțional: anulează comanda dacă a fost creată
+    alert('Plata a fost anulată. Comanda nu a fost finalizată.');
   };
 
   if (loading) {
@@ -264,6 +374,12 @@ export default function CheckoutPage() {
                   />
                   <div className="flex-1">
                     <h3 className="font-semibold">{item.dataItem.title}</h3>
+                    <StockIndicator 
+                      productId={item.dataItemId || item.dataItem?.id} 
+                      quantity={item.quantity}
+                      showDetails={true}
+                      className="mb-2"
+                    />
                     <div className="flex items-center gap-4 mt-2">
                       <div className="flex items-center gap-2">
                         <button
@@ -494,16 +610,36 @@ export default function CheckoutPage() {
                 </span>
               </div>
             </div>
+            {stockErrors.length > 0 && (
+              <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded">
+                <p className="text-red-700 text-sm font-medium">Probleme cu stocul:</p>
+                <ul className="text-red-600 text-sm mt-1">
+                  {stockErrors.map((error, index) => (
+                    <li key={index}>• {error}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
             <button
               onClick={() => setShowReview(true)}
-              disabled={submitting || (deliveryMethod === 'courier' && !shippingAddress.trim())}
+              disabled={submitting || checking || stockErrors.length > 0 || (deliveryMethod === 'courier' && !shippingAddress.trim())}
               className="w-full mt-4 px-4 py-3 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium disabled:opacity-50"
             >
-              Continuă la verificare →
+              {checking ? 'Verificare stoc...' : 'Continuă la verificare →'}
             </button>
           </div>
         </div>
       </div>
+
+      {/* Payment Simulator Modal */}
+      {showPaymentSimulator && pendingOrderId && (
+        <PaymentSimulator
+          orderId={pendingOrderId}
+          amount={finalTotal + (deliveryMethod === 'courier' ? 15 : 0)}
+          onSuccess={handlePaymentSuccess}
+          onCancel={handlePaymentCancel}
+        />
+      )}
     </div>
   );
 }

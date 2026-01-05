@@ -9,13 +9,15 @@ import OrdersManagement from '@/components/admin/OrdersManagement';
 import VouchersManagement from '@/components/admin/VouchersManagement';
 import OffersManagement from '@/components/admin/OffersManagement';
 import CategoriesManagement from '@/components/admin/CategoriesManagement';
+import InvoicesManagement from '@/components/admin/InvoicesManagement';
+import TestCardsManagement from '@/components/admin/TestCardsManagement';
 
 export default function AdminPage() {
   const { user } = useAuth();
   const router = useRouter();
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'products' | 'orders' | 'vouchers' | 'offers' | 'categories'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'products' | 'orders' | 'vouchers' | 'offers' | 'categories' | 'invoices' | 'test-cards'>('dashboard');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   useEffect(() => {
@@ -156,6 +158,26 @@ export default function AdminPage() {
         >
           📂 Categorii
         </button>
+        <button
+          onClick={() => setActiveTab('invoices')}
+          className={`px-4 py-2 font-medium transition whitespace-nowrap ${
+            activeTab === 'invoices'
+              ? 'border-b-2 border-blue-600 text-blue-600'
+              : 'text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          📄 Facturi
+        </button>
+        <button
+          onClick={() => setActiveTab('test-cards')}
+          className={`px-4 py-2 font-medium transition whitespace-nowrap ${
+            activeTab === 'test-cards'
+              ? 'border-b-2 border-blue-600 text-blue-600'
+              : 'text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          💳 Carduri Test
+        </button>
       </div>
 
       {/* Dashboard Tab */}
@@ -289,6 +311,20 @@ export default function AdminPage() {
       {activeTab === 'categories' && (
         <div className="bg-white rounded-lg shadow p-6">
           <CategoriesManagement />
+        </div>
+      )}
+
+      {/* Invoices Tab */}
+      {activeTab === 'invoices' && (
+        <div className="bg-white rounded-lg shadow p-6">
+          <InvoicesManagement />
+        </div>
+      )}
+
+      {/* Test Cards Tab */}
+      {activeTab === 'test-cards' && (
+        <div className="bg-white rounded-lg shadow p-6">
+          <TestCardsManagement />
         </div>
       )}
     </div>

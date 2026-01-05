@@ -4,12 +4,14 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { apiClient, favoritesAPI, cartAPI } from '@/lib/api-client';
 import { useTranslation } from '@/components/LanguageSwitcher';
+import { useCart } from '@/lib/cart-context';
 import { Heart, ShoppingCart } from 'lucide-react';
 
 export default function ProductDetailsPage() {
   const params = useParams();
   const router = useRouter();
   const { t } = useTranslation();
+  const { refreshCartCount } = useCart();
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
@@ -89,6 +91,10 @@ export default function ProductDetailsPage() {
   const addToCart = async () => {
     try {
       await cartAPI.addToCart(params.id as string, 1);
+      
+      // Actualizează indicatorul de coș
+      await refreshCartCount();
+      
       alert('Produs adăugat în coș!');
     } catch (error) {
       console.error('Failed to add to cart:', error);

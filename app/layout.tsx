@@ -4,6 +4,7 @@ import './tailwind.css';
 import './globals.css';
 import { AuthProvider } from '@/lib/auth-context';
 import AIChatbot from '@/components/AIChatbot';
+import ChatSystem from '@/components/chat/ChatSystem';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -23,6 +24,7 @@ export default function RootLayout({
         <AuthProvider>
           {children}
           <AIChatbot />
+          <ChatSystem />
         </AuthProvider>
       </body>
     </html>

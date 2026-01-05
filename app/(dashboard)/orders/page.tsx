@@ -105,6 +105,11 @@ export default function OrdersPage() {
                       hour: '2-digit',
                       minute: '2-digit',
                     })}
+                    {order.orderLocation && (
+                      <span className="ml-2">
+                        📍 {order.orderLocation}
+                      </span>
+                    )}
                   </p>
                 </div>
                 <span

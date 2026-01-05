@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { cartAPI } from '@/lib/api-client';
+import { useCart } from '@/lib/cart-context';
 
 interface AddToCartButtonProps {
   productId: string;
@@ -18,18 +19,25 @@ export default function AddToCartButton({
 }: AddToCartButtonProps) {
   const [loading, setLoading] = useState(false);
   const [added, setAdded] = useState(false);
+  const { refreshCartCount } = useCart();
 
   const handleAddToCart = async () => {
     if (stock <= 0) return;
 
     try {
       setLoading(true);
-      await cartAPI.addToCart(productId, 1);
+      
+      const response = await cartAPI.addToCart(productId, 1);
+      
+      // Actualizează indicatorul de coș imediat
+      await refreshCartCount();
+      
       setAdded(true);
       onSuccess?.();
       
       setTimeout(() => setAdded(false), 2000);
     } catch (error: any) {
+      console.error('Error adding to cart:', error);
       alert(error.response?.data?.error || 'Eroare la adăugare în coș');
     } finally {
       setLoading(false);
