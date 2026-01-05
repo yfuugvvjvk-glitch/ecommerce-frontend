@@ -337,25 +337,42 @@ export default function ChatSystem() {
   };
 
   const createSupportChat = async () => {
+    console.log('🎧 Creating support chat...');
+    console.log('🔑 Token:', token ? 'Present' : 'Missing');
+    console.log('👤 User:', user);
+    
     setLoading(true);
     try {
-      const response = await fetch('/api/chat/support', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const url = `${apiUrl}/api/chat/support`;
+      console.log('📡 Making support chat request to:', url);
+      
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+          'Authorization': `Bearer ${token}`
+          // Nu includem Content-Type pentru că nu trimitem body
         }
       });
 
+      console.log('📊 Support chat response status:', response.status);
+      console.log('📊 Support chat response ok:', response.ok);
+
       if (response.ok) {
         const supportRoom = await response.json();
+        console.log('✅ Support room created:', supportRoom);
         setChatRooms(prev => [supportRoom, ...prev]);
         selectRoom(supportRoom);
+        console.log('✅ Support chat created and selected successfully');
+      } else {
+        const errorText = await response.text();
+        console.error('❌ Support chat creation failed:', response.status, errorText);
       }
     } catch (error) {
-      console.error('Error creating support chat:', error);
+      console.error('❌ Error creating support chat:', error);
     } finally {
       setLoading(false);
+      console.log('🎧 Support chat creation finished');
     }
   };
 
@@ -524,9 +541,9 @@ export default function ChatSystem() {
                 <button
                   onClick={createSupportChat}
                   disabled={loading}
-                  className="w-full text-left p-2 text-sm bg-green-50 hover:bg-green-100 rounded-lg text-green-700 transition-colors"
+                  className="w-full text-left p-2 text-sm bg-green-50 hover:bg-green-100 rounded-lg text-green-700 transition-colors disabled:opacity-50"
                 >
-                  🎧 Contact Support
+                  {loading ? '⏳ Creating...' : '🎧 Contact Support'}
                 </button>
                 <button
                   onClick={() => setShowGroupModal(true)}
