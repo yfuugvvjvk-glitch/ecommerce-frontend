@@ -1069,7 +1069,7 @@ export default function ProductsManagement() {
                   <label className="flex items-center space-x-2">
                     <input
                       type="checkbox"
-                      checked={productForm.isActive}
+                      checked={!!productForm.isActive}
                       onChange={(e) => setProductForm({...productForm, isActive: e.target.checked})}
                     />
                     <span>Produs activ</span>
@@ -1078,7 +1078,7 @@ export default function ProductsManagement() {
                   <label className="flex items-center space-x-2">
                     <input
                       type="checkbox"
-                      checked={productForm.showInCarousel}
+                      checked={!!productForm.showInCarousel}
                       onChange={(e) => setProductForm({...productForm, showInCarousel: e.target.checked})}
                     />
                     <span className="font-medium">🎨 Afișează în Carousel (Flux)</span>

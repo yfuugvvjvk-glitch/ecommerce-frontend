@@ -21,9 +21,25 @@ export async function GET(
       },
     });
 
-    const data = await response.json();
-    return NextResponse.json(data, { status: response.status });
+    const text = await response.text();
+    
+    // Check if response is empty
+    if (!text) {
+      return NextResponse.json({ error: 'Empty response from backend' }, { status: 500 });
+    }
+
+    try {
+      const data = JSON.parse(text);
+      return NextResponse.json(data, { status: response.status });
+    } catch (e) {
+      // If not JSON, return as text
+      return new NextResponse(text, { 
+        status: response.status,
+        headers: { 'Content-Type': 'text/plain' }
+      });
+    }
   } catch (error) {
+    console.error('API Proxy Error:', error);
     return NextResponse.json(
       { error: 'Failed to fetch from backend' },
       { status: 500 }
