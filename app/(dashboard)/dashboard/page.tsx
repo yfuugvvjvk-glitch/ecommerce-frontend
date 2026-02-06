@@ -67,6 +67,10 @@ export default function DashboardPage() {
     try {
       const productsRes = await apiClient.get('/api/data');
       const allProducts = productsRes.data.data || [];
+      console.log('=== DEBUGGING CAROUSEL ===');
+      console.log('Total products fetched:', allProducts.length);
+      console.log('Sample product:', allProducts[0]);
+      
       setProducts(allProducts);
       
       // Extract unique categories from products by name
@@ -94,60 +98,58 @@ export default function DashboardPage() {
             productId: o.productOffers?.[0]?.dataItemId || null // Link la primul produs din ofertă
           }));
           setOffers(mappedOffers);
-        } else {
-          // Fallback: Create offers from products marked for carousel
-          const carouselProducts = allProducts.filter((p: any) => p.showInCarousel);
-          
-          if (carouselProducts.length > 0) {
-            // Sort by carouselOrder (manual) or by discount (automatic)
-            const sortedProducts = carouselProducts.sort((a: any, b: any) => {
-              // If both have manual order, use that
-              if (a.carouselOrder > 0 && b.carouselOrder > 0) {
-                return a.carouselOrder - b.carouselOrder;
-              }
-              // If only one has manual order, prioritize it
-              if (a.carouselOrder > 0) return -1;
-              if (b.carouselOrder > 0) return 1;
-              
-              // Otherwise sort by discount percentage
-              const discountA = a.oldPrice ? ((a.oldPrice - a.price) / a.oldPrice) * 100 : 0;
-              const discountB = b.oldPrice ? ((b.oldPrice - b.price) / b.oldPrice) * 100 : 0;
-              return discountB - discountA;
-            });
-            
-            const generatedOffers = sortedProducts.map((p: any) => {
-              const discountPercent = p.oldPrice ? Math.round(((p.oldPrice - p.price) / p.oldPrice) * 100) : 0;
-              return {
-                id: p.id,
-                productId: p.id, // Link direct la produs
-                title: `${t('offer')}: ${p.title}`,
-                description: discountPercent > 0 ? `${t('discount')} ${discountPercent}%` : p.description || '',
-                image: p.image,
-                discount: discountPercent,
-              };
-            });
-            setOffers(generatedOffers);
-          } else {
-            // Ultimate fallback: products with oldPrice
-            const productsWithDiscounts = allProducts.filter((p: any) => p.oldPrice && p.oldPrice > p.price);
-            if (productsWithDiscounts.length > 0) {
-              const generatedOffers = productsWithDiscounts.slice(0, 3).map((p: any) => {
-                const discountPercent = Math.round(((p.oldPrice - p.price) / p.oldPrice) * 100);
-                return {
-                  id: p.id,
-                  productId: p.id,
-                  title: `${t('offer')}: ${p.title}`,
-                  description: `${t('discount')} ${discountPercent}%`,
-                  image: p.image,
-                  discount: discountPercent,
-                };
-              });
-              setOffers(generatedOffers);
-            }
-          }
         }
       } catch (error) {
-        console.error('Failed to fetch offers:', error);
+        console.error('Failed to fetch offers from API:', error);
+      }
+      
+      // ÎNTOTDEAUNA folosește produsele marcate pentru carousel (indiferent de oferte API)
+      const carouselProducts = allProducts.filter((p: any) => p.showInCarousel === true);
+      console.log('Products with showInCarousel=true:', carouselProducts.length);
+      console.log('Carousel products:', carouselProducts.map((p: any) => ({ 
+        id: p.id, 
+        title: p.title, 
+        showInCarousel: p.showInCarousel, 
+        carouselOrder: p.carouselOrder 
+      })));
+      
+      if (carouselProducts.length > 0) {
+        console.log('Produse găsite pentru carousel:', carouselProducts.length);
+        
+        // Sort by carouselOrder (manual) or by discount (automatic)
+        const sortedProducts = carouselProducts.sort((a: any, b: any) => {
+          // If both have manual order, use that
+          if (a.carouselOrder > 0 && b.carouselOrder > 0) {
+            return a.carouselOrder - b.carouselOrder;
+          }
+          // If only one has manual order, prioritize it
+          if (a.carouselOrder > 0) return -1;
+          if (b.carouselOrder > 0) return 1;
+          
+          // Otherwise sort by discount percentage
+          const discountA = a.oldPrice ? ((a.oldPrice - a.price) / a.oldPrice) * 100 : 0;
+          const discountB = b.oldPrice ? ((b.oldPrice - b.price) / b.oldPrice) * 100 : 0;
+          return discountB - discountA;
+        });
+        
+        const generatedOffers = sortedProducts.map((p: any) => {
+          const discountPercent = p.oldPrice ? Math.round(((p.oldPrice - p.price) / p.oldPrice) * 100) : 0;
+          return {
+            id: p.id,
+            productId: p.id, // Link direct la produs
+            title: p.title,
+            description: discountPercent > 0 ? `${t('discount')} ${discountPercent}%` : p.description || '',
+            image: p.image,
+            discount: discountPercent,
+          };
+        });
+        
+        // Suprascrie ofertele cu cele din produse marcate pentru carousel
+        setOffers(generatedOffers);
+        console.log('Oferte generate din produse carousel:', generatedOffers.length);
+        console.log('Generated offers:', generatedOffers);
+      } else {
+        console.log('Nu s-au găsit produse cu showInCarousel=true');
       }
     } catch (error) {
       console.error('Failed to fetch data:', error);
