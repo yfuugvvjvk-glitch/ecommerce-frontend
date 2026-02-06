@@ -181,45 +181,12 @@ export default function DashboardPage() {
 
       {/* Main Content */}
       <div className="flex-1 space-y-6">
-        {/* Welcome Content */}
+        {/* Welcome Content - doar dacă există conținut personalizat din admin */}
         {welcomeContent && welcomeContent.content && (
           <div 
             className="bg-white rounded-lg shadow-md p-6 prose max-w-none"
             dangerouslySetInnerHTML={{ __html: welcomeContent.content }}
           />
-        )}
-
-        {/* Default Welcome Message if no custom content */}
-        {!welcomeContent && (
-          <div className="bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg shadow-lg p-8 text-white">
-            <h1 className="text-3xl font-bold mb-4">🎉 Bun venit în magazinul nostru online!</h1>
-            <p className="text-lg mb-4">
-              Descoperă o gamă variată de produse de calitate, de la electronice la fashion, toate la prețuri competitive.
-            </p>
-            <p className="text-base">
-              Folosește asistentul nostru AI pentru recomandări personalizate!
-            </p>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
-              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 text-center">
-                <div className="text-4xl mb-3">🚚</div>
-                <h3 className="font-bold text-lg mb-2">Livrare Rapidă</h3>
-                <p className="text-sm">Livrare în 2-3 zile lucrătoare în toată țara</p>
-              </div>
-              
-              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 text-center">
-                <div className="text-4xl mb-3">💳</div>
-                <h3 className="font-bold text-lg mb-2">Plată Securizată</h3>
-                <p className="text-sm">Plătești în siguranță cu cardul sau ramburs</p>
-              </div>
-              
-              <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 text-center">
-                <div className="text-4xl mb-3">🎯</div>
-                <h3 className="font-bold text-lg mb-2">Calitate Garantată</h3>
-                <p className="text-sm">Produse verificate și garanție de calitate</p>
-              </div>
-            </div>
-          </div>
         )}
 
         {/* Carousel */}

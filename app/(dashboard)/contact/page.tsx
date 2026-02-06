@@ -26,10 +26,13 @@ export default function ContactPage() {
 
   const fetchSiteConfig = async () => {
     try {
-      const response = await fetch('/api/public/contact-info');
+      const response = await fetch('/api/public/site-config?keys=contact_email,contact_phone,contact_address,business_hours');
       if (response.ok) {
         const config = await response.json();
+        console.log('Site config loaded:', config);
         setSiteConfig(config);
+      } else {
+        console.error('Failed to fetch site config, status:', response.status);
       }
     } catch (error) {
       console.error('Failed to fetch site config:', error);
@@ -86,54 +89,58 @@ export default function ContactPage() {
                 <div>
                   <h3 className="font-semibold text-gray-700 mb-2">📧 Email</h3>
                   <a 
-                    href={`mailto:${siteConfig?.email || 'crys.cristi@yahoo.com'}`}
+                    href={`mailto:${siteConfig?.contact_email || 'contact@site.ro'}`}
                     className="text-blue-600 hover:text-blue-800 hover:underline block"
                   >
-                    {siteConfig?.email || 'crys.cristi@yahoo.com'}
+                    {siteConfig?.contact_email || 'contact@site.ro'}
                   </a>
                 </div>
 
                 <div>
                   <h3 className="font-semibold text-gray-700 mb-2">📞 Telefon</h3>
                   <a 
-                    href={`tel:${siteConfig?.phone || '+0753615752'}`}
+                    href={`tel:${siteConfig?.contact_phone || '+40 123 456 789'}`}
                     className="text-blue-600 hover:text-blue-800 hover:underline block"
                   >
-                    {siteConfig?.phone || '0753615742'}
+                    {siteConfig?.contact_phone || '+40 123 456 789'}
                   </a>
-                  <p className="text-gray-600">Magazin fizic Luni - Vineri: 9:00 - 18:00</p>
-                  <p className="text-gray-600">Magazin online Non-stop</p>
+                  <p className="text-gray-600 mt-1">Magazin fizic: Luni - Vineri: 9:00 - 18:00</p>
+                  <p className="text-gray-600">Magazin online: Non-stop</p>
                 </div>
 
                 <div>
                   <h3 className="font-semibold text-gray-700 mb-2">📍 Adresă</h3>
                   <p className="text-gray-600">
-                    {siteConfig?.address || 'Str. Gari nr. 69, Galati, România, Cod poștal: 08001'}
+                    {siteConfig?.contact_address || 'Strada Exemplu, Nr. 123, București, România'}
                   </p>
                 </div>
 
                 <div>
                   <h3 className="font-semibold text-gray-700 mb-2">🕐 Program</h3>
-                  {siteConfig?.businessHours ? (
+                  {siteConfig?.business_hours ? (
                     <div className="text-gray-600">
-                      <p className="font-medium">Magazin fizic:</p>
-                      {Object.entries(siteConfig.businessHours).map(([day, hours]) => (
-                        <p key={day} className="capitalize">
-                          {day}: {hours as string}
-                        </p>
-                      ))}
-                      <p className="mt-2 font-medium">Magazin online: Non stop</p>
+                      <p className="font-medium mb-2">Magazin fizic:</p>
+                      {typeof siteConfig.business_hours === 'object' ? (
+                        Object.entries(siteConfig.business_hours).map(([day, hours]) => (
+                          <p key={day} className="capitalize">
+                            <span className="font-medium">{day}:</span> {hours as string}
+                          </p>
+                        ))
+                      ) : (
+                        <p>{siteConfig.business_hours}</p>
+                      )}
+                      <p className="mt-3 font-medium">Magazin online:</p>
+                      <p>Non stop - 24/7</p>
                     </div>
                   ) : (
-                    <p className="text-gray-600">
-                      Magazin fizic<br />
-                      Luni - Vineri: 9:00 - 18:00<br />
-                      Sâmbătă: 10:00 - 14:00<br />
-                      Duminică: Închis<br />
-                      <br />
-                      Magazin online<br />
-                      Non stop
-                    </p>
+                    <div className="text-gray-600">
+                      <p className="font-medium mb-2">Magazin fizic:</p>
+                      <p>Luni - Vineri: 9:00 - 18:00</p>
+                      <p>Sâmbătă: 10:00 - 14:00</p>
+                      <p>Duminică: Închis</p>
+                      <p className="mt-3 font-medium">Magazin online:</p>
+                      <p>Non stop - 24/7</p>
+                    </div>
                   )}
                 </div>
               </div>
