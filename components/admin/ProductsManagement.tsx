@@ -29,6 +29,8 @@ interface Product {
   deliveryTimeDays?: number;
   paymentMethods?: string[];
   isActive: boolean;
+  showInCarousel?: boolean; // Nou
+  carouselOrder?: number; // Nou
   unitType: string;
   unitName: string;
   minQuantity: number;
@@ -81,6 +83,8 @@ export default function ProductsManagement() {
     deliveryTimeDays: 0,
     paymentMethods: [] as string[],
     isActive: true,
+    showInCarousel: false, // Nou: Afișează în carousel
+    carouselOrder: 0, // Nou: Ordine în carousel
     unitType: 'piece',
     unitName: 'bucată',
     // Cantități fixe disponibile (nu mai permite fracționare)
@@ -179,6 +183,8 @@ export default function ProductsManagement() {
         deliveryTimeDays: productForm.deliveryTimeDays,
         paymentMethods: productForm.paymentMethods,
         isActive: productForm.isActive,
+        showInCarousel: productForm.showInCarousel, // Nou
+        carouselOrder: productForm.carouselOrder, // Nou
         unitType: productForm.unitType,
         unitName: productForm.unitName,
         availableQuantities: productForm.availableQuantities,
@@ -264,6 +270,8 @@ export default function ProductsManagement() {
         deliveryTimeDays: productForm.deliveryTimeDays,
         paymentMethods: productForm.paymentMethods,
         isActive: productForm.isActive,
+        showInCarousel: productForm.showInCarousel, // Nou
+        carouselOrder: productForm.carouselOrder, // Nou
         unitType: productForm.unitType,
         unitName: productForm.unitName,
         availableQuantities: productForm.availableQuantities,
@@ -304,6 +312,8 @@ export default function ProductsManagement() {
       deliveryTimeDays: 0,
       paymentMethods: [],
       isActive: true,
+      showInCarousel: false, // Nou
+      carouselOrder: 0, // Nou
       unitType: 'piece',
       unitName: 'bucată',
       availableQuantities: [1],
@@ -347,6 +357,8 @@ export default function ProductsManagement() {
       deliveryTimeDays: product.deliveryTimeDays || 0,
       paymentMethods: product.paymentMethods || [],
       isActive: product.isActive,
+      showInCarousel: product.showInCarousel || false, // Nou
+      carouselOrder: product.carouselOrder || 0, // Nou
       unitType: product.unitType || 'piece',
       unitName: product.unitName || 'bucată',
       availableQuantities: product.availableQuantities || [1],
@@ -1044,14 +1056,44 @@ export default function ProductsManagement() {
 
               {/* Active Status */}
               <div className="border rounded-lg p-4">
-                <label className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    checked={productForm.isActive}
-                    onChange={(e) => setProductForm({...productForm, isActive: e.target.checked})}
-                  />
-                  <span>Produs activ</span>
-                </label>
+                <div className="space-y-3">
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={productForm.isActive}
+                      onChange={(e) => setProductForm({...productForm, isActive: e.target.checked})}
+                    />
+                    <span>Produs activ</span>
+                  </label>
+                  
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={productForm.showInCarousel}
+                      onChange={(e) => setProductForm({...productForm, showInCarousel: e.target.checked})}
+                    />
+                    <span className="font-medium">🎨 Afișează în Carousel (Flux)</span>
+                  </label>
+                  
+                  {productForm.showInCarousel && (
+                    <div className="ml-6 mt-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Ordine în carousel (opțional)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={productForm.carouselOrder}
+                        onChange={(e) => setProductForm({...productForm, carouselOrder: parseInt(e.target.value) || 0})}
+                        className="w-32 border rounded px-3 py-2"
+                        placeholder="0 = automat"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        0 = ordine automată (după reducere), 1-999 = ordine manuală (1 = primul)
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 

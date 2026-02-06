@@ -1,6 +1,27 @@
+'use client';
+
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
 
 export default function Footer() {
+  const [siteConfig, setSiteConfig] = useState<any>(null);
+
+  useEffect(() => {
+    fetchSiteConfig();
+  }, []);
+
+  const fetchSiteConfig = async () => {
+    try {
+      const response = await fetch('/api/public/site-config?keys=contact_email,contact_phone,contact_address,business_hours');
+      if (response.ok) {
+        const config = await response.json();
+        setSiteConfig(config);
+      }
+    } catch (error) {
+      console.error('Failed to fetch site config:', error);
+    }
+  };
+
   return (
     <footer className="bg-white border-t mt-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -40,39 +61,40 @@ export default function Footer() {
             </ul>
           </div>
 
-          {/* Contact Info */}
+          {/* Contact Info - SINCRONIZAT cu setările site */}
           <div>
             <h3 className="text-lg font-semibold text-gray-800 mb-4">Contact</h3>
             <ul className="space-y-2 text-sm">
               <li className="flex items-center text-gray-600">
                 <span className="mr-2"> <img src="/images/email.png" className="h-8 w-8" /></span>
                 <a 
-                  href="mailto:crys.cristi@yahoo.com" 
+                  href={`mailto:${siteConfig?.contact_email || 'crys.cristi@yahoo.com'}`}
                   className="hover:text-blue-600 hover:underline"
                 >
-                  crys.cristi@yahoo.com"
+                  {siteConfig?.contact_email || 'crys.cristi@yahoo.com'}
                 </a>
               </li>
               <li className="flex items-center text-gray-600">
                 <span className="mr-2"> <img src="/images/phone.jpg" className="h-8 w-8" /></span>
                 <a 
-                  href="tel:0753615752" 
+                  href={`tel:${siteConfig?.contact_phone || '+40753615752'}`}
                   className="hover:text-blue-600 hover:underline"
                 >
-                  +40 753615752
+                  {siteConfig?.contact_phone || '+40 753615752'}
                 </a>
               </li>
               <li className="flex items-start text-gray-600">
                 <span className="mr-2"> <img src="/images/location.png" className="h-8 w-8" /></span>
                 <span>
-                  Str. Garii nr. 69<br />
-                  Galati, România
+                  {siteConfig?.contact_address || 'Str. Garii nr. 69, Galati, România'}
                 </span>
               </li>
               <li className="flex items-center text-gray-600">
                 <span className="mr-2"> <img src="/images/orar.jpg" className="h-8 w-8" /></span>
-                <span>Magazin fizic Luni - Vineri: 9:00 - 18:00</span> <br/>
+                <div>
+                  <span>Magazin fizic Luni - Vineri: 9:00 - 18:00</span> <br/>
                   <span>Magazin online Non-stop</span>
+                </div>
               </li>
             </ul>
           </div>
