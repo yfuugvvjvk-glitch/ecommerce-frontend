@@ -474,7 +474,13 @@ export default function DeliveryPaymentSettings() {
                       <option value="card">Card</option>
                       <option value="cash">Numerar</option>
                       <option value="bank_transfer">Transfer Bancar</option>
+                      <option value="crypto">Criptomonede</option>
+                      <option value="paypal">PayPal</option>
+                      <option value="other">Altele</option>
                     </select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Sau introdu un tip personalizat în câmpul Nume
+                    </p>
                   </div>
 
                   <div>

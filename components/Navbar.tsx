@@ -8,6 +8,46 @@ import Avatar from './Avatar';
 import LanguageSwitcher, { useTranslation } from './LanguageSwitcher';
 import { ShoppingCart, Search, Menu, X } from 'lucide-react';
 
+// Inline Clock Component for Navbar
+function RomanianClockInline() {
+  const [time, setTime] = useState<Date | null>(null);
+
+  useEffect(() => {
+    setTime(new Date());
+    const interval = setInterval(() => {
+      setTime(new Date());
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (!time) return null;
+
+  const romanianTime = time.toLocaleTimeString('ro-RO', {
+    timeZone: 'Europe/Bucharest',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+
+  const romanianDate = time.toLocaleDateString('ro-RO', {
+    timeZone: 'Europe/Bucharest',
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  });
+
+  return (
+    <div className="flex flex-col items-center">
+      <div className="text-sm font-bold text-blue-600 font-mono">
+        {romanianTime}
+      </div>
+      <div className="text-xs text-gray-600 capitalize">
+        {romanianDate}
+      </div>
+    </div>
+  );
+}
+
 interface NavbarProps {
   cartItemCount?: number;
 }
@@ -57,6 +97,11 @@ export default function Navbar({ cartItemCount = 0 }: NavbarProps) {
             <img src="/images/logo.jpg" className="h-8 w-8" />
             <span className="text-xl font-bold text-gray-800 hidden sm:block">Shop</span>
           </Link>
+
+          {/* Clock - Next to Logo */}
+          <div className="hidden lg:flex items-center ml-4 px-3 py-1 bg-blue-50 rounded-lg border border-blue-200">
+            <RomanianClockInline />
+          </div>
 
           {/* Center - Search and Links */}
           <div className="hidden md:flex items-center space-x-6 flex-1 max-w-2xl mx-8">

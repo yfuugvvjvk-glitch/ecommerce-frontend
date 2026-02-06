@@ -5,7 +5,6 @@ import './globals.css';
 import { AuthProvider } from '@/lib/auth-context';
 import AIChatbot from '@/components/AIChatbot';
 import ChatSystem from '@/components/chat/ChatSystem';
-import RomanianClock from '@/components/RomanianClock';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -26,7 +25,6 @@ export default function RootLayout({
           {children}
           <AIChatbot />
           <ChatSystem />
-          <RomanianClock />
         </AuthProvider>
       </body>
     </html>
