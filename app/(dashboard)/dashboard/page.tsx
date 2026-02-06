@@ -88,7 +88,12 @@ export default function DashboardPage() {
         const offersRes = await apiClient.get('/api/offers');
         const activeOffers = offersRes.data.filter((o: any) => o.isActive);
         if (activeOffers.length > 0) {
-          setOffers(activeOffers);
+          // Map offers to include productId for direct linking
+          const mappedOffers = activeOffers.map((o: any) => ({
+            ...o,
+            productId: o.productOffers?.[0]?.dataItemId || null // Link la primul produs din ofertă
+          }));
+          setOffers(mappedOffers);
         } else {
           // Fallback: Create offers from products with oldPrice
           const productsWithDiscounts = allProducts.filter((p: any) => p.oldPrice && p.oldPrice > p.price);
@@ -97,6 +102,7 @@ export default function DashboardPage() {
               const discountPercent = Math.round(((p.oldPrice - p.price) / p.oldPrice) * 100);
               return {
                 id: p.id,
+                productId: p.id, // Link direct la produs
                 title: `${t('offer')}: ${p.title}`,
                 description: `${t('discount')} ${discountPercent}%`,
                 image: p.image,

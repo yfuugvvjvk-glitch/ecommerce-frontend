@@ -10,6 +10,7 @@ interface Offer {
   description: string;
   image: string;
   discount: number;
+  productId?: string; // ID-ul produsului pentru link direct
 }
 
 interface CarouselProps {
@@ -56,8 +57,11 @@ export default function Carousel({ offers, autoPlayInterval = 5000 }: CarouselPr
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      {/* Main Image - Clickable */}
-      <a href={`/offers?offerId=${currentOffer.id}`} className="block relative h-64 md:h-80 lg:h-96 cursor-pointer">
+      {/* Main Image - Clickable - Duce direct la produs */}
+      <a 
+        href={currentOffer.productId ? `/products/${currentOffer.productId}` : `/offers?offerId=${currentOffer.id}`} 
+        className="block relative h-64 md:h-80 lg:h-96 cursor-pointer"
+      >
         <img
           src={currentOffer.image || '/placeholder.jpg'}
           alt={currentOffer.title}
