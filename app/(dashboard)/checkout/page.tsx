@@ -18,10 +18,12 @@ export default function CheckoutPage() {
   const [voucherCode, setVoucherCode] = useState('');
   const [appliedVoucher, setAppliedVoucher] = useState<any>(null);
   const [shippingAddress, setShippingAddress] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'card' | 'cash' | 'transfer'>('cash');
-  const [deliveryMethod, setDeliveryMethod] = useState<'courier' | 'pickup'>('courier');
+  const [paymentMethod, setPaymentMethod] = useState<string>('cash');
+  const [deliveryMethod, setDeliveryMethod] = useState<string>('');
   const [selectedDeliveryLocation, setSelectedDeliveryLocation] = useState<string>('');
   const [deliveryLocations, setDeliveryLocations] = useState<any[]>([]);
+  const [deliveryMethods, setDeliveryMethods] = useState<any[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
   const [deliveryFee, setDeliveryFee] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [showReview, setShowReview] = useState(false);
@@ -40,6 +42,8 @@ export default function CheckoutPage() {
   useEffect(() => {
     fetchCart();
     fetchDeliveryLocations();
+    fetchDeliveryMethods();
+    fetchPaymentMethods();
     fetchContactInfo();
     if (user?.address) {
       setShippingAddress(user.address);
@@ -83,6 +87,37 @@ export default function CheckoutPage() {
     }
   };
 
+  const fetchDeliveryMethods = async () => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/public/delivery-methods`);
+      const methods = await response.json();
+      setDeliveryMethods(methods);
+      
+      // Set first method as default
+      if (methods.length > 0) {
+        setDeliveryMethod(methods[0].id);
+        setDeliveryFee(methods[0].deliveryCost || 0);
+      }
+    } catch (error) {
+      console.error('Failed to fetch delivery methods:', error);
+    }
+  };
+
+  const fetchPaymentMethods = async () => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/public/payment-methods`);
+      const methods = await response.json();
+      setPaymentMethods(methods);
+      
+      // Set first method as default
+      if (methods.length > 0) {
+        setPaymentMethod(methods[0].id);
+      }
+    } catch (error) {
+      console.error('Failed to fetch payment methods:', error);
+    }
+  };
+
   const fetchContactInfo = async () => {
     try {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/public/contact-info`);
@@ -94,10 +129,30 @@ export default function CheckoutPage() {
   };
 
   const calculateDeliveryFee = async (locationId: string) => {
-    if (!cart || deliveryMethod !== 'courier') {
+    if (!cart) {
       setDeliveryFee(0);
       return;
     }
+
+    // Găsește metoda de livrare selectată
+    const selectedMethod = deliveryMethods.find(m => m.id === deliveryMethod);
+    if (!selectedMethod) {
+      setDeliveryFee(0);
+      return;
+    }
+
+    // Verifică dacă livrarea este gratuită peste un anumit prag
+    const subtotal = cart.items.reduce((sum: number, item: any) => {
+      return sum + (item.dataItem?.price || 0) * item.quantity;
+    }, 0);
+
+    if (selectedMethod.freeDeliveryThreshold && subtotal >= selectedMethod.freeDeliveryThreshold) {
+      setDeliveryFee(0);
+      return;
+    }
+
+    setDeliveryFee(selectedMethod.deliveryCost || 0);
+  };
 
     try {
       const response = await fetch(`/api/public/delivery-locations/${locationId}/calculate-fee`, {
@@ -129,12 +184,15 @@ export default function CheckoutPage() {
     setVoucherCode('');
   };
 
-  const handleDeliveryMethodChange = (method: 'courier' | 'pickup') => {
-    setDeliveryMethod(method);
-    if (method === 'pickup') {
-      setDeliveryFee(0);
-    } else if (selectedDeliveryLocation) {
-      calculateDeliveryFee(selectedDeliveryLocation);
+  const handleDeliveryMethodChange = (methodId: string) => {
+    setDeliveryMethod(methodId);
+    const method = deliveryMethods.find(m => m.id === methodId);
+    if (method) {
+      setDeliveryFee(method.deliveryCost || 0);
+      // Recalculează taxa dacă există prag de livrare gratuită
+      if (selectedDeliveryLocation) {
+        calculateDeliveryFee(selectedDeliveryLocation);
+      }
     }
   };
 
@@ -243,7 +301,8 @@ export default function CheckoutPage() {
       console.log('Order created:', orderResponse.data);
       
       // Dacă metoda de plată este card, afișează simulatorul de plată
-      if (paymentMethod === 'card') {
+      const selectedPaymentMethod = paymentMethods.find(m => m.id === paymentMethod);
+      if (selectedPaymentMethod && selectedPaymentMethod.type === 'card') {
         setPendingOrderId(orderResponse.data.id);
         setShowPaymentSimulator(true);
         return; // Nu continuă cu finalizarea comenzii încă
@@ -350,7 +409,7 @@ export default function CheckoutPage() {
             <div className="border-b pb-4">
               <h2 className="text-xl font-semibold mb-3">🚚 Livrare</h2>
               <div className="text-sm space-y-1">
-                <p><strong>Metodă:</strong> {deliveryMethod === 'courier' ? 'Curier la domiciliu' : 'Ridicare personală'}</p>
+                <p><strong>Metodă:</strong> {deliveryMethods.find(m => m.id === deliveryMethod)?.name || 'Necunoscută'}</p>
                 {deliveryMethod === 'courier' && (
                   <p><strong>Adresă:</strong> {shippingAddress}</p>
                 )}
@@ -378,9 +437,7 @@ export default function CheckoutPage() {
               <h2 className="text-xl font-semibold mb-3">💳 Plată</h2>
               <p className="text-sm">
                 <strong>Metodă:</strong> {
-                  paymentMethod === 'cash' ? '💵 Numerar la livrare' :
-                  paymentMethod === 'card' ? '💳 Card bancar' :
-                  '🏦 Transfer bancar'
+                  paymentMethods.find(m => m.id === paymentMethod)?.name || 'Necunoscută'
                 }
               </p>
             </div>
@@ -531,15 +588,40 @@ export default function CheckoutPage() {
           <div className="bg-white p-6 rounded-lg shadow">
             <h2 className="text-xl font-bold mb-4">🚚 Metodă de livrare</h2>
             <div className="space-y-3">
-              <label className="flex items-center gap-3 p-3 border rounded cursor-pointer hover:bg-gray-50">
-                <input
-                  type="radio"
-                  name="delivery"
-                  value="courier"
-                  checked={deliveryMethod === 'courier'}
-                  onChange={(e) => handleDeliveryMethodChange(e.target.value as 'courier')}
-                  className="w-4 h-4"
-                />
+              {deliveryMethods.map((method) => (
+                <label key={method.id} className="flex items-center gap-3 p-3 border rounded cursor-pointer hover:bg-gray-50">
+                  <input
+                    type="radio"
+                    name="delivery"
+                    value={method.id}
+                    checked={deliveryMethod === method.id}
+                    onChange={(e) => handleDeliveryMethodChange(e.target.value)}
+                    className="w-4 h-4"
+                  />
+                  <div className="flex-1">
+                    <div className="font-semibold">{method.name}</div>
+                    <div className="text-sm text-gray-600">
+                      {method.deliveryCost === 0 ? 'GRATUIT' : `${method.deliveryCost} RON`}
+                      {method.freeDeliveryThreshold && method.deliveryCost > 0 && (
+                        <span className="text-green-600 ml-2">
+                          (Gratuit peste {method.freeDeliveryThreshold} RON)
+                        </span>
+                      )}
+                    </div>
+                    {method.deliveryTimeHours && (
+                      <div className="text-xs text-gray-500 mt-1">
+                        Timp livrare: {method.deliveryTimeHours}h
+                        {method.deliveryTimeDays > 0 && ` - ${method.deliveryTimeDays} zile`}
+                      </div>
+                    )}
+                  </div>
+                  <span className="font-bold text-blue-600">
+                    {method.deliveryCost === 0 ? 'GRATUIT' : `${method.deliveryCost} RON`}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
                 <div className="flex-1">
                   <div className="font-semibold">Curier la domiciliu</div>
                   <div className="text-sm text-gray-600">Livrare la locația specificată în ziua aleasă</div>
@@ -649,48 +731,26 @@ export default function CheckoutPage() {
           <div className="bg-white p-6 rounded-lg shadow">
             <h2 className="text-xl font-bold mb-4">💳 Metodă de plată</h2>
             <div className="space-y-3">
-              <label className="flex items-center gap-3 p-3 border rounded cursor-pointer hover:bg-gray-50">
-                <input
-                  type="radio"
-                  name="payment"
-                  value="cash"
-                  checked={paymentMethod === 'cash'}
-                  onChange={(e) => setPaymentMethod(e.target.value as 'cash')}
-                  className="w-4 h-4"
-                />
-                <div className="flex-1">
-                  <div className="font-semibold">💵 Numerar la livrare</div>
-                  <div className="text-sm text-gray-600">Plătești când primești produsele</div>
-                </div>
-              </label>
-              <label className="flex items-center gap-3 p-3 border rounded cursor-pointer hover:bg-gray-50">
-                <input
-                  type="radio"
-                  name="payment"
-                  value="card"
-                  checked={paymentMethod === 'card'}
-                  onChange={(e) => setPaymentMethod(e.target.value as 'card')}
-                  className="w-4 h-4"
-                />
-                <div className="flex-1">
-                  <div className="font-semibold">💳 Card bancar</div>
-                  <div className="text-sm text-gray-600">Plată online securizată</div>
-                </div>
-              </label>
-              <label className="flex items-center gap-3 p-3 border rounded cursor-pointer hover:bg-gray-50">
-                <input
-                  type="radio"
-                  name="payment"
-                  value="transfer"
-                  checked={paymentMethod === 'transfer'}
-                  onChange={(e) => setPaymentMethod(e.target.value as 'transfer')}
-                  className="w-4 h-4"
-                />
-                <div className="flex-1">
-                  <div className="font-semibold">🏦 Transfer bancar</div>
-                  <div className="text-sm text-gray-600">Vei primi detaliile pe email</div>
-                </div>
-              </label>
+              {paymentMethods.map((method) => (
+                <label key={method.id} className="flex items-center gap-3 p-3 border rounded cursor-pointer hover:bg-gray-50">
+                  <input
+                    type="radio"
+                    name="payment"
+                    value={method.id}
+                    checked={paymentMethod === method.id}
+                    onChange={(e) => setPaymentMethod(e.target.value)}
+                    className="w-4 h-4"
+                  />
+                  <div className="flex-1">
+                    <div className="font-semibold">
+                      {method.icon || '💳'} {method.name}
+                    </div>
+                    {method.description && (
+                      <div className="text-sm text-gray-600">{method.description}</div>
+                    )}
+                  </div>
+                </label>
+              ))}
             </div>
           </div>
         </div>
