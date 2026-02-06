@@ -1007,22 +1007,28 @@ export default function ProductsManagement() {
               {/* Delivery Settings */}
               <div className="border rounded-lg p-4">
                 <h4 className="font-semibold mb-3">🚚 Setări Livrare</h4>
+                <p className="text-sm text-gray-600 mb-3">
+                  Livrarea se face la locația specificată în ziua aleasă de client la checkout.
+                </p>
                 <div className="grid grid-cols-2 gap-4">
                   <input
                     type="number"
                     value={productForm.deliveryTimeHours}
                     onChange={(e) => setProductForm({...productForm, deliveryTimeHours: parseInt(e.target.value)})}
                     className="border rounded px-3 py-2"
-                    placeholder="Ore livrare"
+                    placeholder="Ore livrare (opțional)"
                   />
                   <input
                     type="number"
                     value={productForm.deliveryTimeDays}
                     onChange={(e) => setProductForm({...productForm, deliveryTimeDays: parseInt(e.target.value)})}
                     className="border rounded px-3 py-2"
-                    placeholder="Zile livrare"
+                    placeholder="Zile livrare (opțional)"
                   />
                 </div>
+                <p className="text-xs text-gray-500 mt-2">
+                  Aceste câmpuri sunt opționale și pot fi folosite pentru produse speciale cu timp de livrare diferit.
+                </p>
               </div>
 
               {/* Payment Methods */}

@@ -225,7 +225,7 @@ export default function ContactPage() {
             <div>
               <h3 className="font-semibold text-gray-700 mb-2">Cât durează livrarea?</h3>
               <p className="text-gray-600">
-                Livrarea standard durează 2-3 zile lucrătoare. Oferim și livrare express în 24h.
+                Livrarea se face la locația specificată în ziua de livrare aleasă de tine la checkout.
               </p>
             </div>
 

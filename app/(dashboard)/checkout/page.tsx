@@ -530,7 +530,7 @@ export default function CheckoutPage() {
                 />
                 <div className="flex-1">
                   <div className="font-semibold">Curier la domiciliu</div>
-                  <div className="text-sm text-gray-600">Livrare în 2-3 zile lucrătoare</div>
+                  <div className="text-sm text-gray-600">Livrare la locația specificată în ziua aleasă</div>
                 </div>
                 <div className="font-bold text-blue-600">{deliveryFee} RON</div>
               </label>
