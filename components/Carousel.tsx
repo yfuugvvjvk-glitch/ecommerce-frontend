@@ -56,12 +56,12 @@ export default function Carousel({ offers, autoPlayInterval = 5000 }: CarouselPr
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      {/* Main Image */}
-      <div className="relative h-64 md:h-80 lg:h-96">
+      {/* Main Image - Clickable */}
+      <a href={`/offers?offerId=${currentOffer.id}`} className="block relative h-64 md:h-80 lg:h-96 cursor-pointer">
         <img
           src={currentOffer.image || '/placeholder.jpg'}
           alt={currentOffer.title}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
         />
         
         {/* Overlay with offer info */}
@@ -72,7 +72,7 @@ export default function Carousel({ offers, autoPlayInterval = 5000 }: CarouselPr
             -{currentOffer.discount}% {t('discountLabel')}
           </span>
         </div>
-      </div>
+      </a>
 
       {/* Navigation Buttons */}
       {offers.length > 1 && (

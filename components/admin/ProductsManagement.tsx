@@ -676,7 +676,7 @@ export default function ProductsManagement() {
             </div>
 
             <div className="space-y-6">
-              {/* Basic Product Info - For both new and existing products */}
+              {/* Basic Product Info */}
               <div className="border rounded-lg p-4">
                 <h4 className="font-semibold mb-3">📝 Informații de Bază</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -697,86 +697,85 @@ export default function ProductsManagement() {
                       type="number"
                       step="0.01"
                       placeholder="ex: 15.50 pentru 15.50 RON/kg"
-                        value={productForm.price}
-                        onChange={(e) => setProductForm({...productForm, price: parseFloat(e.target.value) || 0})}
-                        className="w-full border rounded px-3 py-2"
-                        required
-                      />
-                      <p className="text-xs text-gray-500 mt-1">
-                        Acest preț va fi per {productForm.unitName || 'unitate'}
-                      </p>
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Preț original (pentru oferte) - opțional
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        placeholder="ex: 20.00 pentru a afișa discount"
-                        value={productForm.oldPrice || ''}
-                        onChange={(e) => setProductForm({...productForm, oldPrice: parseFloat(e.target.value) || undefined})}
-                        className="w-full border rounded px-3 py-2"
-                      />
-                      {productForm.oldPrice && productForm.oldPrice > productForm.price && (
-                        <p className="text-xs text-green-600 mt-1">
-                          Discount: {Math.round(((productForm.oldPrice - productForm.price) / productForm.oldPrice) * 100)}%
-                          ({(productForm.oldPrice - productForm.price).toFixed(2)} RON economie)
-                        </p>
-                      )}
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Stoc inițial ({productForm.unitName || 'unități'})
-                      </label>
-                      <input
-                        type="number"
-                        step="0.1"
-                        placeholder="ex: 50 pentru 50 kg în stoc"
-                        value={productForm.stock}
-                        onChange={(e) => setProductForm({...productForm, stock: parseFloat(e.target.value) || 0})}
-                        className="w-full border rounded px-3 py-2"
-                        required
-                      />
-                      {productForm.stock > 0 && productForm.price > 0 && (
-                        <p className="text-xs text-green-600 mt-1">
-                          Valoare totală stoc: {(productForm.stock * productForm.price).toFixed(2)} RON
-                        </p>
-                      )}
-                    </div>
-                    
-                    <select
-                      value={productForm.categoryId}
-                      onChange={(e) => setProductForm({...productForm, categoryId: e.target.value})}
-                      className="border rounded px-3 py-2"
+                      value={productForm.price}
+                      onChange={(e) => setProductForm({...productForm, price: parseFloat(e.target.value) || 0})}
+                      className="w-full border rounded px-3 py-2"
                       required
-                    >
-                      <option value="">Selectează categoria</option>
-                      {categories.map(category => (
-                        <option key={category.id} value={category.id}>
-                          {category.name}
-                        </option>
-                      ))}
-                    </select>
-                    
-                    <input
-                      type="text"
-                      placeholder="URL Imagine (opțional)"
-                      value={productForm.image}
-                      onChange={(e) => setProductForm({...productForm, image: e.target.value})}
-                      className="border rounded px-3 py-2 col-span-2"
                     />
-                    
-                    <textarea
-                      placeholder="Descriere produs (opțional)"
-                      value={productForm.description}
-                      onChange={(e) => setProductForm({...productForm, description: e.target.value})}
-                      className="border rounded px-3 py-2 col-span-2"
-                      rows={3}
-                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Acest preț va fi per {productForm.unitName || 'unitate'}
+                    </p>
                   </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Preț original (pentru oferte) - opțional
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder="ex: 20.00 pentru a afișa discount"
+                      value={productForm.oldPrice || ''}
+                      onChange={(e) => setProductForm({...productForm, oldPrice: parseFloat(e.target.value) || undefined})}
+                      className="w-full border rounded px-3 py-2"
+                    />
+                    {productForm.oldPrice && productForm.oldPrice > productForm.price && (
+                      <p className="text-xs text-green-600 mt-1">
+                        Discount: {Math.round(((productForm.oldPrice - productForm.price) / productForm.oldPrice) * 100)}%
+                        ({(productForm.oldPrice - productForm.price).toFixed(2)} RON economie)
+                      </p>
+                    )}
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Stoc {selectedProduct ? 'curent' : 'inițial'} ({productForm.unitName || 'unități'})
+                    </label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      placeholder="ex: 50 pentru 50 kg în stoc"
+                      value={productForm.stock}
+                      onChange={(e) => setProductForm({...productForm, stock: parseFloat(e.target.value) || 0})}
+                      className="w-full border rounded px-3 py-2"
+                      required
+                    />
+                    {productForm.stock > 0 && productForm.price > 0 && (
+                      <p className="text-xs text-green-600 mt-1">
+                        Valoare totală stoc: {(productForm.stock * productForm.price).toFixed(2)} RON
+                      </p>
+                    )}
+                  </div>
+                  
+                  <select
+                    value={productForm.categoryId}
+                    onChange={(e) => setProductForm({...productForm, categoryId: e.target.value})}
+                    className="border rounded px-3 py-2"
+                    required
+                  >
+                    <option value="">Selectează categoria</option>
+                    {categories.map(category => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                  
+                  <input
+                    type="text"
+                    placeholder="URL Imagine (opțional)"
+                    value={productForm.image}
+                    onChange={(e) => setProductForm({...productForm, image: e.target.value})}
+                    className="border rounded px-3 py-2 col-span-2"
+                  />
+                  
+                  <textarea
+                    placeholder="Descriere produs (opțional)"
+                    value={productForm.description}
+                    onChange={(e) => setProductForm({...productForm, description: e.target.value})}
+                    className="border rounded px-3 py-2 col-span-2"
+                    rows={3}
+                  />
                 </div>
               </div>
 
