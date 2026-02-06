@@ -20,6 +20,9 @@ export default function CheckoutPage() {
   const [shippingAddress, setShippingAddress] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'cash' | 'transfer'>('cash');
   const [deliveryMethod, setDeliveryMethod] = useState<'courier' | 'pickup'>('courier');
+  const [selectedDeliveryLocation, setSelectedDeliveryLocation] = useState<string>('');
+  const [deliveryLocations, setDeliveryLocations] = useState<any[]>([]);
+  const [deliveryFee, setDeliveryFee] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [showReview, setShowReview] = useState(false);
   const [showPaymentSimulator, setShowPaymentSimulator] = useState(false);
@@ -35,6 +38,7 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     fetchCart();
+    fetchDeliveryLocations();
     if (user?.address) {
       setShippingAddress(user.address);
     }
@@ -60,6 +64,43 @@ export default function CheckoutPage() {
     }
   };
 
+  const fetchDeliveryLocations = async () => {
+    try {
+      const response = await fetch('/api/public/delivery-locations');
+      const locations = await response.json();
+      setDeliveryLocations(locations);
+      
+      // Set main location as default
+      const mainLocation = locations.find((loc: any) => loc.isMainLocation);
+      if (mainLocation) {
+        setSelectedDeliveryLocation(mainLocation.id);
+        calculateDeliveryFee(mainLocation.id);
+      }
+    } catch (error) {
+      console.error('Failed to fetch delivery locations:', error);
+    }
+  };
+
+  const calculateDeliveryFee = async (locationId: string) => {
+    if (!cart || deliveryMethod !== 'courier') {
+      setDeliveryFee(0);
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/public/delivery-locations/${locationId}/calculate-fee`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orderTotal: cart.total })
+      });
+      const feeInfo = await response.json();
+      setDeliveryFee(feeInfo.fee || 0);
+    } catch (error) {
+      console.error('Failed to calculate delivery fee:', error);
+      setDeliveryFee(15); // Fallback fee
+    }
+  };
+
   const applyVoucher = async () => {
     if (!voucherCode.trim()) return;
 
@@ -74,6 +115,22 @@ export default function CheckoutPage() {
   const removeVoucher = () => {
     setAppliedVoucher(null);
     setVoucherCode('');
+  };
+
+  const handleDeliveryMethodChange = (method: 'courier' | 'pickup') => {
+    setDeliveryMethod(method);
+    if (method === 'pickup') {
+      setDeliveryFee(0);
+    } else if (selectedDeliveryLocation) {
+      calculateDeliveryFee(selectedDeliveryLocation);
+    }
+  };
+
+  const handleDeliveryLocationChange = (locationId: string) => {
+    setSelectedDeliveryLocation(locationId);
+    if (deliveryMethod === 'courier') {
+      calculateDeliveryFee(locationId);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -162,6 +219,7 @@ export default function CheckoutPage() {
         shippingAddress,
         paymentMethod,
         deliveryMethod,
+        deliveryLocationId: deliveryMethod === 'pickup' ? selectedDeliveryLocation : null,
         voucherCode: appliedVoucher ? voucherCode : undefined,
         orderLocalTime,
         orderLocation,
@@ -253,7 +311,7 @@ export default function CheckoutPage() {
 
   // Review Modal
   if (showReview) {
-    const deliveryCost = deliveryMethod === 'courier' ? 15 : 0;
+    const deliveryCost = deliveryMethod === 'courier' ? deliveryFee : 0;
     const totalWithDelivery = finalTotal + deliveryCost;
 
     return (
@@ -283,6 +341,21 @@ export default function CheckoutPage() {
                 <p><strong>Metodă:</strong> {deliveryMethod === 'courier' ? 'Curier la domiciliu' : 'Ridicare personală'}</p>
                 {deliveryMethod === 'courier' && (
                   <p><strong>Adresă:</strong> {shippingAddress}</p>
+                )}
+                {deliveryMethod === 'pickup' && selectedDeliveryLocation && (
+                  <div>
+                    <p><strong>Locația de ridicare:</strong></p>
+                    {(() => {
+                      const location = deliveryLocations.find(loc => loc.id === selectedDeliveryLocation);
+                      return location ? (
+                        <div className="ml-4 text-gray-600">
+                          <p>{location.name}</p>
+                          <p>📍 {location.address}, {location.city}</p>
+                          {location.phone && <p>📞 {location.phone}</p>}
+                        </div>
+                      ) : null;
+                    })()}
+                  </div>
                 )}
                 <p><strong>Cost livrare:</strong> {deliveryCost.toFixed(2)} RON</p>
               </div>
@@ -452,14 +525,14 @@ export default function CheckoutPage() {
                   name="delivery"
                   value="courier"
                   checked={deliveryMethod === 'courier'}
-                  onChange={(e) => setDeliveryMethod(e.target.value as 'courier')}
+                  onChange={(e) => handleDeliveryMethodChange(e.target.value as 'courier')}
                   className="w-4 h-4"
                 />
                 <div className="flex-1">
                   <div className="font-semibold">Curier la domiciliu</div>
                   <div className="text-sm text-gray-600">Livrare în 2-3 zile lucrătoare</div>
                 </div>
-                <div className="font-bold text-blue-600">15 RON</div>
+                <div className="font-bold text-blue-600">{deliveryFee} RON</div>
               </label>
               <label className="flex items-center gap-3 p-3 border rounded cursor-pointer hover:bg-gray-50">
                 <input
@@ -467,7 +540,7 @@ export default function CheckoutPage() {
                   name="delivery"
                   value="pickup"
                   checked={deliveryMethod === 'pickup'}
-                  onChange={(e) => setDeliveryMethod(e.target.value as 'pickup')}
+                  onChange={(e) => handleDeliveryMethodChange(e.target.value as 'pickup')}
                   className="w-4 h-4"
                 />
                 <div className="flex-1">
@@ -478,6 +551,65 @@ export default function CheckoutPage() {
               </label>
             </div>
           </div>
+
+          {/* Delivery Location Selection */}
+          {deliveryMethod === 'pickup' && deliveryLocations.length > 0 && (
+            <div className="bg-white p-6 rounded-lg shadow">
+              <h2 className="text-xl font-bold mb-4">📍 Locația de ridicare</h2>
+              <div className="space-y-3">
+                {deliveryLocations.map((location) => (
+                  <label key={location.id} className="flex items-start gap-3 p-3 border rounded cursor-pointer hover:bg-gray-50">
+                    <input
+                      type="radio"
+                      name="deliveryLocation"
+                      value={location.id}
+                      checked={selectedDeliveryLocation === location.id}
+                      onChange={(e) => handleDeliveryLocationChange(e.target.value)}
+                      className="w-4 h-4 mt-1"
+                    />
+                    <div className="flex-1">
+                      <div className="font-semibold flex items-center gap-2">
+                        {location.name}
+                        {location.isMainLocation && (
+                          <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs">
+                            Principală
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-sm text-gray-600 mt-1">
+                        📍 {location.address}, {location.city}
+                      </div>
+                      {location.phone && (
+                        <div className="text-sm text-gray-600">
+                          📞 {location.phone}
+                        </div>
+                      )}
+                      {location.specialInstructions && (
+                        <div className="text-sm text-blue-600 mt-1">
+                          ℹ️ {location.specialInstructions}
+                        </div>
+                      )}
+                      {location.workingHours && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          🕒 Program: {(() => {
+                            try {
+                              const hours = JSON.parse(location.workingHours);
+                              const today = new Date().getDay();
+                              const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                              const todayHours = hours[dayNames[today]];
+                              return todayHours?.isOpen ? `Astăzi: ${todayHours.start}-${todayHours.end}` : 'Astăzi: Închis';
+                            } catch {
+                              return 'Program disponibil la locație';
+                            }
+                          })()}
+                        </div>
+                      )}
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Shipping Address */}
           {deliveryMethod === 'courier' && (
@@ -595,7 +727,7 @@ export default function CheckoutPage() {
               </div>
               <div className="flex justify-between">
                 <span>Livrare:</span>
-                <span>{deliveryMethod === 'courier' ? '15.00' : '0.00'} RON</span>
+                <span>{deliveryMethod === 'courier' ? deliveryFee.toFixed(2) : '0.00'} RON</span>
               </div>
               {appliedVoucher && (
                 <div className="flex justify-between text-green-600">
@@ -606,7 +738,7 @@ export default function CheckoutPage() {
               <div className="border-t pt-2 flex justify-between text-xl font-bold">
                 <span>Total de plată:</span>
                 <span className="text-blue-600">
-                  {(finalTotal + (deliveryMethod === 'courier' ? 15 : 0)).toFixed(2)} RON
+                  {(finalTotal + (deliveryMethod === 'courier' ? deliveryFee : 0)).toFixed(2)} RON
                 </span>
               </div>
             </div>
@@ -622,7 +754,9 @@ export default function CheckoutPage() {
             )}
             <button
               onClick={() => setShowReview(true)}
-              disabled={submitting || checking || stockErrors.length > 0 || (deliveryMethod === 'courier' && !shippingAddress.trim())}
+              disabled={submitting || checking || stockErrors.length > 0 || 
+                       (deliveryMethod === 'courier' && !shippingAddress.trim()) ||
+                       (deliveryMethod === 'pickup' && !selectedDeliveryLocation)}
               className="w-full mt-4 px-4 py-3 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium disabled:opacity-50"
             >
               {checking ? 'Verificare stoc...' : 'Continuă la verificare →'}
@@ -635,7 +769,7 @@ export default function CheckoutPage() {
       {showPaymentSimulator && pendingOrderId && (
         <PaymentSimulator
           orderId={pendingOrderId}
-          amount={finalTotal + (deliveryMethod === 'courier' ? 15 : 0)}
+          amount={finalTotal + (deliveryMethod === 'courier' ? deliveryFee : 0)}
           onSuccess={handlePaymentSuccess}
           onCancel={handlePaymentCancel}
         />

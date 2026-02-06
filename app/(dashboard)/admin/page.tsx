@@ -11,13 +11,21 @@ import OffersManagement from '@/components/admin/OffersManagement';
 import CategoriesManagement from '@/components/admin/CategoriesManagement';
 import InvoicesManagement from '@/components/admin/InvoicesManagement';
 import TestCardsManagement from '@/components/admin/TestCardsManagement';
+import ProductsManagement from '@/components/admin/ProductsManagement';
+import AdvancedProductManager from '@/components/admin/AdvancedProductManager';
+import InventoryDashboard from '@/components/admin/InventoryDashboard';
+import FinancialDashboard from '@/components/admin/FinancialDashboard';
+import ContentManager from '@/components/admin/ContentManager';
+import DeliveryScheduleManager from '@/components/admin/DeliveryScheduleManager';
+import ExpenseRevenueManager from '@/components/admin/ExpenseRevenueManager';
+import DeliveryLocationsManager from '@/components/admin/DeliveryLocationsManager';
 
 export default function AdminPage() {
   const { user } = useAuth();
   const router = useRouter();
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'products' | 'orders' | 'vouchers' | 'offers' | 'categories' | 'invoices' | 'test-cards'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'products' | 'orders' | 'vouchers' | 'offers' | 'categories' | 'invoices' | 'test-cards' | 'inventory' | 'financial' | 'content' | 'delivery-schedule' | 'delivery-locations'>('dashboard');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   useEffect(() => {
@@ -178,6 +186,56 @@ export default function AdminPage() {
         >
           💳 Carduri Test
         </button>
+        <button
+          onClick={() => setActiveTab('inventory')}
+          className={`px-4 py-2 font-medium transition whitespace-nowrap ${
+            activeTab === 'inventory'
+              ? 'border-b-2 border-blue-600 text-blue-600'
+              : 'text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          📊 Inventar
+        </button>
+        <button
+          onClick={() => setActiveTab('financial')}
+          className={`px-4 py-2 font-medium transition whitespace-nowrap ${
+            activeTab === 'financial'
+              ? 'border-b-2 border-blue-600 text-blue-600'
+              : 'text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          💰 Financiar
+        </button>
+        <button
+          onClick={() => setActiveTab('content')}
+          className={`px-4 py-2 font-medium transition whitespace-nowrap ${
+            activeTab === 'content'
+              ? 'border-b-2 border-blue-600 text-blue-600'
+              : 'text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          📝 Conținut
+        </button>
+        <button
+          onClick={() => setActiveTab('delivery-schedule')}
+          className={`px-4 py-2 font-medium transition whitespace-nowrap ${
+            activeTab === 'delivery-schedule'
+              ? 'border-b-2 border-blue-600 text-blue-600'
+              : 'text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          🚚 Livrări & Blocare
+        </button>
+        <button
+          onClick={() => setActiveTab('delivery-locations')}
+          className={`px-4 py-2 font-medium transition whitespace-nowrap ${
+            activeTab === 'delivery-locations'
+              ? 'border-b-2 border-blue-600 text-blue-600'
+              : 'text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          📍 Locații Livrare
+        </button>
       </div>
 
       {/* Dashboard Tab */}
@@ -285,10 +343,8 @@ export default function AdminPage() {
       {/* Products Tab */}
       {activeTab === 'products' && (
         <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-bold mb-4">Gestionare Produse</h2>
-          <p className="text-gray-600 mb-4">
-            Accesează pagina de <a href="/products" className="text-blue-600 hover:underline">Produse</a> pentru gestionare completă.
-          </p>
+          <h2 className="text-xl font-bold mb-4">Gestionare Completă Produse</h2>
+          <ProductsManagement />
         </div>
       )}
 
@@ -325,6 +381,43 @@ export default function AdminPage() {
       {activeTab === 'test-cards' && (
         <div className="bg-white rounded-lg shadow p-6">
           <TestCardsManagement />
+        </div>
+      )}
+
+      {/* Inventory Tab */}
+      {activeTab === 'inventory' && (
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-xl font-bold mb-4">Dashboard Inventar</h2>
+          <InventoryDashboard />
+        </div>
+      )}
+
+      {/* Financial Tab */}
+      {activeTab === 'financial' && (
+        <div className="bg-white rounded-lg shadow p-6">
+          <ExpenseRevenueManager />
+        </div>
+      )}
+
+      {/* Content Tab */}
+      {activeTab === 'content' && (
+        <div className="bg-white rounded-lg shadow p-6">
+          <h2 className="text-xl font-bold mb-4">Gestionare Conținut</h2>
+          <ContentManager />
+        </div>
+      )}
+
+      {/* Delivery Schedule Tab */}
+      {activeTab === 'delivery-schedule' && (
+        <div className="bg-white rounded-lg shadow p-6">
+          <DeliveryScheduleManager />
+        </div>
+      )}
+
+      {/* Delivery Locations Tab */}
+      {activeTab === 'delivery-locations' && (
+        <div className="bg-white rounded-lg shadow p-6">
+          <DeliveryLocationsManager />
         </div>
       )}
     </div>

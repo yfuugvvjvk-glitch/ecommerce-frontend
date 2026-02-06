@@ -415,22 +415,58 @@ export default function ProductsPage() {
                 <div className="flex items-baseline gap-2 mb-2">
                   <span className="text-2xl font-bold text-blue-600">
                     {product.price.toFixed(2)} RON
+                    {product.unitName && product.unitName !== 'bucată' && (
+                      <span className="text-sm font-normal text-gray-600">/{product.unitName}</span>
+                    )}
                   </span>
                   {product.oldPrice && product.oldPrice > product.price && (
                     <span className="text-sm text-gray-400 line-through">
                       {product.oldPrice.toFixed(2)} RON
+                      {product.unitName && product.unitName !== 'bucată' && (
+                        <span className="text-xs">/{product.unitName}</span>
+                      )}
                     </span>
                   )}
                 </div>
+                
+                {/* Informații despre unitatea de măsură */}
+                {product.unitName && product.unitName !== 'bucată' && (
+                  <p className="text-xs text-gray-500 mb-2">
+                    Vândut per {product.unitName}
+                  </p>
+                )}
 
                 <div className="flex items-center justify-between text-sm mb-4">
-                  <span
-                    className={`font-medium ${
-                      product.stock > 0 ? 'text-green-600' : 'text-red-600'
-                    }`}
-                  >
-                    {product.stock > 0 ? `Stoc: ${product.stock}` : 'Stoc epuizat'}
-                  </span>
+                  <div className="flex flex-col">
+                    <span
+                      className={`font-medium ${
+                        product.stock > 0 ? 'text-green-600' : 'text-red-600'
+                      }`}
+                    >
+                      {product.stock > 0 ? `Stoc: ${product.stock}` : 'Stoc epuizat'}
+                    </span>
+                    {/* Afișare disponibilitate avansată */}
+                    {product.availabilityType && product.availabilityType !== 'always' && (
+                      <span className="text-xs text-orange-600 mt-1">
+                        {product.availabilityType === 'seasonal' ? '🌟 Disponibil sezonier' : '📅 Disponibil programat'}
+                      </span>
+                    )}
+                    {product.requiresAdvanceOrder && (
+                      <span className="text-xs text-blue-600 mt-1">
+                        ⏰ Comandă în avans: {product.advanceOrderDays}z {product.advanceOrderHours}h
+                      </span>
+                    )}
+                    {product.isPerishable && (
+                      <span className="text-xs text-yellow-600 mt-1">
+                        🕐 Produs perisabil
+                        {product.expiryDate && (
+                          <span className="ml-1">
+                            (exp: {new Date(product.expiryDate).toLocaleDateString('ro-RO')})
+                          </span>
+                        )}
+                      </span>
+                    )}
+                  </div>
                   <span className="text-gray-500 capitalize text-xs bg-gray-100 px-2 py-1 rounded">
                     {typeof product.category === 'string' ? product.category : product.category?.name || 'N/A'}
                   </span>
@@ -441,6 +477,16 @@ export default function ProductsPage() {
                     productId={product.id}
                     productName={product.title}
                     stock={product.stock}
+                    availabilityType={product.availabilityType}
+                    requiresAdvanceOrder={product.requiresAdvanceOrder}
+                    advanceOrderDays={product.advanceOrderDays}
+                    advanceOrderHours={product.advanceOrderHours}
+                    customDeliveryRules={product.customDeliveryRules}
+                    availableDeliveryDays={
+                      product.availableDeliveryDays && typeof product.availableDeliveryDays === 'string'
+                        ? JSON.parse(product.availableDeliveryDays) as number[]
+                        : product.availableDeliveryDays as number[] | undefined
+                    }
                     onSuccess={() => setToast({ message: 'Produs adăugat în coș!', type: 'success' })}
                   />
                   {isAdmin && (

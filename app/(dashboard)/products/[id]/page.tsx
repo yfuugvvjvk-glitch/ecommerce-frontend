@@ -16,6 +16,8 @@ export default function ProductDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
 
+  const [selectedQuantity, setSelectedQuantity] = useState<number>(1);
+
   useEffect(() => {
     if (params.id) {
       fetchProduct();
@@ -24,6 +26,13 @@ export default function ProductDetailsPage() {
       trackViewedProduct(params.id as string);
     }
   }, [params.id]);
+
+  useEffect(() => {
+    // Set default quantity when product loads
+    if (product?.availableQuantities && product.availableQuantities.length > 0) {
+      setSelectedQuantity(product.availableQuantities[0]);
+    }
+  }, [product]);
 
   const trackViewedProduct = (productId: string) => {
     try {
@@ -90,12 +99,12 @@ export default function ProductDetailsPage() {
 
   const addToCart = async () => {
     try {
-      await cartAPI.addToCart(params.id as string, 1);
+      await cartAPI.addToCart(params.id as string, selectedQuantity);
       
       // Actualizează indicatorul de coș
       await refreshCartCount();
       
-      alert('Produs adăugat în coș!');
+      alert(`Produs adăugat în coș! Cantitate: ${selectedQuantity} ${product.unitName || 'buc'}`);
     } catch (error) {
       console.error('Failed to add to cart:', error);
       alert('Eroare la adăugarea în coș');
@@ -167,15 +176,77 @@ export default function ProductDetailsPage() {
             )}
             
             <div className="flex items-center gap-4 mb-6">
-              <span className="text-3xl font-bold text-blue-600">{product.price} RON</span>
+              <span className="text-3xl font-bold text-blue-600">
+                {product.price} RON
+                {product.unitName && product.unitName !== 'bucată' && (
+                  <span className="text-lg font-normal text-gray-600">/{product.unitName}</span>
+                )}
+              </span>
               {product.oldPrice && (
-                <span className="text-xl text-gray-400 line-through">{product.oldPrice} RON</span>
+                <span className="text-xl text-gray-400 line-through">
+                  {product.oldPrice} RON
+                  {product.unitName && product.unitName !== 'bucată' && (
+                    <span className="text-sm">/{product.unitName}</span>
+                  )}
+                </span>
               )}
             </div>
 
+            {/* Informații despre unitatea de măsură */}
+            {product.unitName && product.unitName !== 'bucată' && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                <p className="text-sm text-blue-800">
+                  <strong>📏 Vândut per {product.unitName}</strong>
+                  {product.minQuantity && product.minQuantity > 1 && (
+                    <span className="block text-xs mt-1">
+                      Cantitate minimă: {product.minQuantity} {product.unitName}
+                    </span>
+                  )}
+                </p>
+              </div>
+            )}
+
+            {/* Cantități disponibile */}
+            {product.availableQuantities && product.availableQuantities.length > 1 && (
+              <div className="mb-4">
+                <h3 className="font-semibold text-gray-800 mb-2">Selectează cantitatea:</h3>
+                <div className="flex flex-wrap gap-2">
+                  {product.availableQuantities.map((quantity: number) => (
+                    <button
+                      key={quantity}
+                      onClick={() => setSelectedQuantity(quantity)}
+                      className={`px-4 py-2 border rounded-lg transition ${
+                        selectedQuantity === quantity
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400'
+                      }`}
+                    >
+                      {quantity} {product.unitName || 'buc'}
+                      <span className="block text-xs opacity-75">
+                        {(quantity * product.price).toFixed(2)} RON
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                <p className="text-sm text-gray-600 mt-2">
+                  Cantitate selectată: <strong>{selectedQuantity} {product.unitName || 'buc'}</strong> = 
+                  <strong className="text-blue-600"> {(selectedQuantity * product.price).toFixed(2)} RON</strong>
+                </p>
+              </div>
+            )}
+
+            {/* Advance Order Warning */}
+            {product.advanceOrderDays > 0 && (
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-4">
+                <p className="text-sm text-orange-800">
+                  <strong>⚠️ Comandă în avans:</strong> Acest produs trebuie comandat cu minimum {product.advanceOrderDays} {product.advanceOrderDays === 1 ? 'zi' : 'zile'} înainte de livrare.
+                </p>
+              </div>
+            )}
+
             <div className="mb-6">
               <span className={`px-3 py-1 rounded-full text-sm ${product.stock > 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                {product.stock > 0 ? `${t('inStock')}: ${product.stock} buc` : t('outOfStock')}
+                {product.stock > 0 ? `${t('inStock')}: ${product.availableStock || product.stock} ${product.unitName || 'buc'}` : t('outOfStock')}
               </span>
             </div>
 

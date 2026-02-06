@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { io, Socket } from 'socket.io-client';
-import { MessageCircle, Users, Plus, X, Send, Phone, Video, Settings, Paperclip, Edit3, Trash2, MoreVertical } from 'lucide-react';
+import { MessageCircle, Users, Plus, X, Send, Phone, Video, Settings, Paperclip, Edit3, Trash2, MoreVertical, Move, Maximize2, Minimize2 } from 'lucide-react';
 
 interface ChatRoom {
   id: string;
@@ -71,6 +71,30 @@ export default function ChatSystem() {
   const [uploadingFile, setUploadingFile] = useState(false);
   const [editingMessage, setEditingMessage] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
+  const [sendingMessage, setSendingMessage] = useState(false);
+  
+  // Chat window positioning and sizing
+  const [position, setPosition] = useState({ x: 20, y: 20 });
+  const [size, setSize] = useState({ width: 400, height: 600 });
+  const [isMaximized, setIsMaximized] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isResizing, setIsResizing] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [showRoomOptions, setShowRoomOptions] = useState<string | null>(null);
+  
+  const chatRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showRoomOptions && !chatRef.current?.contains(event.target as Node)) {
+        setShowRoomOptions(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showRoomOptions]);
 
   // Initialize Socket.IO connection
   useEffect(() => {
@@ -147,7 +171,8 @@ export default function ChatSystem() {
 
   const loadChatRooms = async () => {
     try {
-      const response = await fetch('/api/chat/rooms', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const response = await fetch(`${apiUrl}/api/chat/rooms`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -217,7 +242,8 @@ export default function ChatSystem() {
 
   const loadMessages = async (roomId: string) => {
     try {
-      const response = await fetch(`/api/chat/rooms/${roomId}/messages`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const response = await fetch(`${apiUrl}/api/chat/rooms/${roomId}/messages`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
@@ -233,7 +259,8 @@ export default function ChatSystem() {
 
   const markMessagesAsRead = async (roomId: string) => {
     try {
-      await fetch(`/api/chat/rooms/${roomId}/read`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      await fetch(`${apiUrl}/api/chat/rooms/${roomId}/read`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -241,6 +268,11 @@ export default function ChatSystem() {
         },
         body: JSON.stringify({})
       });
+      
+      // Update local state to remove unread count
+      setChatRooms(prev => prev.map(room => 
+        room.id === roomId ? { ...room, unreadCount: 0 } : room
+      ));
     } catch (error) {
       console.error('Error marking messages as read:', error);
     }
@@ -253,13 +285,146 @@ export default function ChatSystem() {
     if (socket) {
       socket.emit('join_room', room.id);
     }
+    
+    // Mark room as read immediately when selected
+    setChatRooms(prev => prev.map(r => 
+      r.id === room.id ? { ...r, unreadCount: 0 } : r
+    ));
+  };
+
+  // Drag and drop functionality
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!dragRef.current?.contains(e.target as Node)) return;
+    
+    setIsDragging(true);
+    setDragStart({
+      x: e.clientX - position.x,
+      y: e.clientY - position.y
+    });
+  };
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (!isDragging) return;
+    
+    setPosition({
+      x: e.clientX - dragStart.x,
+      y: e.clientY - dragStart.y
+    });
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isDragging, dragStart]);
+
+  // Resize functionality
+  const handleResize = (e: React.MouseEvent, direction: string) => {
+    e.preventDefault();
+    setIsResizing(true);
+    
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startWidth = size.width;
+    const startHeight = size.height;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const deltaX = e.clientX - startX;
+      const deltaY = e.clientY - startY;
+
+      let newWidth = startWidth;
+      let newHeight = startHeight;
+
+      if (direction.includes('right')) {
+        newWidth = Math.max(300, startWidth + deltaX);
+      }
+      if (direction.includes('left')) {
+        newWidth = Math.max(300, startWidth - deltaX);
+      }
+      if (direction.includes('bottom')) {
+        newHeight = Math.max(400, startHeight + deltaY);
+      }
+      if (direction.includes('top')) {
+        newHeight = Math.max(400, startHeight - deltaY);
+      }
+
+      setSize({ width: newWidth, height: newHeight });
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
+  // Delete conversation
+  const deleteConversation = async (roomId: string) => {
+    if (!confirm('Ești sigur că vrei să ștergi această conversație?')) return;
+    
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const response = await fetch(`${apiUrl}/api/chat/rooms/${roomId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        setChatRooms(prev => prev.filter(room => room.id !== roomId));
+        if (selectedRoom?.id === roomId) {
+          setSelectedRoom(null);
+          setMessages([]);
+        }
+        setShowRoomOptions(null);
+      }
+    } catch (error) {
+      console.error('Error deleting conversation:', error);
+    }
+  };
+
+  // Leave group
+  const leaveGroup = async (roomId: string) => {
+    if (!confirm('Ești sigur că vrei să părăsești acest grup?')) return;
+    
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const response = await fetch(`${apiUrl}/api/chat/rooms/${roomId}/leave`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (response.ok) {
+        setChatRooms(prev => prev.filter(room => room.id !== roomId));
+        if (selectedRoom?.id === roomId) {
+          setSelectedRoom(null);
+          setMessages([]);
+        }
+        setShowRoomOptions(null);
+      }
+    } catch (error) {
+      console.error('Error leaving group:', error);
+    }
   };
 
   const sendMessage = async () => {
     if (!newMessage.trim() || !selectedRoom || !token) return;
 
+    setSendingMessage(true);
     try {
-      const response = await fetch(`/api/chat/rooms/${selectedRoom.id}/messages`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const response = await fetch(`${apiUrl}/api/chat/rooms/${selectedRoom.id}/messages`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -276,13 +441,16 @@ export default function ChatSystem() {
       }
     } catch (error) {
       console.error('Error sending message:', error);
+    } finally {
+      setSendingMessage(false);
     }
   };
 
   const createDirectChat = async (targetUserId: string) => {
     setLoading(true);
     try {
-      const response = await fetch('/api/chat/direct', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const response = await fetch(`${apiUrl}/api/chat/direct`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -309,7 +477,8 @@ export default function ChatSystem() {
 
     setLoading(true);
     try {
-      const response = await fetch('/api/chat/group', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const response = await fetch(`${apiUrl}/api/chat/group`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -390,7 +559,8 @@ export default function ChatSystem() {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch('/api/upload/chat', {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const response = await fetch(`${apiUrl}/api/upload/chat`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -402,7 +572,7 @@ export default function ChatSystem() {
         const { fileUrl } = await response.json();
         
         // Send message with file
-        const messageResponse = await fetch(`/api/chat/rooms/${selectedRoom.id}/messages`, {
+        const messageResponse = await fetch(`${apiUrl}/api/chat/rooms/${selectedRoom.id}/messages`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -431,7 +601,8 @@ export default function ChatSystem() {
     if (!selectedRoom || !token) return;
 
     try {
-      const response = await fetch(`/api/chat/rooms/${selectedRoom.id}/messages/${messageId}`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const response = await fetch(`${apiUrl}/api/chat/rooms/${selectedRoom.id}/messages/${messageId}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -455,7 +626,8 @@ export default function ChatSystem() {
     if (!selectedRoom || !token) return;
 
     try {
-      const response = await fetch(`/api/chat/rooms/${selectedRoom.id}/messages/${messageId}`, {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const response = await fetch(`${apiUrl}/api/chat/rooms/${selectedRoom.id}/messages/${messageId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -495,27 +667,93 @@ export default function ChatSystem() {
   return (
     <>
       {/* Chat Toggle Button */}
-      <div className="fixed bottom-4 right-20 z-50">
+      <div className="fixed bottom-4 right-24 z-50">
         <button
           onClick={() => setIsOpen(!isOpen)}
-          className="bg-green-600 hover:bg-green-700 text-white rounded-full p-4 shadow-lg transition-all duration-200 relative"
+          className="bg-green-600 hover:bg-green-700 text-white rounded-full p-4 shadow-lg transition-all duration-200 relative group"
           title="Chat cu utilizatori"
         >
           <MessageCircle className="h-6 w-6" />
           {totalUnreadCount > 0 && (
-            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center">
+            <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center animate-pulse">
               {totalUnreadCount > 9 ? '9+' : totalUnreadCount}
             </span>
           )}
+          <span className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+            Chat Utilizatori
+          </span>
         </button>
       </div>
 
       {/* Chat Window */}
       {isOpen && (
-        <div className="fixed bottom-20 right-20 w-96 h-[600px] bg-white border border-gray-200 rounded-lg shadow-xl z-50 flex flex-col">
+        <div 
+          ref={chatRef}
+          className={`fixed bg-white border border-gray-200 rounded-lg shadow-xl z-50 flex flex-col ${
+            isMaximized ? 'inset-4' : ''
+          }`}
+          style={
+            isMaximized 
+              ? {} 
+              : {
+                  left: `${position.x}px`,
+                  top: `${position.y}px`,
+                  width: `${size.width}px`,
+                  height: `${size.height}px`
+                }
+          }
+          onMouseDown={handleMouseDown}
+        >
+          {/* Resize handles */}
+          {!isMaximized && (
+            <>
+              {/* Corner resize handles */}
+              <div 
+                className="absolute -top-1 -left-1 w-3 h-3 cursor-nw-resize bg-blue-500 opacity-0 hover:opacity-50 rounded-tl"
+                onMouseDown={(e) => handleResize(e, 'top-left')}
+              />
+              <div 
+                className="absolute -top-1 -right-1 w-3 h-3 cursor-ne-resize bg-blue-500 opacity-0 hover:opacity-50 rounded-tr"
+                onMouseDown={(e) => handleResize(e, 'top-right')}
+              />
+              <div 
+                className="absolute -bottom-1 -left-1 w-3 h-3 cursor-sw-resize bg-blue-500 opacity-0 hover:opacity-50 rounded-bl"
+                onMouseDown={(e) => handleResize(e, 'bottom-left')}
+              />
+              <div 
+                className="absolute -bottom-1 -right-1 w-3 h-3 cursor-se-resize bg-blue-500 opacity-0 hover:opacity-50 rounded-br"
+                onMouseDown={(e) => handleResize(e, 'bottom-right')}
+              />
+              
+              {/* Edge resize handles */}
+              <div 
+                className="absolute -top-1 left-3 right-3 h-2 cursor-n-resize"
+                onMouseDown={(e) => handleResize(e, 'top')}
+              />
+              <div 
+                className="absolute -bottom-1 left-3 right-3 h-2 cursor-s-resize"
+                onMouseDown={(e) => handleResize(e, 'bottom')}
+              />
+              <div 
+                className="absolute -left-1 top-3 bottom-3 w-2 cursor-w-resize"
+                onMouseDown={(e) => handleResize(e, 'left')}
+              />
+              <div 
+                className="absolute -right-1 top-3 bottom-3 w-2 cursor-e-resize"
+                onMouseDown={(e) => handleResize(e, 'right')}
+              />
+            </>
+          )}
+
           {/* Header */}
-          <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-blue-600 text-white rounded-t-lg">
-            <h3 className="font-semibold">💬 Chat</h3>
+          <div 
+            ref={dragRef}
+            className="flex items-center justify-between p-4 border-b border-gray-200 bg-blue-600 text-white rounded-t-lg cursor-move select-none"
+          >
+            <div className="flex items-center space-x-2">
+              <Move className="h-4 w-4 opacity-70" />
+              <h3 className="font-semibold">💬 Chat</h3>
+            </div>
             <div className="flex items-center space-x-2">
               <button
                 onClick={() => setShowNewChatModal(true)}
@@ -523,6 +761,13 @@ export default function ChatSystem() {
                 title="New Chat"
               >
                 <Plus className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => setIsMaximized(!isMaximized)}
+                className="p-1 hover:bg-blue-700 rounded"
+                title={isMaximized ? "Restore" : "Maximize"}
+              >
+                {isMaximized ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
               </button>
               <button
                 onClick={() => setIsOpen(false)}
@@ -538,48 +783,83 @@ export default function ChatSystem() {
             <div className={`${selectedRoom ? 'w-1/3' : 'w-full'} border-r border-gray-200 flex flex-col transition-all duration-200`}>
               {/* Quick Actions */}
               <div className="p-3 border-b border-gray-100 space-y-2">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-medium text-gray-600">Acțiuni rapide</span>
+                  <button
+                    onClick={loadChatRooms}
+                    className="p-1 hover:bg-gray-100 rounded text-gray-500"
+                    title="Reîmprospătează conversațiile"
+                  >
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                  </button>
+                </div>
                 <button
                   onClick={createSupportChat}
                   disabled={loading}
-                  className="w-full text-left p-2 text-sm bg-green-50 hover:bg-green-100 rounded-lg text-green-700 transition-colors disabled:opacity-50"
+                  className="w-full text-left p-2 text-sm bg-green-50 hover:bg-green-100 rounded-lg text-green-700 transition-colors disabled:opacity-50 flex items-center space-x-2"
                 >
-                  {loading ? '⏳ Creating...' : '🎧 Contact Support'}
+                  <span>🎧</span>
+                  <span>{loading ? 'Se creează...' : 'Contact Support'}</span>
                 </button>
                 <button
                   onClick={() => setShowGroupModal(true)}
-                  className="w-full text-left p-2 text-sm bg-blue-50 hover:bg-blue-100 rounded-lg text-blue-700 transition-colors"
+                  className="w-full text-left p-2 text-sm bg-blue-50 hover:bg-blue-100 rounded-lg text-blue-700 transition-colors flex items-center space-x-2"
                 >
-                  👥 Create Group
+                  <span>👥</span>
+                  <span>Creează Grup</span>
                 </button>
               </div>
 
               {/* Chat Rooms */}
               <div className="flex-1 overflow-y-auto">
-                {chatRooms.length === 0 ? (
+                {loading && (
+                  <div className="p-4 text-center">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+                    <p className="text-xs text-gray-500 mt-2">Se încarcă...</p>
+                  </div>
+                )}
+                {!loading && chatRooms.length === 0 ? (
                   <div className="p-4 text-center text-gray-500 text-sm">
-                    No chats yet. Start a conversation!
+                    <div className="text-2xl mb-2">💬</div>
+                    <p>Nu ai conversații încă.</p>
+                    <p className="text-xs mt-1">Începe o conversație nouă!</p>
                   </div>
                 ) : (
                   chatRooms.map(room => (
                     <div
                       key={room.id}
-                      onClick={() => selectRoom(room)}
-                      className={`p-3 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${
+                      className={`relative group p-3 border-b border-gray-100 cursor-pointer hover:bg-gray-50 transition-colors ${
                         selectedRoom?.id === room.id ? 'bg-blue-50 border-l-4 border-l-blue-600' : ''
                       }`}
                     >
-                      <div className="flex items-center space-x-3">
+                      <div 
+                        className="flex items-center space-x-3"
+                        onClick={() => selectRoom(room)}
+                      >
                         <div className="text-2xl">{getRoomAvatar(room)}</div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between">
                             <p className="font-medium text-sm truncate">
                               {getRoomDisplayName(room)}
                             </p>
-                            {room.unreadCount > 0 && (
-                              <span className="bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
-                                {room.unreadCount > 9 ? '9+' : room.unreadCount}
-                              </span>
-                            )}
+                            <div className="flex items-center space-x-1">
+                              {room.unreadCount > 0 && (
+                                <span className="bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center animate-pulse">
+                                  {room.unreadCount > 9 ? '9+' : room.unreadCount}
+                                </span>
+                              )}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setShowRoomOptions(showRoomOptions === room.id ? null : room.id);
+                                }}
+                                className="p-1 hover:bg-gray-200 rounded opacity-0 group-hover:opacity-100 transition-opacity"
+                              >
+                                <MoreVertical className="h-3 w-3" />
+                              </button>
+                            </div>
                           </div>
                           {room.lastMessage && (
                             <p className="text-xs text-gray-500 truncate">
@@ -588,6 +868,54 @@ export default function ChatSystem() {
                           )}
                         </div>
                       </div>
+
+                      {/* Room Options Menu */}
+                      {showRoomOptions === room.id && (
+                        <div className="absolute right-2 top-12 bg-white border border-gray-200 rounded-lg shadow-lg z-20 py-1 min-w-[160px]">
+                          <div className="px-3 py-2 text-xs text-gray-500 border-b border-gray-100">
+                            Opțiuni conversație
+                          </div>
+                          {room.type === 'GROUP' && (
+                            <button
+                              onClick={() => leaveGroup(room.id)}
+                              className="w-full text-left px-3 py-2 text-sm hover:bg-orange-50 text-orange-600 flex items-center space-x-2"
+                            >
+                              <span>🚪</span>
+                              <span>Părăsește grupul</span>
+                            </button>
+                          )}
+                          {room.type !== 'SUPPORT' && (
+                            <button
+                              onClick={() => deleteConversation(room.id)}
+                              className="w-full text-left px-3 py-2 text-sm hover:bg-red-50 text-red-600 flex items-center space-x-2"
+                            >
+                              <span>🗑️</span>
+                              <span>Șterge conversația</span>
+                            </button>
+                          )}
+                          <button
+                            onClick={() => {
+                              setChatRooms(prev => prev.map(r => 
+                                r.id === room.id ? { ...r, unreadCount: 0 } : r
+                              ));
+                              setShowRoomOptions(null);
+                            }}
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-blue-50 text-blue-600 flex items-center space-x-2"
+                          >
+                            <span>✅</span>
+                            <span>Marchează ca citit</span>
+                          </button>
+                          <div className="border-t border-gray-100 mt-1">
+                            <button
+                              onClick={() => setShowRoomOptions(null)}
+                              className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 text-gray-600 flex items-center space-x-2"
+                            >
+                              <span>❌</span>
+                              <span>Închide</span>
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))
                 )}
@@ -786,10 +1114,14 @@ export default function ChatSystem() {
                     />
                     <button
                       onClick={sendMessage}
-                      disabled={!newMessage.trim() || uploadingFile}
-                      className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      disabled={!newMessage.trim() || uploadingFile || sendingMessage}
+                      className="p-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center min-w-[44px]"
                     >
-                      <Send className="h-4 w-4" />
+                      {sendingMessage ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      ) : (
+                        <Send className="h-4 w-4" />
+                      )}
                     </button>
                   </div>
                 </div>
@@ -814,10 +1146,7 @@ export default function ChatSystem() {
             </div>
 
             <div className="space-y-3 max-h-60 overflow-y-auto">
-              {console.log('🎨 Rendering modal with availableUsers:', availableUsers)}
-              {console.log('🎨 availableUsers.length:', availableUsers.length)}
               {availableUsers.map(availableUser => {
-                console.log('🎨 Rendering user:', availableUser);
                 return (
                   <div
                     key={availableUser.id}

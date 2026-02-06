@@ -289,13 +289,26 @@ export default function ShopPage() {
                 <div className="flex items-baseline gap-2 mb-2">
                   <span className="text-2xl font-bold text-blue-600">
                     {product.price.toFixed(2)} RON
+                    {product.unitName && product.unitName !== 'bucată' && (
+                      <span className="text-sm font-normal text-gray-600">/{product.unitName}</span>
+                    )}
                   </span>
                   {product.oldPrice && product.oldPrice > product.price && (
                     <span className="text-sm text-gray-400 line-through">
                       {product.oldPrice.toFixed(2)} RON
+                      {product.unitName && product.unitName !== 'bucată' && (
+                        <span className="text-xs">/{product.unitName}</span>
+                      )}
                     </span>
                   )}
                 </div>
+                
+                {/* Informații despre unitatea de măsură */}
+                {product.unitName && product.unitName !== 'bucată' && (
+                  <p className="text-xs text-gray-500 mb-2">
+                    Vândut per {product.unitName}
+                  </p>
+                )}
 
                 <div className="flex items-center justify-between text-sm">
                   <span

@@ -8,8 +8,12 @@ interface Product {
   id: string;
   title: string;
   price: number;
+  oldPrice?: number;
   image: string;
   rating?: number;
+  unitName?: string;
+  stock?: number;
+  availableStock?: number;
 }
 
 interface ProductGridProps {
@@ -73,7 +77,15 @@ export default function ProductGrid({
                 )}
                 <p className="text-lg font-bold text-blue-600">
                   {product.price.toFixed(2)} RON
+                  {product.unitName && product.unitName !== 'bucată' && (
+                    <span className="text-sm font-normal text-gray-600">/{product.unitName}</span>
+                  )}
                 </p>
+                {product.unitName && product.unitName !== 'bucată' && (
+                  <p className="text-xs text-gray-500">
+                    Vândut per {product.unitName}
+                  </p>
+                )}
               </div>
             </Link>
           </div>

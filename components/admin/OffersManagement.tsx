@@ -236,9 +236,9 @@ export default function OffersManagement() {
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     disabled={uploadingImage}
-                    className="px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-400 whitespace-nowrap"
+                    className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:bg-gray-400 whitespace-nowrap font-medium"
                   >
-                    {uploadingImage ? '📤...' : '📷'}
+                    {uploadingImage ? '📤 Se încarcă...' : '📷 Încarcă Imagine'}
                   </button>
                 </div>
               </div>

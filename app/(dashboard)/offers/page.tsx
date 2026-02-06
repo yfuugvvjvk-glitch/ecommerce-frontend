@@ -41,7 +41,7 @@ export default function OffersPage() {
         {offers.map((offer: any) => (
           <div key={offer.id} className="bg-white rounded-lg shadow-lg overflow-hidden">
             {offer.image && (
-              <div className="relative h-48 w-full">
+              <Link href={`/products?offer=${offer.id}`} className="block relative h-48 w-full cursor-pointer hover:opacity-90 transition">
                 <img 
                   src={offer.image} 
                   alt={offer.title} 
@@ -50,7 +50,7 @@ export default function OffersPage() {
                 <div className="absolute top-4 right-4 bg-red-600 text-white px-4 py-2 rounded-full font-bold text-lg shadow-lg">
                   -{offer.discount}%
                 </div>
-              </div>
+              </Link>
             )}
             <div className="p-6">
               <h2 className="text-2xl font-bold text-gray-900 mb-2">{offer.title}</h2>
