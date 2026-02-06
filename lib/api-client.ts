@@ -9,6 +9,11 @@ export const apiClient = axios.create({
   },
 });
 
+// Helper function for public API calls
+export const getPublicApiUrl = (path: string) => {
+  return `${API_URL}${path}`;
+};
+
 // Request interceptor - add token
 apiClient.interceptors.request.use(
   (config) => {
