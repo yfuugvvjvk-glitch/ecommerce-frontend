@@ -68,7 +68,7 @@ export default function CheckoutPage() {
 
   const fetchDeliveryLocations = async () => {
     try {
-      const response = await fetch('/api/public/delivery-locations');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/public/delivery-locations`);
       const locations = await response.json();
       setDeliveryLocations(locations);
       
@@ -85,7 +85,7 @@ export default function CheckoutPage() {
 
   const fetchContactInfo = async () => {
     try {
-      const response = await fetch('/api/public/contact-info');
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/public/contact-info`);
       const data = await response.json();
       setContactInfo(data);
     } catch (error) {
