@@ -27,6 +27,7 @@ export default function CheckoutPage() {
   const [showReview, setShowReview] = useState(false);
   const [showPaymentSimulator, setShowPaymentSimulator] = useState(false);
   const [pendingOrderId, setPendingOrderId] = useState<string | null>(null);
+  const [contactInfo, setContactInfo] = useState<any>(null);
   
   // Stock check hook
   const { stockErrors, checking, checkAllStock } = useStockCheck(
@@ -39,6 +40,7 @@ export default function CheckoutPage() {
   useEffect(() => {
     fetchCart();
     fetchDeliveryLocations();
+    fetchContactInfo();
     if (user?.address) {
       setShippingAddress(user.address);
     }
@@ -78,6 +80,16 @@ export default function CheckoutPage() {
       }
     } catch (error) {
       console.error('Failed to fetch delivery locations:', error);
+    }
+  };
+
+  const fetchContactInfo = async () => {
+    try {
+      const response = await fetch('/api/public/contact-info');
+      const data = await response.json();
+      setContactInfo(data);
+    } catch (error) {
+      console.error('Failed to fetch contact info:', error);
     }
   };
 
@@ -531,6 +543,7 @@ export default function CheckoutPage() {
                 <div className="flex-1">
                   <div className="font-semibold">Curier la domiciliu</div>
                   <div className="text-sm text-gray-600">Livrare la locația specificată în ziua aleasă</div>
+                  <div className="text-xs text-orange-600 mt-1">Pentru adrese speciale, contactează-ne</div>
                 </div>
                 <div className="font-bold text-blue-600">{deliveryFee} RON</div>
               </label>
@@ -623,6 +636,12 @@ export default function CheckoutPage() {
                 placeholder="Introdu adresa completă de livrare"
                 required
               />
+              <p className="text-sm text-gray-600 mt-2">
+                📌 Livrăm la locațiile standard din lista de mai sus.
+              </p>
+              <p className="text-sm text-orange-600 mt-1">
+                ⚠️ Pentru adrese speciale (în afara locațiilor standard), te rugăm să ne contactezi la <strong>{contactInfo?.contact_phone || '+40 753615752'}</strong> sau <strong>{contactInfo?.contact_email || 'crys.cristi@yahoo.com'}</strong>
+              </p>
             </div>
           )}
 

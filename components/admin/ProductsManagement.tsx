@@ -194,14 +194,17 @@ export default function ProductsManagement() {
         status: 'published'
       };
 
-      await apiClient.put(`/api/data/${productId}`, productData);
+      console.log('Sending product data:', productData);
+      const response = await apiClient.put(`/api/data/${productId}`, productData);
+      console.log('Update response:', response);
 
       setShowModal(false);
       fetchData();
       alert('Produsul a fost actualizat cu succes!');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating product:', error);
-      alert('Eroare la actualizarea produsului');
+      console.error('Error response:', error.response?.data);
+      alert(`Eroare la actualizarea produsului: ${error.response?.data?.error || error.message}`);
     }
   };
 

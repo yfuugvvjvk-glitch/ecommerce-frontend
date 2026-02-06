@@ -227,6 +227,9 @@ export default function ContactPage() {
               <p className="text-gray-600">
                 Livrarea se face la locația specificată în ziua de livrare aleasă de tine la checkout.
               </p>
+              <p className="text-gray-600 mt-2">
+                <strong>Pentru adrese speciale</strong> (în afara locațiilor standard de livrare), te rugăm să ne contactezi pentru a stabili detaliile livrării.
+              </p>
             </div>
 
             <div>
