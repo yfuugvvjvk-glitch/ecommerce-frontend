@@ -18,6 +18,7 @@ import FinancialDashboard from '@/components/admin/FinancialDashboard';
 import ContentManager from '@/components/admin/ContentManager';
 import DeliveryScheduleManager from '@/components/admin/DeliveryScheduleManager';
 import ExpenseRevenueManager from '@/components/admin/ExpenseRevenueManager';
+import DeliveryPaymentSettings from '@/components/admin/DeliveryPaymentSettings';
 import DeliveryLocationsManager from '@/components/admin/DeliveryLocationsManager';
 
 export default function AdminPage() {
@@ -25,7 +26,7 @@ export default function AdminPage() {
   const router = useRouter();
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'products' | 'orders' | 'vouchers' | 'offers' | 'categories' | 'invoices' | 'test-cards' | 'inventory' | 'financial' | 'content' | 'delivery-schedule' | 'delivery-locations'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'products' | 'orders' | 'vouchers' | 'offers' | 'categories' | 'invoices' | 'test-cards' | 'inventory' | 'financial' | 'content' | 'delivery-schedule' | 'delivery-locations' | 'payment-delivery'>('dashboard');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   useEffect(() => {
@@ -236,6 +237,16 @@ export default function AdminPage() {
         >
           📍 Locații Livrare
         </button>
+        <button
+          onClick={() => setActiveTab('payment-delivery')}
+          className={`px-4 py-2 font-medium transition whitespace-nowrap ${
+            activeTab === 'payment-delivery'
+              ? 'border-b-2 border-blue-600 text-blue-600'
+              : 'text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          💳 Plată & Livrare
+        </button>
       </div>
 
       {/* Dashboard Tab */}
@@ -418,6 +429,13 @@ export default function AdminPage() {
       {activeTab === 'delivery-locations' && (
         <div className="bg-white rounded-lg shadow p-6">
           <DeliveryLocationsManager />
+        </div>
+      )}
+
+      {/* Payment & Delivery Settings Tab */}
+      {activeTab === 'payment-delivery' && (
+        <div className="bg-white rounded-lg shadow p-6">
+          <DeliveryPaymentSettings />
         </div>
       )}
     </div>
