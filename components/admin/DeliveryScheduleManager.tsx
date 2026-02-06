@@ -578,6 +578,86 @@ export default function DeliveryScheduleManager() {
                 </div>
               </div>
 
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Intervale de Livrare
+                </label>
+                <div className="space-y-3">
+                  {scheduleForm.deliveryTimeSlots.map((slot, index) => (
+                    <div key={index} className="flex items-center gap-2 bg-gray-50 p-3 rounded">
+                      <div className="flex-1 grid grid-cols-3 gap-2">
+                        <div>
+                          <label className="block text-xs text-gray-600 mb-1">Ora început</label>
+                          <input
+                            type="time"
+                            value={slot.startTime}
+                            onChange={(e) => {
+                              const newSlots = [...scheduleForm.deliveryTimeSlots];
+                              newSlots[index].startTime = e.target.value;
+                              setScheduleForm({...scheduleForm, deliveryTimeSlots: newSlots});
+                            }}
+                            className="w-full border rounded px-2 py-1 text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-600 mb-1">Ora sfârșit</label>
+                          <input
+                            type="time"
+                            value={slot.endTime}
+                            onChange={(e) => {
+                              const newSlots = [...scheduleForm.deliveryTimeSlots];
+                              newSlots[index].endTime = e.target.value;
+                              setScheduleForm({...scheduleForm, deliveryTimeSlots: newSlots});
+                            }}
+                            className="w-full border rounded px-2 py-1 text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-gray-600 mb-1">Max comenzi</label>
+                          <input
+                            type="number"
+                            min="1"
+                            value={slot.maxOrders}
+                            onChange={(e) => {
+                              const newSlots = [...scheduleForm.deliveryTimeSlots];
+                              newSlots[index].maxOrders = parseInt(e.target.value) || 1;
+                              setScheduleForm({...scheduleForm, deliveryTimeSlots: newSlots});
+                            }}
+                            className="w-full border rounded px-2 py-1 text-sm"
+                          />
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const newSlots = scheduleForm.deliveryTimeSlots.filter((_, i) => i !== index);
+                          setScheduleForm({...scheduleForm, deliveryTimeSlots: newSlots});
+                        }}
+                        className="text-red-500 hover:text-red-700 text-sm px-2"
+                        disabled={scheduleForm.deliveryTimeSlots.length === 1}
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setScheduleForm({
+                        ...scheduleForm,
+                        deliveryTimeSlots: [
+                          ...scheduleForm.deliveryTimeSlots,
+                          { startTime: '09:00', endTime: '17:00', maxOrders: 10 }
+                        ]
+                      });
+                    }}
+                    className="text-blue-600 hover:text-blue-800 text-sm"
+                  >
+                    ➕ Adaugă Interval
+                  </button>
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
