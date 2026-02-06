@@ -676,28 +676,27 @@ export default function ProductsManagement() {
             </div>
 
             <div className="space-y-6">
-              {/* Basic Product Info - Only for new products */}
-              {!selectedProduct && (
-                <div className="border rounded-lg p-4">
-                  <h4 className="font-semibold mb-3">📝 Informații de Bază</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Basic Product Info - For both new and existing products */}
+              <div className="border rounded-lg p-4">
+                <h4 className="font-semibold mb-3">📝 Informații de Bază</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <input
+                    type="text"
+                    placeholder="Titlu produs (ex: Mere Golden)"
+                    value={productForm.title}
+                    onChange={(e) => setProductForm({...productForm, title: e.target.value})}
+                    className="border rounded px-3 py-2"
+                    required
+                  />
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Preț per unitate (RON)
+                    </label>
                     <input
-                      type="text"
-                      placeholder="Titlu produs (ex: Mere Golden)"
-                      value={productForm.title}
-                      onChange={(e) => setProductForm({...productForm, title: e.target.value})}
-                      className="border rounded px-3 py-2"
-                      required
-                    />
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Preț per unitate (RON)
-                      </label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        placeholder="ex: 15.50 pentru 15.50 RON/kg"
+                      type="number"
+                      step="0.01"
+                      placeholder="ex: 15.50 pentru 15.50 RON/kg"
                         value={productForm.price}
                         onChange={(e) => setProductForm({...productForm, price: parseFloat(e.target.value) || 0})}
                         className="w-full border rounded px-3 py-2"
@@ -779,7 +778,7 @@ export default function ProductsManagement() {
                     />
                   </div>
                 </div>
-              )}
+              </div>
 
               {/* Unit Settings */}
               <div className="border rounded-lg p-4">
