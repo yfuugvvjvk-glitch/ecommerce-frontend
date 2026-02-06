@@ -1,6 +1,10 @@
 import axios from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+// Use relative URLs in browser (will go through Next.js proxy)
+// Use full URL in server-side rendering
+const API_URL = typeof window === 'undefined' 
+  ? (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001')
+  : ''; // Empty string means relative URLs
 
 export const apiClient = axios.create({
   baseURL: API_URL,
@@ -11,7 +15,8 @@ export const apiClient = axios.create({
 
 // Helper function for public API calls
 export const getPublicApiUrl = (path: string) => {
-  return `${API_URL}${path}`;
+  const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+  return `${backendUrl}${path}`;
 };
 
 // Request interceptor - add token
