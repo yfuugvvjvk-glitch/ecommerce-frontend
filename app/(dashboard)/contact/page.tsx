@@ -125,7 +125,7 @@ export default function ContactPage() {
                       </div>
 
                       <div className="flex items-start">
-                        <img src="/images/calendar.png" className="h-8 w-8 mr-3 mt-1" alt="Schedule" />
+                        <img src="/images/orar.jpg" className="h-8 w-8 mr-3 mt-1" alt="Schedule" />
                         <div>
                           <h3 className="font-semibold text-gray-700 mb-1">Program</h3>
                           <p className="text-gray-600">{content.schedule || 'Magazin fizic: Luni - Vineri: 9:00 - 18:00'}</p>
