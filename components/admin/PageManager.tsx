@@ -42,7 +42,7 @@ export default function PageManager({ pageId, onClose }: PageManagerProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
-  const [activeTab, setActiveTab] = useState<'content' | 'sections' | 'settings'>('content');
+  const [activeTab, setActiveTab] = useState<'content' | 'settings'>('content');
 
   // Real-time updates
   const { isConnected } = useWebSocket({
@@ -237,16 +237,6 @@ export default function PageManager({ pageId, onClose }: PageManagerProps) {
             📝 Conținut
           </button>
           <button
-            onClick={() => setActiveTab('sections')}
-            className={`px-4 py-2 font-medium transition ${
-              activeTab === 'sections'
-                ? 'border-b-2 border-blue-600 text-blue-600'
-                : 'text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            🧩 Secțiuni
-          </button>
-          <button
             onClick={() => setActiveTab('settings')}
             className={`px-4 py-2 font-medium transition ${
               activeTab === 'settings'
@@ -290,24 +280,6 @@ export default function PageManager({ pageId, onClose }: PageManagerProps) {
                 Poți folosi HTML pentru formatare avansată
               </p>
             </div>
-          </div>
-        )}
-
-        {activeTab === 'sections' && (
-          <div>
-            <p className="text-gray-600 mb-4">
-              Secțiunile modulare vor fi implementate în curând...
-            </p>
-            {page.sections && page.sections.length > 0 && (
-              <div className="space-y-4">
-                {page.sections.map(section => (
-                  <div key={section.id} className="border rounded p-4">
-                    <h4 className="font-medium">{section.title || `Secțiunea ${section.type}`}</h4>
-                    <p className="text-sm text-gray-600">Tip: {section.type}</p>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         )}
 

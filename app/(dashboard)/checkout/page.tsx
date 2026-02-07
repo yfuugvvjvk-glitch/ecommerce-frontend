@@ -128,7 +128,7 @@ export default function CheckoutPage() {
     }
   };
 
-  const calculateDeliveryFee = async (locationId: string) => {
+  const calculateDeliveryFee = (locationId?: string) => {
     if (!cart) {
       setDeliveryFee(0);
       return;
@@ -152,20 +152,6 @@ export default function CheckoutPage() {
     }
 
     setDeliveryFee(selectedMethod.deliveryCost || 0);
-  };
-
-    try {
-      const response = await fetch(`/api/public/delivery-locations/${locationId}/calculate-fee`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderTotal: cart.total })
-      });
-      const feeInfo = await response.json();
-      setDeliveryFee(feeInfo.fee || 0);
-    } catch (error) {
-      console.error('Failed to calculate delivery fee:', error);
-      setDeliveryFee(15); // Fallback fee
-    }
   };
 
   const applyVoucher = async () => {
@@ -206,7 +192,7 @@ export default function CheckoutPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!shippingAddress.trim() && deliveryMethod === 'courier') {
+    if (!shippingAddress.trim() && selectedMethod?.type === 'courier') {
       alert('Te rog introdu adresa de livrare');
       return;
     }
@@ -289,7 +275,7 @@ export default function CheckoutPage() {
         shippingAddress,
         paymentMethod,
         deliveryMethod,
-        deliveryLocationId: deliveryMethod === 'pickup' ? selectedDeliveryLocation : null,
+        deliveryLocationId: selectedMethod?.type === 'pickup' ? selectedDeliveryLocation : null,
         voucherCode: appliedVoucher ? voucherCode : undefined,
         orderLocalTime,
         orderLocation,
@@ -379,10 +365,13 @@ export default function CheckoutPage() {
   }
 
   const finalTotal = appliedVoucher ? appliedVoucher.finalTotal : cart.total;
+  const selectedMethod = deliveryMethods.find(m => m.id === deliveryMethod);
 
   // Review Modal
   if (showReview) {
-    const deliveryCost = deliveryMethod === 'courier' ? deliveryFee : 0;
+    // Calculate delivery cost based on selected method
+    const selectedMethod = deliveryMethods.find(m => m.id === deliveryMethod);
+    const deliveryCost = selectedMethod?.deliveryCost || 0;
     const totalWithDelivery = finalTotal + deliveryCost;
 
     return (
@@ -410,10 +399,10 @@ export default function CheckoutPage() {
               <h2 className="text-xl font-semibold mb-3">🚚 Livrare</h2>
               <div className="text-sm space-y-1">
                 <p><strong>Metodă:</strong> {deliveryMethods.find(m => m.id === deliveryMethod)?.name || 'Necunoscută'}</p>
-                {deliveryMethod === 'courier' && (
+                {selectedMethod?.type === 'courier' && (
                   <p><strong>Adresă:</strong> {shippingAddress}</p>
                 )}
-                {deliveryMethod === 'pickup' && selectedDeliveryLocation && (
+                {selectedMethod?.type === 'pickup' && selectedDeliveryLocation && (
                   <div>
                     <p><strong>Locația de ridicare:</strong></p>
                     {(() => {
@@ -622,33 +611,9 @@ export default function CheckoutPage() {
               ))}
             </div>
           </div>
-                <div className="flex-1">
-                  <div className="font-semibold">Curier la domiciliu</div>
-                  <div className="text-sm text-gray-600">Livrare la locația specificată în ziua aleasă</div>
-                  <div className="text-xs text-orange-600 mt-1">Pentru adrese speciale, contactează-ne</div>
-                </div>
-                <div className="font-bold text-blue-600">{deliveryFee} RON</div>
-              </label>
-              <label className="flex items-center gap-3 p-3 border rounded cursor-pointer hover:bg-gray-50">
-                <input
-                  type="radio"
-                  name="delivery"
-                  value="pickup"
-                  checked={deliveryMethod === 'pickup'}
-                  onChange={(e) => handleDeliveryMethodChange(e.target.value as 'pickup')}
-                  className="w-4 h-4"
-                />
-                <div className="flex-1">
-                  <div className="font-semibold">Ridicare personală</div>
-                  <div className="text-sm text-gray-600">Disponibil în 24h</div>
-                </div>
-                <div className="font-bold text-green-600">GRATUIT</div>
-              </label>
-            </div>
-          </div>
 
           {/* Delivery Location Selection */}
-          {deliveryMethod === 'pickup' && deliveryLocations.length > 0 && (
+          {selectedMethod?.type === 'pickup' && deliveryLocations.length > 0 && (
             <div className="bg-white p-6 rounded-lg shadow">
               <h2 className="text-xl font-bold mb-4">📍 Locația de ridicare</h2>
               <div className="space-y-3">
@@ -707,7 +672,7 @@ export default function CheckoutPage() {
           )}
 
           {/* Shipping Address */}
-          {deliveryMethod === 'courier' && (
+          {selectedMethod?.type === 'courier' && (
             <div className="bg-white p-6 rounded-lg shadow">
               <h2 className="text-xl font-bold mb-4">📍 Adresa de livrare</h2>
               <textarea
@@ -806,7 +771,7 @@ export default function CheckoutPage() {
               </div>
               <div className="flex justify-between">
                 <span>Livrare:</span>
-                <span>{deliveryMethod === 'courier' ? deliveryFee.toFixed(2) : '0.00'} RON</span>
+                <span>{selectedMethod?.deliveryCost?.toFixed(2) || '0.00'} RON</span>
               </div>
               {appliedVoucher && (
                 <div className="flex justify-between text-green-600">
@@ -817,7 +782,7 @@ export default function CheckoutPage() {
               <div className="border-t pt-2 flex justify-between text-xl font-bold">
                 <span>Total de plată:</span>
                 <span className="text-blue-600">
-                  {(finalTotal + (deliveryMethod === 'courier' ? deliveryFee : 0)).toFixed(2)} RON
+                  {(finalTotal + (selectedMethod?.deliveryCost || 0)).toFixed(2)} RON
                 </span>
               </div>
             </div>
@@ -834,8 +799,8 @@ export default function CheckoutPage() {
             <button
               onClick={() => setShowReview(true)}
               disabled={submitting || checking || stockErrors.length > 0 || 
-                       (deliveryMethod === 'courier' && !shippingAddress.trim()) ||
-                       (deliveryMethod === 'pickup' && !selectedDeliveryLocation)}
+                       (selectedMethod?.type === 'courier' && !shippingAddress.trim()) ||
+                       (selectedMethod?.type === 'pickup' && !selectedDeliveryLocation)}
               className="w-full mt-4 px-4 py-3 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium disabled:opacity-50"
             >
               {checking ? 'Verificare stoc...' : 'Continuă la verificare →'}
@@ -848,7 +813,7 @@ export default function CheckoutPage() {
       {showPaymentSimulator && pendingOrderId && (
         <PaymentSimulator
           orderId={pendingOrderId}
-          amount={finalTotal + (deliveryMethod === 'courier' ? deliveryFee : 0)}
+          amount={finalTotal + (selectedMethod?.deliveryCost || 0)}
           onSuccess={handlePaymentSuccess}
           onCancel={handlePaymentCancel}
         />

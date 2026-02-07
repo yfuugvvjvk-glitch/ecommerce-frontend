@@ -23,13 +23,11 @@ export default function DashboardPage() {
   const [offers, setOffers] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [historyProducts, setHistoryProducts] = useState<any[]>([]);
-  const [welcomeContent, setWelcomeContent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchData();
     loadViewedProducts();
-    fetchWelcomeContent();
   }, []);
 
   const loadViewedProducts = async () => {
@@ -48,22 +46,6 @@ export default function DashboardPage() {
       setHistoryProducts(viewed);
     } catch (error) {
       console.error('Failed to load viewed products:', error);
-    }
-  };
-
-  const fetchWelcomeContent = async () => {
-    try {
-      const response = await fetch('/api/public/pages/dashboard-welcome');
-      if (response.ok) {
-        const page = await response.json();
-        // Verifică dacă răspunsul este valid
-        if (page && typeof page === 'object' && page.content) {
-          setWelcomeContent(page);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to fetch welcome content:', error);
-      // Nu seta nimic în caz de eroare - va afișa mesajul implicit
     }
   };
 
@@ -181,14 +163,6 @@ export default function DashboardPage() {
 
       {/* Main Content */}
       <div className="flex-1 space-y-6">
-        {/* Welcome Content - doar dacă există conținut personalizat din admin */}
-        {welcomeContent && welcomeContent.content && (
-          <div 
-            className="bg-white rounded-lg shadow-md p-6 prose max-w-none"
-            dangerouslySetInnerHTML={{ __html: welcomeContent.content }}
-          />
-        )}
-
         {/* Carousel */}
         {offers.length > 0 && <Carousel offers={offers} />}
 

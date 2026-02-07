@@ -50,6 +50,33 @@ export default function AboutPage() {
           {pageContent?.title || 'Despre Noi'}
         </h1>
         
+        {/* Benefits Section */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="bg-white rounded-lg shadow-md p-6 text-center">
+            <div className="text-4xl mb-3">🚚</div>
+            <h3 className="text-xl font-semibold text-gray-800 mb-2">Livrare Rapidă</h3>
+            <p className="text-gray-600">
+              Livrare la locația specificată în ziua aleasă de tine
+            </p>
+          </div>
+          
+          <div className="bg-white rounded-lg shadow-md p-6 text-center">
+            <div className="text-4xl mb-3">💳</div>
+            <h3 className="text-xl font-semibold text-gray-800 mb-2">Plată Securizată</h3>
+            <p className="text-gray-600">
+              Plăți sigure prin card, transfer sau ramburs
+            </p>
+          </div>
+          
+          <div className="bg-white rounded-lg shadow-md p-6 text-center">
+            <div className="text-4xl mb-3">✓</div>
+            <h3 className="text-xl font-semibold text-gray-800 mb-2">Calitate Garantată</h3>
+            <p className="text-gray-600">
+              Produse verificate și garanție de returnare
+            </p>
+          </div>
+        </div>
+        
         <div className="bg-white rounded-lg shadow-md p-8">
           {pageContent?.content ? (
             <div 
@@ -79,27 +106,6 @@ export default function AboutPage() {
               <section>
                 <h2 className="text-2xl font-semibold text-gray-800 mb-4">De Ce Să Ne Alegi</h2>
                 
-                {/* Benefits Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-6 text-center border border-blue-200">
-                    <div className="text-5xl mb-3">🚚</div>
-                    <h3 className="font-bold text-lg mb-2 text-gray-800">Livrare Rapidă</h3>
-                    <p className="text-sm text-gray-700">Livrare în 2-3 zile lucrătoare în toată țara</p>
-                  </div>
-                  
-                  <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-6 text-center border border-green-200">
-                    <div className="text-5xl mb-3">💳</div>
-                    <h3 className="font-bold text-lg mb-2 text-gray-800">Plată Securizată</h3>
-                    <p className="text-sm text-gray-700">Plătești în siguranță cu cardul sau ramburs</p>
-                  </div>
-                  
-                  <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-6 text-center border border-purple-200">
-                    <div className="text-5xl mb-3">🎯</div>
-                    <h3 className="font-bold text-lg mb-2 text-gray-800">Calitate Garantată</h3>
-                    <p className="text-sm text-gray-700">Produse verificate și garanție de calitate</p>
-                  </div>
-                </div>
-
                 <ul className="space-y-3 text-gray-600">
                   <li className="flex items-start">
                     <span className="text-blue-600 mr-2">✓</span>

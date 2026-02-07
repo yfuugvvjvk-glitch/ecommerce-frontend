@@ -20,13 +20,14 @@ import DeliveryScheduleManager from '@/components/admin/DeliveryScheduleManager'
 import ExpenseRevenueManager from '@/components/admin/ExpenseRevenueManager';
 import DeliveryPaymentSettings from '@/components/admin/DeliveryPaymentSettings';
 import DeliveryLocationsManager from '@/components/admin/DeliveryLocationsManager';
+import UIElementsManager from '@/components/admin/UIElementsManager';
 
 export default function AdminPage() {
   const { user } = useAuth();
   const router = useRouter();
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'products' | 'orders' | 'vouchers' | 'offers' | 'categories' | 'invoices' | 'test-cards' | 'inventory' | 'financial' | 'content' | 'delivery-schedule' | 'delivery-locations' | 'payment-delivery'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'products' | 'orders' | 'vouchers' | 'offers' | 'categories' | 'invoices' | 'test-cards' | 'inventory' | 'financial' | 'content' | 'delivery-schedule' | 'delivery-locations' | 'payment-delivery' | 'ui-elements'>('dashboard');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   useEffect(() => {
@@ -247,6 +248,16 @@ export default function AdminPage() {
         >
           💳 Plată & Livrare
         </button>
+        <button
+          onClick={() => setActiveTab('ui-elements')}
+          className={`px-4 py-2 font-medium transition whitespace-nowrap ${
+            activeTab === 'ui-elements'
+              ? 'border-b-2 border-blue-600 text-blue-600'
+              : 'text-gray-600 hover:text-gray-900'
+          }`}
+        >
+          🎨 Elemente UI
+        </button>
       </div>
 
       {/* Dashboard Tab */}
@@ -436,6 +447,13 @@ export default function AdminPage() {
       {activeTab === 'payment-delivery' && (
         <div className="bg-white rounded-lg shadow p-6">
           <DeliveryPaymentSettings />
+        </div>
+      )}
+
+      {/* UI Elements Tab */}
+      {activeTab === 'ui-elements' && (
+        <div className="bg-white rounded-lg shadow p-6">
+          <UIElementsManager />
         </div>
       )}
     </div>

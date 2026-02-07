@@ -162,6 +162,12 @@ export default function ProductsManagement() {
         return;
       }
 
+      // Validate availableQuantities if provided
+      if (productForm.availableQuantities.length === 0) {
+        alert('Vă rugăm să adăugați cel puțin o cantitate disponibilă');
+        return;
+      }
+
       // Update ALL product fields including price and oldPrice
       const productData = {
         title: productForm.title,
@@ -189,7 +195,9 @@ export default function ProductsManagement() {
         unitName: productForm.unitName,
         availableQuantities: productForm.availableQuantities,
         allowFractional: false,
-        minQuantity: Math.min(...productForm.availableQuantities),
+        minQuantity: productForm.availableQuantities.length > 0 
+          ? Math.min(...productForm.availableQuantities) 
+          : 1,
         quantityStep: 1,
         status: 'published'
       };
@@ -252,48 +260,70 @@ export default function ProductsManagement() {
         return;
       }
 
+      // Validate description/content
+      if (!productForm.description || productForm.description.trim() === '') {
+        alert('Vă rugăm să completați descrierea produsului');
+        return;
+      }
+
+      // Validate availableQuantities if provided
+      if (productForm.availableQuantities.length === 0) {
+        alert('Vă rugăm să adăugați cel puțin o cantitate disponibilă');
+        return;
+      }
+
       // Create new product with all advanced fields
       const productData = {
         title: productForm.title,
         description: productForm.description,
-        content: productForm.description, // Required by backend
+        content: productForm.description || productForm.title, // Required by backend
         price: productForm.price,
-        oldPrice: productForm.oldPrice,
-        stock: productForm.stock,
+        oldPrice: productForm.oldPrice || null,
+        stock: productForm.stock || 0,
         categoryId: productForm.categoryId,
         image: productForm.image || '/images/placeholder.jpg',
         
-        // Advanced fields
-        isPerishable: productForm.isPerishable,
+        // Advanced fields - cu valori default pentru a evita undefined
+        isPerishable: productForm.isPerishable || false,
         expirationDate: productForm.expirationDate || null,
         productionDate: productForm.productionDate || null,
-        advanceOrderDays: productForm.advanceOrderDays,
-        orderCutoffTime: productForm.orderCutoffTime,
-        deliveryTimeHours: productForm.deliveryTimeHours,
-        deliveryTimeDays: productForm.deliveryTimeDays,
-        paymentMethods: productForm.paymentMethods,
-        isActive: productForm.isActive,
-        showInCarousel: productForm.showInCarousel, // Nou
-        carouselOrder: productForm.carouselOrder, // Nou
-        unitType: productForm.unitType,
-        unitName: productForm.unitName,
-        availableQuantities: productForm.availableQuantities,
+        advanceOrderDays: productForm.advanceOrderDays || 0,
+        orderCutoffTime: productForm.orderCutoffTime || '',
+        deliveryTimeHours: productForm.deliveryTimeHours || null,
+        deliveryTimeDays: productForm.deliveryTimeDays || null,
+        paymentMethods: productForm.paymentMethods || [],
+        isActive: productForm.isActive !== undefined ? productForm.isActive : true,
+        showInCarousel: productForm.showInCarousel || false,
+        carouselOrder: productForm.carouselOrder || 0,
+        unitType: productForm.unitType || 'piece',
+        unitName: productForm.unitName || 'bucată',
+        availableQuantities: (productForm.availableQuantities && productForm.availableQuantities.length > 0) 
+          ? productForm.availableQuantities 
+          : [1], // Default la [1] dacă e gol
         allowFractional: false, // Întotdeauna false
-        minQuantity: Math.min(...productForm.availableQuantities),
+        minQuantity: productForm.availableQuantities.length > 0 
+          ? Math.min(...productForm.availableQuantities) 
+          : 1,
         quantityStep: 1,
         
         // Set default status
         status: 'published'
       };
 
+      console.log('📦 Sending product data:', productData);
+
       await apiClient.post('/api/data', productData);
       setShowModal(false);
       resetProductForm();
       fetchData();
       alert('Produsul a fost creat cu succes!');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating product:', error);
-      alert('Eroare la crearea produsului. Verificați că toate câmpurile sunt completate corect.');
+      console.error('Error response:', error.response?.data);
+      
+      // Afișează eroarea exactă din backend
+      const errorMessage = error.response?.data?.error || error.message || 'Eroare necunoscută';
+      alert(`Eroare la crearea produsului:\n\n${errorMessage}\n\nVerifică consola browser (F12) pentru mai multe detalii.`);
     }
   };
 
@@ -819,6 +849,12 @@ export default function ProductsManagement() {
                           unitName = 'metru';
                           defaultQuantities = [1, 2, 5]; // Exemple: 1m, 2m, 5m
                         }
+                        
+                        console.log('🔄 Changing unitType:', {
+                          unitType,
+                          unitName,
+                          defaultQuantities
+                        });
                         
                         setProductForm({
                           ...productForm, 

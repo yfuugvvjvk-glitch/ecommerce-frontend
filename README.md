@@ -1,36 +1,136 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Frontend - Platformă E-Commerce Live
 
-## Getting Started
+Frontend modern construit cu Next.js 16 și TypeScript pentru platforma de e-commerce.
 
-First, run the development server:
+## 🚀 Caracteristici
+
+- **Next.js 16** cu App Router
+- **TypeScript** pentru type safety
+- **Tailwind CSS** pentru styling
+- **Actualizări live** - toate modificările din admin apar automat
+- **Responsive design** - funcționează pe toate dispozitivele
+- **Asistent AI** integrat pentru recomandări
+
+## 📦 Instalare
+
+```bash
+npm install
+```
+
+## ⚙️ Configurare
+
+Creează fișierul `.env.local`:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:3001
+```
+
+## 🏃 Rulare
+
+### Development
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Deschide [http://localhost:3000](http://localhost:3000) în browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Production Build
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run build
+npm start
+```
 
-## Learn More
+## 📱 Structura Aplicației
 
-To learn more about Next.js, take a look at the following resources:
+### Pagini Principale
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `/dashboard` - Pagina principală cu produse și carousel
+- `/shop` - Catalog complet
+- `/products/[id]` - Detalii produs
+- `/cart` - Coș de cumpărături
+- `/checkout` - Finalizare comandă (cu metode live din admin)
+- `/orders` - Istoricul comenzilor
+- `/profile` - Profil utilizator
+- `/admin` - Panoul de administrare
+- `/about` - Despre noi (editabil din admin)
+- `/contact` - Contact (cu date live din admin)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Componente Cheie
 
-## Deploy on Vercel
+- `Navbar` - Header cu ceas românesc
+- `Sidebar` - Categorii produse
+- `Carousel` - Oferte și produse featured
+- `AIChatbot` - Asistent AI
+- `StockIndicator` - Indicator stoc în timp real
+- `PaymentSimulator` - Simulator plată cu card
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🔄 Actualizări Live
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Toate componentele se actualizează automat când admin modifică:
+
+### Checkout Page
+
+- Metode de livrare din `GET /api/public/delivery-methods`
+- Metode de plată din `GET /api/public/payment-methods`
+- Locații de ridicare din `GET /api/public/delivery-locations`
+- Calcul automat cost livrare și livrare gratuită
+
+### Contact Page
+
+- Email, telefon, adresă din `GET /api/public/site-config`
+- Program de lucru actualizat automat
+
+### Dashboard
+
+- Produse în carousel (marcate cu `showInCarousel`)
+- Ordine automată sau manuală
+
+## 🛠️ Tehnologii
+
+- **Next.js 16.0.1** - React framework
+- **TypeScript** - Type safety
+- **Tailwind CSS** - Utility-first CSS
+- **Axios** - HTTP client
+- **React Context** - State management
+- **Socket.IO Client** - Real-time updates
+
+## 📝 Scripts Disponibile
+
+```bash
+npm run dev          # Development server
+npm run build        # Production build
+npm start            # Production server
+npm run lint         # ESLint check
+```
+
+## 🔗 API Integration
+
+Frontend comunică cu backend prin:
+
+- **REST API** - Pentru operații CRUD
+- **Public API** - Pentru date fără autentificare
+- **Protected API** - Pentru operații autentificate
+
+### Exemple de integrare:
+
+```typescript
+// Fetch metode de livrare
+const response = await fetch('/api/public/delivery-methods');
+const methods = await response.json();
+
+// Fetch informații contact
+const response = await fetch('/api/public/contact-info');
+const info = await response.json();
+```
+
+## 📚 Documentație
+
+Pentru mai multe detalii, vezi README.md principal din root.
+
+---
+
+**Versiune:** 2.1  
+**Framework:** Next.js 16.0.1  
+**Status:** ✅ Funcțional cu actualizări live

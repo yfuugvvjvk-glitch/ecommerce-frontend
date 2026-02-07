@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { apiClient } from '@/lib/api-client';
 import { useWebSocket } from '@/lib/useWebSocket';
 import LivePageEditor from './LivePageEditor';
+import MediaManager from './MediaManager';
 
 interface Page {
   id: string;
@@ -199,7 +200,14 @@ export default function ContentManager() {
 
       {/* Header cu status real-time */}
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">Gestionare Conținut Live</h2>
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Gestionare Conținut Live</h2>
+          <p className="text-sm text-gray-600 mt-1">
+            {activeTab === 'pages' && '📄 Gestionare Pagini'}
+            {activeTab === 'config' && '⚙️ Configurare Site'}
+            {activeTab === 'media' && '🖼️ Gestionare Media și Fișiere'}
+          </p>
+        </div>
         <div className="flex items-center space-x-2">
           <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
           <span className="text-sm text-gray-600">
@@ -435,10 +443,7 @@ export default function ContentManager() {
 
       {/* Media Tab */}
       {activeTab === 'media' && (
-        <div className="bg-white border rounded-lg p-6">
-          <h3 className="text-lg font-semibold mb-4">Gestionare Media</h3>
-          <p className="text-gray-600">Funcționalitatea de gestionare media va fi implementată în curând...</p>
-        </div>
+        <MediaManager />
       )}
 
       {/* Modal pentru pagină nouă */}
