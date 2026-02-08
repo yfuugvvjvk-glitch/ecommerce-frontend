@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { apiClient } from '@/lib/api-client';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import CurrencyPrice from '@/components/CurrencyPrice';
 
 export default function OrderDetailPage() {
   const params = useParams();
@@ -191,7 +192,7 @@ export default function OrderDetailPage() {
                 <div className="flex-1">
                   <h4 className="font-semibold">{item.dataItem?.title || 'Produs'}</h4>
                   <p className="text-sm text-gray-600">Cantitate: {item.quantity}</p>
-                  <p className="text-sm text-gray-600">Preț unitar: {item.price} RON</p>
+                  <p className="text-sm text-gray-600">Preț unitar: <CurrencyPrice amount={item.price} /></p>
                 </div>
                 <div className="text-right">
                   <p className="font-bold text-lg">{(item.price * item.quantity).toFixed(2)} RON</p>

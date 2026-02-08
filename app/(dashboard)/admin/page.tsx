@@ -310,16 +310,29 @@ export default function AdminPage() {
           {/* System Actions */}
           <div className="bg-white rounded-lg shadow p-6 mb-8">
             <h2 className="text-xl font-bold mb-4">🔧 Acțiuni Sistem</h2>
-            <div className="flex gap-4">
-              <button
-                onClick={handleRunCleanup}
-                className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-semibold"
-              >
-                🗑️ Rulează Cleanup Acum
-              </button>
-              <p className="text-sm text-gray-600 flex items-center">
-                Șterge vouchere expirate, complet utilizate și cereri vechi
-              </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex gap-4">
+                <button
+                  onClick={handleRunCleanup}
+                  className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-semibold"
+                >
+                  🗑️ Rulează Cleanup Acum
+                </button>
+                <p className="text-sm text-gray-600 flex items-center">
+                  Șterge vouchere expirate, complet utilizate și cereri vechi
+                </p>
+              </div>
+              <div className="flex gap-4">
+                <button
+                  onClick={() => router.push('/admin/currencies')}
+                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold"
+                >
+                  💱 Gestionare Monede
+                </button>
+                <p className="text-sm text-gray-600 flex items-center">
+                  Administrează monedele și cursurile de schimb
+                </p>
+              </div>
             </div>
           </div>
 

@@ -1,0 +1,53 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Test Currency API</title>
+    <style>
+      body {
+        font-family: Arial;
+        padding: 20px;
+      }
+      .success {
+        color: green;
+      }
+      .error {
+        color: red;
+      }
+      pre {
+        background: #f5f5f5;
+        padding: 10px;
+        border-radius: 5px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Test Currency API</h1>
+    <button onclick="testAPI()">Test API</button>
+    <div id="result"></div>
+
+    <script>
+      async function testAPI() {
+        const resultDiv = document.getElementById('result');
+        resultDiv.innerHTML = '<p>Loading...</p>';
+
+        try {
+          const response = await fetch('http://localhost:3001/api/currencies');
+          const data = await response.json();
+
+          resultDiv.innerHTML = `
+                    <p class="success">✅ API Works!</p>
+                    <p>Found ${data.currencies.length} currencies:</p>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+        } catch (error) {
+          resultDiv.innerHTML = `
+                    <p class="error">❌ Error: ${error.message}</p>
+                `;
+        }
+      }
+
+      // Auto-test on load
+      window.onload = () => testAPI();
+    </script>
+  </body>
+</html>

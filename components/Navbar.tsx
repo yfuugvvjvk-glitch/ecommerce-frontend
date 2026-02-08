@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 import Avatar from './Avatar';
 import LanguageSwitcher, { useTranslation } from './LanguageSwitcher';
+import CurrencySelector from './CurrencySelector';
 import { ShoppingCart, Search, Menu, X } from 'lucide-react';
 
 // Inline Clock Component for Navbar
@@ -136,8 +137,11 @@ export default function Navbar({ cartItemCount = 0 }: NavbarProps) {
             </div>
           </div>
 
-          {/* Right Section - Language, User & Cart */}
+          {/* Right Section - Currency, Language, User & Cart */}
           <div className="flex items-center space-x-4">
+            {/* Currency Selector */}
+            <CurrencySelector />
+
             {/* Language Switcher */}
             <LanguageSwitcher />
 

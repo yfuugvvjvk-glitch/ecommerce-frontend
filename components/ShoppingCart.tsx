@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { cartAPI } from '@/lib/api-client';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/lib/cart-context';
+import CurrencyPrice from './CurrencyPrice';
 
 interface CartItem {
   id: string;
@@ -14,6 +15,9 @@ interface CartItem {
     price: number;
     image: string;
     stock: number;
+    unitName?: string;
+    priceType?: string;
+    availableQuantities?: number[];
   };
 }
 
@@ -137,9 +141,20 @@ export default function ShoppingCart({ onClose }: { onClose?: () => void }) {
             />
             <div className="flex-1">
               <h3 className="font-semibold mb-1">{item.dataItem.title}</h3>
-              <p className="text-blue-600 font-bold">
-                {item.dataItem.price.toFixed(2)} RON
-              </p>
+              <div className="text-blue-600 font-bold">
+                <CurrencyPrice amount={item.dataItem.price} />
+                {item.dataItem.priceType === 'per_unit' && item.dataItem.unitName && item.dataItem.unitName !== 'bucată' && (
+                  <span className="text-sm font-normal text-gray-600">/{item.dataItem.unitName}</span>
+                )}
+                {item.dataItem.priceType === 'fixed' && (
+                  <span className="text-sm font-normal text-gray-600">/buc</span>
+                )}
+              </div>
+              {item.dataItem.priceType === 'fixed' && item.dataItem.availableQuantities && item.dataItem.availableQuantities[0] > 1 && (
+                <p className="text-xs text-gray-500">
+                  {item.dataItem.availableQuantities[0]} {item.dataItem.unitName}/produs
+                </p>
+              )}
               <div className="flex items-center gap-2 mt-2">
                 <button
                   onClick={() => updateQuantity(item.id, item.quantity - 1)}
@@ -163,6 +178,11 @@ export default function ShoppingCart({ onClose }: { onClose?: () => void }) {
                 >
                   🗑️
                 </button>
+              </div>
+              <div className="mt-2 text-sm text-gray-600">
+                Subtotal: <span className="font-semibold text-gray-800">
+                  <CurrencyPrice amount={item.dataItem.price * item.quantity} />
+                </span>
               </div>
             </div>
           </div>

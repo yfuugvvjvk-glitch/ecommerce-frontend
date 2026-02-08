@@ -9,6 +9,7 @@ import Sidebar from '@/components/Sidebar';
 import Carousel from '@/components/Carousel';
 import NavigationHistory from '@/components/NavigationHistory';
 import AIChatbot from '@/components/AIChatbot';
+import CurrencyPrice from '@/components/CurrencyPrice';
 
 interface Category {
   id: string;
@@ -198,8 +199,16 @@ export default function DashboardPage() {
                     {product.title}
                   </h3>
                   <p className="text-lg font-bold text-blue-600 mt-1">
-                    {product.price} RON
+                    <CurrencyPrice amount={product.price} />
+                    {product.priceType === 'per_unit' && product.unitName && product.unitName !== 'bucată' && (
+                      <span className="text-sm font-normal text-gray-600">/{product.unitName}</span>
+                    )}
                   </p>
+                  {product.priceType === 'fixed' && product.availableQuantities && product.availableQuantities[0] > 1 && (
+                    <p className="text-xs text-gray-500">
+                      {product.availableQuantities[0]} {product.unitName}/buc
+                    </p>
+                  )}
                 </div>
               </Link>
             ))}

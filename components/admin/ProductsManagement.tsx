@@ -27,12 +27,12 @@ interface Product {
   advanceOrderDays?: number;
   deliveryTimeHours?: number;
   deliveryTimeDays?: number;
-  paymentMethods?: string[];
   isActive: boolean;
   showInCarousel?: boolean; // Nou
   carouselOrder?: number; // Nou
   unitType: string;
   unitName: string;
+  priceType?: string; // NOU: "fixed" sau "per_unit"
   minQuantity: number;
   quantityStep: number;
   allowFractional: boolean;
@@ -78,15 +78,14 @@ export default function ProductsManagement() {
     expirationDate: '',
     productionDate: '',
     advanceOrderDays: 1, // Implicit 1 zi înainte
-    orderCutoffTime: '20:00',
     deliveryTimeHours: 0,
     deliveryTimeDays: 0,
-    paymentMethods: [] as string[],
     isActive: true,
     showInCarousel: false, // Nou: Afișează în carousel
     carouselOrder: 0, // Nou: Ordine în carousel
     unitType: 'piece',
     unitName: 'bucată',
+    priceType: 'per_unit', // NOU: Tipul de preț - "fixed" sau "per_unit"
     // Cantități fixe disponibile (nu mai permite fracționare)
     availableQuantities: [1], // Ex: [0.5, 1, 2] pentru 0.5kg, 1kg, 2kg
     allowFractional: false, // Întotdeauna false
@@ -183,16 +182,16 @@ export default function ProductsManagement() {
         isPerishable: productForm.isPerishable,
         expirationDate: productForm.expirationDate || null,
         productionDate: productForm.productionDate || null,
+        requiresAdvanceOrder: productForm.advanceOrderDays > 0,
         advanceOrderDays: productForm.advanceOrderDays,
-        orderCutoffTime: productForm.orderCutoffTime,
         deliveryTimeHours: productForm.deliveryTimeHours,
         deliveryTimeDays: productForm.deliveryTimeDays,
-        paymentMethods: productForm.paymentMethods,
         isActive: productForm.isActive,
         showInCarousel: productForm.showInCarousel, // Nou
         carouselOrder: productForm.carouselOrder, // Nou
         unitType: productForm.unitType,
         unitName: productForm.unitName,
+        priceType: productForm.priceType || 'per_unit', // NOU: Tipul de preț
         availableQuantities: productForm.availableQuantities,
         allowFractional: false,
         minQuantity: productForm.availableQuantities.length > 0 
@@ -287,16 +286,16 @@ export default function ProductsManagement() {
         isPerishable: productForm.isPerishable || false,
         expirationDate: productForm.expirationDate || null,
         productionDate: productForm.productionDate || null,
+        requiresAdvanceOrder: productForm.advanceOrderDays > 0,
         advanceOrderDays: productForm.advanceOrderDays || 0,
-        orderCutoffTime: productForm.orderCutoffTime || '',
         deliveryTimeHours: productForm.deliveryTimeHours || null,
         deliveryTimeDays: productForm.deliveryTimeDays || null,
-        paymentMethods: productForm.paymentMethods || [],
         isActive: productForm.isActive !== undefined ? productForm.isActive : true,
         showInCarousel: productForm.showInCarousel || false,
         carouselOrder: productForm.carouselOrder || 0,
         unitType: productForm.unitType || 'piece',
         unitName: productForm.unitName || 'bucată',
+        priceType: productForm.priceType || 'per_unit', // NOU: Tipul de preț
         availableQuantities: (productForm.availableQuantities && productForm.availableQuantities.length > 0) 
           ? productForm.availableQuantities 
           : [1], // Default la [1] dacă e gol
@@ -340,15 +339,14 @@ export default function ProductsManagement() {
       expirationDate: '',
       productionDate: '',
       advanceOrderDays: 1,
-      orderCutoffTime: '20:00',
       deliveryTimeHours: 0,
       deliveryTimeDays: 0,
-      paymentMethods: [],
       isActive: true,
       showInCarousel: false, // Nou
       carouselOrder: 0, // Nou
       unitType: 'piece',
       unitName: 'bucată',
+      priceType: 'per_unit',
       availableQuantities: [1],
       allowFractional: false,
       minQuantity: 1,
@@ -385,15 +383,14 @@ export default function ProductsManagement() {
       expirationDate: product.expirationDate || '',
       productionDate: product.productionDate || '',
       advanceOrderDays: product.advanceOrderDays || 0,
-      orderCutoffTime: '20:00',
       deliveryTimeHours: product.deliveryTimeHours || 0,
       deliveryTimeDays: product.deliveryTimeDays || 0,
-      paymentMethods: product.paymentMethods || [],
       isActive: product.isActive,
       showInCarousel: product.showInCarousel || false, // Nou
       carouselOrder: product.carouselOrder || 0, // Nou
       unitType: product.unitType || 'piece',
       unitName: product.unitName || 'bucată',
+      priceType: product.priceType || 'per_unit', // NOU: Tipul de preț
       availableQuantities: product.availableQuantities || [1],
       allowFractional: false, // Întotdeauna false pentru cantități fixe
       minQuantity: product.minQuantity || 1,
@@ -827,6 +824,72 @@ export default function ProductsManagement() {
               {/* Unit Settings */}
               <div className="border rounded-lg p-4">
                 <h4 className="font-semibold mb-3">📏 Unități de Măsură și Cantități Disponibile</h4>
+                
+                {/* Price Type Selection */}
+                <div className="mb-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <label className="block text-sm font-semibold text-gray-800 mb-3">
+                    💰 Tipul de Preț (IMPORTANT!)
+                  </label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setProductForm({ ...productForm, priceType: 'fixed' })}
+                      className={`p-4 border-2 rounded-lg text-left transition-all ${
+                        productForm.priceType === 'fixed'
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'border-gray-300 hover:border-blue-300'
+                      }`}
+                    >
+                      <div className="font-semibold text-lg mb-1">
+                        {productForm.priceType === 'fixed' && '✓ '}Preț FIX per Produs
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        Prețul este fix pentru produs (ex: "Suc 1.5L" - 8.50 RON)
+                      </div>
+                      <div className="text-xs text-gray-500 mt-2">
+                        Prețul NU se înmulțește cu cantitatea
+                      </div>
+                    </button>
+                    
+                    <button
+                      type="button"
+                      onClick={() => setProductForm({ ...productForm, priceType: 'per_unit' })}
+                      className={`p-4 border-2 rounded-lg text-left transition-all ${
+                        productForm.priceType === 'per_unit'
+                          ? 'border-green-500 bg-green-50'
+                          : 'border-gray-300 hover:border-green-300'
+                      }`}
+                    >
+                      <div className="font-semibold text-lg mb-1">
+                        {productForm.priceType === 'per_unit' && '✓ '}Preț per UNITATE
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        Prețul este per unitate (ex: "Lapte" - 6.00 RON/litru)
+                      </div>
+                      <div className="text-xs text-gray-500 mt-2">
+                        Prețul SE ÎNMULȚEȘTE cu cantitatea aleasă
+                      </div>
+                    </button>
+                  </div>
+                  
+                  {/* Info Box */}
+                  <div className="mt-3 p-3 bg-white border border-yellow-300 rounded">
+                    <div className="text-sm">
+                      {productForm.priceType === 'fixed' ? (
+                        <span className="text-blue-700">
+                          <strong>Preț FIX:</strong> Clientul plătește prețul introdus pentru ÎNTREG produsul. 
+                          Exemplu: "Suc 1.5L" la 8.50 RON → Client plătește 8.50 RON per sticlă.
+                        </span>
+                      ) : (
+                        <span className="text-green-700">
+                          <strong>Preț per UNITATE:</strong> Clientul alege cantitatea și prețul se calculează. 
+                          Exemplu: "Lapte" la 6.00 RON/litru → Client alege 2L → Plătește 12.00 RON.
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1002,42 +1065,27 @@ export default function ProductsManagement() {
                   </p>
                 </div>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Zile în avans pentru comandă
-                    </label>
-                    <select
-                      value={productForm.advanceOrderDays}
-                      onChange={(e) => setProductForm({...productForm, advanceOrderDays: parseInt(e.target.value)})}
-                      className="w-full border rounded px-3 py-2"
-                    >
-                      <option value={0}>Fără restricții (comandă oricând)</option>
-                      <option value={1}>1 zi înainte</option>
-                      <option value={2}>2 zile înainte</option>
-                      <option value={3}>3 zile înainte</option>
-                      <option value={7}>1 săptămână înainte</option>
-                    </select>
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Ora limită pentru comenzi (ziua precedentă)
-                    </label>
-                    <input
-                      type="time"
-                      value={productForm.orderCutoffTime || '20:00'}
-                      onChange={(e) => setProductForm({...productForm, orderCutoffTime: e.target.value})}
-                      className="w-full border rounded px-3 py-2"
-                    />
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Zile în avans pentru comandă
+                  </label>
+                  <select
+                    value={productForm.advanceOrderDays}
+                    onChange={(e) => setProductForm({...productForm, advanceOrderDays: parseInt(e.target.value)})}
+                    className="w-full border rounded px-3 py-2"
+                  >
+                    <option value={0}>Fără restricții (comandă oricând)</option>
+                    <option value={1}>1 zi înainte</option>
+                    <option value={2}>2 zile înainte</option>
+                    <option value={3}>3 zile înainte</option>
+                    <option value={7}>1 săptămână înainte</option>
+                  </select>
                 </div>
                 
                 {productForm.advanceOrderDays > 0 && (
                   <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded">
                     <p className="text-sm text-blue-800">
-                      <strong>📋 Regulă:</strong> Clienții pot comanda acest produs doar cu minimum {productForm.advanceOrderDays} {productForm.advanceOrderDays === 1 ? 'zi' : 'zile'} înainte
-                      {productForm.orderCutoffTime && `, până la ora ${productForm.orderCutoffTime}`}.
+                      <strong>📋 Regulă:</strong> Clienții pot comanda acest produs doar cu minimum {productForm.advanceOrderDays} {productForm.advanceOrderDays === 1 ? 'zi' : 'zile'} înainte.
                     </p>
                   </div>
                 )}
@@ -1068,35 +1116,6 @@ export default function ProductsManagement() {
                 <p className="text-xs text-gray-500 mt-2">
                   Aceste câmpuri sunt opționale și pot fi folosite pentru produse speciale cu timp de livrare diferit.
                 </p>
-              </div>
-
-              {/* Payment Methods */}
-              <div className="border rounded-lg p-4">
-                <h4 className="font-semibold mb-3">💳 Metode de Plată Acceptate</h4>
-                <div className="space-y-2">
-                  {paymentMethods.filter(m => m.isActive).map(method => (
-                    <label key={method.id} className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        checked={productForm.paymentMethods.includes(method.id)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setProductForm({
-                              ...productForm,
-                              paymentMethods: [...productForm.paymentMethods, method.id]
-                            });
-                          } else {
-                            setProductForm({
-                              ...productForm,
-                              paymentMethods: productForm.paymentMethods.filter(id => id !== method.id)
-                            });
-                          }
-                        }}
-                      />
-                      <span>{method.name} ({method.type})</span>
-                    </label>
-                  ))}
-                </div>
               </div>
 
               {/* Active Status */}

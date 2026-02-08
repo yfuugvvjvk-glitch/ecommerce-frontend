@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { Heart } from 'lucide-react';
+import CurrencyPrice from './CurrencyPrice';
 
 interface Product {
   id: string;
@@ -12,6 +13,8 @@ interface Product {
   image: string;
   rating?: number;
   unitName?: string;
+  priceType?: string;
+  availableQuantities?: number[];
   stock?: number;
   availableStock?: number;
 }
@@ -76,14 +79,21 @@ export default function ProductGrid({
                   </div>
                 )}
                 <p className="text-lg font-bold text-blue-600">
-                  {product.price.toFixed(2)} RON
-                  {product.unitName && product.unitName !== 'bucată' && (
+                  <CurrencyPrice amount={product.price} />
+                  {product.priceType === 'per_unit' && product.unitName && product.unitName !== 'bucată' ? (
                     <span className="text-sm font-normal text-gray-600">/{product.unitName}</span>
-                  )}
+                  ) : product.priceType === 'fixed' && product.availableQuantities && product.availableQuantities[0] > 1 ? (
+                    <span className="text-sm font-normal text-gray-600">/buc</span>
+                  ) : null}
                 </p>
-                {product.unitName && product.unitName !== 'bucată' && (
+                {product.priceType === 'per_unit' && product.unitName && product.unitName !== 'bucată' && (
                   <p className="text-xs text-gray-500">
-                    Vândut per {product.unitName}
+                    Preț per {product.unitName}
+                  </p>
+                )}
+                {product.priceType === 'fixed' && product.availableQuantities && product.availableQuantities[0] > 1 && (
+                  <p className="text-xs text-gray-500">
+                    {product.availableQuantities[0]} {product.unitName} per produs
                   </p>
                 )}
               </div>

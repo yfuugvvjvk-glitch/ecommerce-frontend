@@ -5,6 +5,7 @@ import { favoritesAPI } from '@/lib/api-client';
 import { useTranslation } from '@/components/LanguageSwitcher';
 import Link from 'next/link';
 import { Heart } from 'lucide-react';
+import CurrencyPrice from '@/components/CurrencyPrice';
 
 export default function FavoritesPage() {
   const { t } = useTranslation();
@@ -95,8 +96,16 @@ export default function FavoritesPage() {
                     {favorite.dataItem?.title}
                   </h3>
                   <p className="text-lg font-bold text-blue-600">
-                    {favorite.dataItem?.price} RON
+                    <CurrencyPrice amount={favorite.dataItem?.price || 0} />
+                    {favorite.dataItem?.priceType === 'per_unit' && favorite.dataItem?.unitName && favorite.dataItem?.unitName !== 'bucată' && (
+                      <span className="text-sm font-normal text-gray-600">/{favorite.dataItem?.unitName}</span>
+                    )}
                   </p>
+                  {favorite.dataItem?.priceType === 'fixed' && favorite.dataItem?.availableQuantities && favorite.dataItem?.availableQuantities[0] > 1 && (
+                    <p className="text-xs text-gray-500">
+                      {favorite.dataItem?.availableQuantities[0]} {favorite.dataItem?.unitName}/buc
+                    </p>
+                  )}
                 </div>
               </Link>
             </div>
