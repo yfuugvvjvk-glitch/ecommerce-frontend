@@ -22,6 +22,7 @@ interface MediaFile {
   category?: string;
   tags?: string[];
   usedOnPages?: string[];
+  usageCount?: number;
   displaySize?: 'thumbnail' | 'medium' | 'large' | 'full';
   position?: string;
 }

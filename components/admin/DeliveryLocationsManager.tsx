@@ -356,12 +356,23 @@ export default function DeliveryLocationsManager() {
                     <div className="mb-2">
                       <p className="text-sm text-gray-600 mb-1">🕒 Program:</p>
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-1 text-xs">
-                        {Object.entries(workingHours).map(([day, hours]: [string, any]) => (
-                          <div key={day} className={`p-1 rounded ${hours.isOpen ? 'bg-green-50' : 'bg-red-50'}`}>
-                            <span className="font-medium capitalize">{day.slice(0, 3)}:</span>
-                            {hours.isOpen ? ` ${hours.start}-${hours.end}` : ' Închis'}
-                          </div>
-                        ))}
+                        {Object.entries(workingHours).map(([day, hours]: [string, any]) => {
+                          // Verifică dacă hours este string sau obiect
+                          const isString = typeof hours === 'string';
+                          const isClosed = isString 
+                            ? (hours === 'Închis' || hours === 'Closed')
+                            : !hours.isOpen;
+                          const displayHours = isString 
+                            ? hours 
+                            : (hours.isOpen ? `${hours.start}-${hours.end}` : 'Închis');
+                          
+                          return (
+                            <div key={day} className={`p-1 rounded ${isClosed ? 'bg-red-50' : 'bg-green-50'}`}>
+                              <span className="font-medium capitalize">{day.slice(0, 3)}:</span>
+                              {' '}{displayHours}
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
                   )}

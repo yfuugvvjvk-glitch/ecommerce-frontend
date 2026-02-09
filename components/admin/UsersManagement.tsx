@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { apiClient } from '@/lib/api-client';
 import { Eye, EyeOff, User, Mail, Phone, Calendar, ShoppingBag } from 'lucide-react';
+import Pagination from '@/components/Pagination';
 
 interface UserDetails {
   id: string;
@@ -27,15 +28,24 @@ export default function UsersManagement() {
   const [selectedUser, setSelectedUser] = useState<UserDetails | null>(null);
   const [showUserDetails, setShowUserDetails] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalUsers, setTotalUsers] = useState(0);
+  const itemsPerPage = 10;
 
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [currentPage]);
 
   const fetchUsers = async () => {
     try {
-      const response = await apiClient.get('/api/admin/users');
+      setLoading(true);
+      const response = await apiClient.get(`/api/admin/users?page=${currentPage}&limit=${itemsPerPage}`);
       setUsers(response.data.users);
+      if (response.data.pagination) {
+        setTotalPages(response.data.pagination.totalPages);
+        setTotalUsers(response.data.pagination.total);
+      }
     } catch (error) {
       console.error('Failed to fetch users:', error);
     } finally {
@@ -141,6 +151,14 @@ export default function UsersManagement() {
           </tbody>
         </table>
       </div>
+
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={setCurrentPage}
+        totalItems={totalUsers}
+        itemsPerPage={itemsPerPage}
+      />
 
       {/* User Details Modal */}
       {showUserDetails && selectedUser && (

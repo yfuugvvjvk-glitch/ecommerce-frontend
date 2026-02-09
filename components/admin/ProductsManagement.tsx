@@ -3,6 +3,9 @@
 import { useState, useEffect } from 'react';
 import { apiClient } from '@/lib/api-client';
 import { useWebSocket } from '@/lib/useWebSocket';
+import { usePagination } from '@/lib/usePagination';
+import Pagination from '@/components/Pagination';
+import CarouselPositionSelector from '@/components/admin/CarouselPositionSelector';
 
 interface Category {
   id: string;
@@ -455,7 +458,9 @@ export default function ProductsManagement() {
       {activeTab === 'products' && (
         <div>
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold">Gestionare Completă Produse</h3>
+            <h3 className="text-lg font-semibold">
+              Gestionare Completă Produse ({products.length} total)
+            </h3>
             <button
               onClick={() => {
                 setSelectedProduct(null);
@@ -469,7 +474,12 @@ export default function ProductsManagement() {
           </div>
           
           <div className="grid gap-4">
-            {products.map(product => (
+            {(() => {
+              const { paginatedItems, currentPage, totalPages, goToPage, startIndex, endIndex, totalItems } = usePagination({ items: products, itemsPerPage: 10 });
+              
+              return (
+                <>
+                  {paginatedItems.map(product => (
               <div key={product.id} className="border rounded-lg p-4 hover:shadow-md transition">
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
@@ -564,6 +574,17 @@ export default function ProductsManagement() {
                 </div>
               </div>
             ))}
+            
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={goToPage}
+              itemsPerPage={10}
+              totalItems={totalItems}
+            />
+          </>
+        );
+      })()}
           </div>
         </div>
       )}
@@ -1134,27 +1155,18 @@ export default function ProductsManagement() {
                     <input
                       type="checkbox"
                       checked={!!productForm.showInCarousel}
-                      onChange={(e) => setProductForm({...productForm, showInCarousel: e.target.checked})}
+                      onChange={(e) => setProductForm({...productForm, showInCarousel: e.target.checked, carouselOrder: e.target.checked ? productForm.carouselOrder : 0})}
                     />
                     <span className="font-medium">🎨 Afișează în Carousel (Flux)</span>
                   </label>
                   
                   {productForm.showInCarousel && (
-                    <div className="ml-6 mt-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Ordine în carousel (opțional)
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={productForm.carouselOrder}
-                        onChange={(e) => setProductForm({...productForm, carouselOrder: parseInt(e.target.value) || 0})}
-                        className="w-32 border rounded px-3 py-2"
-                        placeholder="0 = automat"
+                    <div className="ml-6 mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+                      <CarouselPositionSelector
+                        selectedPosition={productForm.carouselOrder}
+                        onPositionChange={(position) => setProductForm({...productForm, carouselOrder: position})}
+                        currentProductId={selectedProduct?.id}
                       />
-                      <p className="text-xs text-gray-500 mt-1">
-                        0 = ordine automată (după reducere), 1-999 = ordine manuală (1 = primul)
-                      </p>
                     </div>
                   )}
                 </div>

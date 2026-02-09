@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { apiClient } from '@/lib/api-client';
 import { useWebSocket } from '@/lib/useWebSocket';
+import { usePagination } from '@/lib/usePagination';
+import Pagination from '@/components/Pagination';
 
 export default function OrdersManagement() {
   const [orders, setOrders] = useState<any[]>([]);
@@ -385,7 +387,12 @@ export default function OrdersManagement() {
       </div>
 
       <div className="space-y-4">
-        {filteredOrders.map((order) => (
+        {(() => {
+          const { paginatedItems, currentPage, totalPages, goToPage, totalItems } = usePagination({ items: filteredOrders, itemsPerPage: 10 });
+          
+          return (
+            <>
+              {paginatedItems.map((order) => (
           <div key={order.id} className="bg-white border rounded-lg p-4">
             <div className="flex justify-between items-start mb-3">
               <div>
@@ -447,6 +454,17 @@ export default function OrdersManagement() {
             </div>
           </div>
         ))}
+        
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={goToPage}
+          itemsPerPage={10}
+          totalItems={totalItems}
+        />
+      </>
+    );
+  })()}
       </div>
     </div>
   );

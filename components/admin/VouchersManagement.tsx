@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { apiClient } from '@/lib/api-client';
+import { usePagination } from '@/lib/usePagination';
+import Pagination from '@/components/Pagination';
 
 export default function VouchersManagement() {
   const [vouchers, setVouchers] = useState<any[]>([]);
@@ -41,9 +43,11 @@ export default function VouchersManagement() {
   const fetchVouchers = async () => {
     try {
       const response = await apiClient.get('/api/admin/vouchers');
-      setVouchers(response.data);
+      // Asigură-te că response.data este un array
+      setVouchers(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error('Failed to fetch vouchers:', error);
+      setVouchers([]); // Set empty array on error
     } finally {
       setLoading(false);
     }
@@ -341,7 +345,12 @@ export default function VouchersManagement() {
       )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {vouchers.map((voucher) => (
+            {(() => {
+              const { paginatedItems, currentPage, totalPages, goToPage, totalItems } = usePagination({ items: vouchers, itemsPerPage: 10 });
+              
+              return (
+                <>
+                  {paginatedItems.map((voucher) => (
               <div key={voucher.id} className="bg-white border rounded-lg p-4">
                 <div className="flex justify-between items-start mb-2">
                   <div>
@@ -381,6 +390,17 @@ export default function VouchersManagement() {
                 </div>
               </div>
             ))}
+            
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={goToPage}
+              itemsPerPage={10}
+              totalItems={totalItems}
+            />
+          </>
+        );
+      })()}
           </div>
         </>
       )}

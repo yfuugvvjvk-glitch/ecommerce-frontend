@@ -3,6 +3,8 @@
 import { useEffect, useState } from 'react';
 import { apiClient } from '@/lib/api-client';
 import { FileText, Eye, User, Calendar, CreditCard, Copy, Trash2 } from 'lucide-react';
+import { usePagination } from '@/lib/usePagination';
+import Pagination from '@/components/Pagination';
 
 interface Invoice {
   id: string;
@@ -339,7 +341,12 @@ export default function InvoicesManagement() {
       ) : (
         <>
           <div className="space-y-4">
-            {filteredInvoices.map((invoice) => (
+            {(() => {
+              const { paginatedItems, currentPage, totalPages, goToPage, totalItems } = usePagination({ items: filteredInvoices, itemsPerPage: 10 });
+              
+              return (
+                <>
+                  {paginatedItems.map((invoice) => (
               <div key={invoice.id} className="bg-white rounded-lg shadow border border-gray-200 p-6">
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
                   <div className="flex items-start space-x-4 mb-4 lg:mb-0">
@@ -414,44 +421,18 @@ export default function InvoicesManagement() {
                 </div>
               </div>
             ))}
+            
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={goToPage}
+              itemsPerPage={10}
+              totalItems={totalItems}
+            />
+          </>
+        );
+      })()}
           </div>
-
-          {/* Pagination */}
-          {totalPages > 1 && (
-            <div className="flex justify-center mt-8">
-              <div className="flex space-x-2">
-                <button
-                  onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
-                  disabled={currentPage === 1}
-                  className="px-3 py-2 border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                >
-                  Anterior
-                </button>
-                
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                  <button
-                    key={page}
-                    onClick={() => setCurrentPage(page)}
-                    className={`px-3 py-2 border rounded-md ${
-                      currentPage === page
-                        ? 'bg-blue-600 text-white border-blue-600'
-                        : 'border-gray-300 hover:bg-gray-50'
-                    }`}
-                  >
-                    {page}
-                  </button>
-                ))}
-                
-                <button
-                  onClick={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
-                  disabled={currentPage === totalPages}
-                  className="px-3 py-2 border border-gray-300 rounded-md disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
-                >
-                  Următorul
-                </button>
-              </div>
-            </div>
-          )}
         </>
       )}
     </div>
