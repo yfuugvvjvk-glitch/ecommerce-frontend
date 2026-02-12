@@ -60,14 +60,14 @@ interface BlockRule {
 interface PaymentMethod {
   id: string;
   name: string;
-  code: string;
+  type: string;
   isActive: boolean;
 }
 
 interface DeliveryMethod {
   id: string;
   name: string;
-  code: string;
+  type: string;
   isActive: boolean;
 }
 
@@ -215,6 +215,16 @@ export default function DeliveryScheduleManager() {
         }
       ]);
       setBlockRules([]);
+      setPaymentMethods([
+        { id: '1', name: 'Numerar', type: 'CASH', isActive: true },
+        { id: '2', name: 'Card', type: 'CARD', isActive: true },
+        { id: '3', name: 'Transfer Bancar', type: 'BANK_TRANSFER', isActive: true },
+        { id: '4', name: 'Online', type: 'ONLINE', isActive: true }
+      ]);
+      setDeliveryMethods([
+        { id: '1', name: 'Curier', type: 'courier', isActive: true },
+        { id: '2', name: 'Ridicare Personală', type: 'pickup', isActive: true }
+      ]);
     } finally {
       setLoading(false);
     }
@@ -1107,18 +1117,18 @@ export default function DeliveryScheduleManager() {
                     <label key={method.id} className="flex items-center space-x-2">
                       <input
                         type="checkbox"
-                        checked={blockRuleForm.blockedPaymentMethods?.includes(method.code) || false}
+                        checked={blockRuleForm.blockedPaymentMethods?.includes(method.type) || false}
                         onChange={(e) => {
                           const blocked = blockRuleForm.blockedPaymentMethods || [];
                           if (e.target.checked) {
                             setBlockRuleForm({
                               ...blockRuleForm,
-                              blockedPaymentMethods: [...blocked, method.code]
+                              blockedPaymentMethods: [...blocked, method.type]
                             });
                           } else {
                             setBlockRuleForm({
                               ...blockRuleForm,
-                              blockedPaymentMethods: blocked.filter(m => m !== method.code)
+                              blockedPaymentMethods: blocked.filter(m => m !== method.type)
                             });
                           }
                         }}
@@ -1136,18 +1146,18 @@ export default function DeliveryScheduleManager() {
                     <label key={method.id} className="flex items-center space-x-2">
                       <input
                         type="checkbox"
-                        checked={blockRuleForm.blockedDeliveryMethods?.includes(method.code) || false}
+                        checked={blockRuleForm.blockedDeliveryMethods?.includes(method.type) || false}
                         onChange={(e) => {
                           const blocked = blockRuleForm.blockedDeliveryMethods || [];
                           if (e.target.checked) {
                             setBlockRuleForm({
                               ...blockRuleForm,
-                              blockedDeliveryMethods: [...blocked, method.code]
+                              blockedDeliveryMethods: [...blocked, method.type]
                             });
                           } else {
                             setBlockRuleForm({
                               ...blockRuleForm,
-                              blockedDeliveryMethods: blocked.filter(m => m !== method.code)
+                              blockedDeliveryMethods: blocked.filter(m => m !== method.type)
                             });
                           }
                         }}
