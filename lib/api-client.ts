@@ -92,7 +92,13 @@ export const favoritesAPI = {
 };
 
 export const categoryAPI = {
-  getAll: () => apiClient.get('/api/categories'),
+  getAll: () => {
+    // Check if user is admin
+    const user = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('user') || '{}') : {};
+    const isAdmin = user.role === 'admin';
+    const url = isAdmin ? '/api/categories?showAll=true' : '/api/categories';
+    return apiClient.get(url);
+  },
   create: (data: any) => apiClient.post('/api/categories', data),
   update: (id: string, data: any) => apiClient.put(`/api/categories/${id}`, data),
   delete: (id: string) => apiClient.delete(`/api/categories/${id}`),

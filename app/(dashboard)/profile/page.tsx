@@ -18,6 +18,11 @@ export default function ProfilePage() {
     email: '',
     phone: '',
     address: '',
+    city: '',
+    county: '',
+    street: '',
+    streetNumber: '',
+    addressDetails: '',
   });
   const [passwordData, setPasswordData] = useState({
     oldPassword: '',
@@ -38,6 +43,11 @@ export default function ProfilePage() {
         email: response.data.email || '',
         phone: response.data.phone || '',
         address: response.data.address || '',
+        city: response.data.city || '',
+        county: response.data.county || '',
+        street: response.data.street || '',
+        streetNumber: response.data.streetNumber || '',
+        addressDetails: response.data.addressDetails || '',
       });
     } catch (error) {
       console.error('Failed to fetch profile:', error);
@@ -224,9 +234,18 @@ export default function ProfilePage() {
                 <label className="text-sm text-gray-600">Telefon</label>
                 <p className="font-semibold">{profile?.phone || 'Nu este setat'}</p>
               </div>
-              <div>
-                <label className="text-sm text-gray-600">Adresă</label>
-                <p className="font-semibold">{profile?.address || 'Nu este setată'}</p>
+              <div className="border-t pt-3">
+                <label className="text-sm text-gray-600 font-semibold">📍 Adresă de Livrare</label>
+                {profile?.city || profile?.county || profile?.street ? (
+                  <div className="mt-2 space-y-1">
+                    {profile?.city && <p className="text-sm"><span className="text-gray-600">Oraș:</span> {profile.city}</p>}
+                    {profile?.county && <p className="text-sm"><span className="text-gray-600">Județ:</span> {profile.county}</p>}
+                    {profile?.street && <p className="text-sm"><span className="text-gray-600">Stradă:</span> {profile.street} {profile?.streetNumber || ''}</p>}
+                    {profile?.addressDetails && <p className="text-sm"><span className="text-gray-600">Detalii:</span> {profile.addressDetails}</p>}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500 mt-1">Nu este setată</p>
+                )}
               </div>
               <div>
                 <label className="text-sm text-gray-600">Rol</label>
@@ -262,17 +281,74 @@ export default function ProfilePage() {
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                   className="w-full px-4 py-2 border rounded focus:ring-2 focus:ring-blue-500"
+                  placeholder="+40..."
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-1">Adresă</label>
-                <textarea
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  className="w-full px-4 py-2 border rounded focus:ring-2 focus:ring-blue-500"
-                  rows={3}
-                />
+
+              {/* Adresă detaliată */}
+              <div className="border-t pt-3">
+                <h3 className="text-sm font-semibold text-gray-700 mb-3">📍 Adresă de Livrare</h3>
+                
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Oraș</label>
+                    <input
+                      type="text"
+                      value={formData.city}
+                      onChange={(e) => setFormData({ ...formData, city: e.target.value })}
+                      placeholder="ex: București"
+                      className="w-full px-4 py-2 border rounded focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Județ</label>
+                    <input
+                      type="text"
+                      value={formData.county}
+                      onChange={(e) => setFormData({ ...formData, county: e.target.value })}
+                      placeholder="ex: Ilfov"
+                      className="w-full px-4 py-2 border rounded focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-3 mt-3">
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium mb-1">Stradă</label>
+                    <input
+                      type="text"
+                      value={formData.street}
+                      onChange={(e) => setFormData({ ...formData, street: e.target.value })}
+                      placeholder="ex: Str. Victoriei"
+                      className="w-full px-4 py-2 border rounded focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Număr</label>
+                    <input
+                      type="text"
+                      value={formData.streetNumber}
+                      onChange={(e) => setFormData({ ...formData, streetNumber: e.target.value })}
+                      placeholder="ex: 25"
+                      className="w-full px-4 py-2 border rounded focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="mt-3">
+                  <label className="block text-sm font-medium mb-1">Detalii Adresă</label>
+                  <input
+                    type="text"
+                    value={formData.addressDetails}
+                    onChange={(e) => setFormData({ ...formData, addressDetails: e.target.value })}
+                    placeholder="Bloc, Scară, Etaj, Apartament, etc."
+                    className="w-full px-4 py-2 border rounded focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
               </div>
+
               <div className="flex gap-2">
                 <button
                   type="submit"
@@ -289,6 +365,11 @@ export default function ProfilePage() {
                       email: profile?.email || '',
                       phone: profile?.phone || '',
                       address: profile?.address || '',
+                      city: profile?.city || '',
+                      county: profile?.county || '',
+                      street: profile?.street || '',
+                      streetNumber: profile?.streetNumber || '',
+                      addressDetails: profile?.addressDetails || '',
                     });
                   }}
                   className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"

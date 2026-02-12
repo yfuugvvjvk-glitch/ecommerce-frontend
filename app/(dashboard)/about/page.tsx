@@ -2,8 +2,15 @@
 
 import { useEffect, useState } from 'react';
 
+interface PageContent {
+  title: string;
+  content: string;
+  slug?: string;
+  isActive?: boolean;
+}
+
 export default function AboutPage() {
-  const [pageContent, setPageContent] = useState<any>(null);
+  const [pageContent, setPageContent] = useState<PageContent | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

@@ -11,13 +11,16 @@ export default function Home() {
   useEffect(() => {
     if (!isLoading) {
       if (user) {
+        // Redirect logged in users to dashboard (shop)
         router.push('/dashboard');
       } else {
+        // Redirect non-logged in users to login
         router.push('/login');
       }
     }
   }, [user, isLoading, router]);
 
+  // Show loading spinner while redirecting
   return (
     <main className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
       <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>

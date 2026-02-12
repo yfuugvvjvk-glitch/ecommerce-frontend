@@ -21,28 +21,75 @@ export default function DashboardPage() {
   const { t } = useTranslation();
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [offers, setOffers] = useState<any[]>([]);
+  const [carouselItems, setCarouselItems] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<any[]>([]);
   const [historyProducts, setHistoryProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<string>('newest');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   useEffect(() => {
     fetchData();
     loadViewedProducts();
   }, []);
 
+  // Filter and sort products
+  useEffect(() => {
+    let filtered = products;
+
+    // Filter by category
+    if (selectedCategory) {
+      filtered = filtered.filter((p: any) => p.category?.id === selectedCategory);
+    }
+
+    // Filter by search query
+    if (searchQuery) {
+      filtered = filtered.filter(
+        (p: any) =>
+          p.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          p.description?.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Sort products
+    switch (sortBy) {
+      case 'name':
+        filtered.sort((a: any, b: any) => a.title.localeCompare(b.title));
+        break;
+      case 'price-asc':
+        filtered.sort((a: any, b: any) => a.price - b.price);
+        break;
+      case 'price-desc':
+        filtered.sort((a: any, b: any) => b.price - a.price);
+        break;
+      case 'popularity':
+        filtered.sort((a: any, b: any) => (b.reviewCount || 0) - (a.reviewCount || 0));
+        break;
+      case 'newest':
+      default:
+        filtered.sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        break;
+    }
+
+    setFilteredProducts(filtered);
+    setCurrentPage(1); // Reset to first page when filters change
+  }, [products, selectedCategory, searchQuery, sortBy]);
+
   const loadViewedProducts = async () => {
     try {
       const viewedIds = JSON.parse(localStorage.getItem('viewedProducts') || '[]');
       if (viewedIds.length === 0) return;
 
-      // Fetch details for viewed products
+      // Fetch details for viewed products - limitează la maxim 10
       const productsRes = await apiClient.get('/api/data');
       const allProducts = productsRes.data.data || [];
       const viewed = viewedIds
         .map((id: string) => allProducts.find((p: any) => p.id === id))
         .filter(Boolean)
-        .slice(0, 5);
+        .slice(0, 10); // Maxim 10 produse pentru istoric
       
       setHistoryProducts(viewed);
     } catch (error) {
@@ -54,89 +101,42 @@ export default function DashboardPage() {
     try {
       const productsRes = await apiClient.get('/api/data');
       const allProducts = productsRes.data.data || [];
-      console.log('=== DEBUGGING CAROUSEL ===');
-      console.log('Total products fetched:', allProducts.length);
-      console.log('Sample product:', allProducts[0]);
       
       setProducts(allProducts);
       
-      // Extract unique categories from products by name
-      const categoryMap = new Map();
-      allProducts.forEach((p: any) => {
-        if (p.category && p.category.name) {
-          categoryMap.set(p.category.name, {
-            id: p.category.id,
-            name: p.category.name,
-            slug: p.category.slug,
-          });
-        }
-      });
-      const uniqueCategories = Array.from(categoryMap.values());
-      setCategories(uniqueCategories);
-
-      // Fetch offers from API
+      // Fetch categories from API (admin vede toate, utilizatori doar active)
       try {
-        const offersRes = await apiClient.get('/api/offers');
-        const activeOffers = offersRes.data.filter((o: any) => o.isActive);
-        if (activeOffers.length > 0) {
-          // Map offers to include productId for direct linking
-          const mappedOffers = activeOffers.map((o: any) => ({
-            ...o,
-            productId: o.productOffers?.[0]?.dataItemId || null // Link la primul produs din ofertă
-          }));
-          setOffers(mappedOffers);
-        }
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        const isAdmin = user.role === 'admin';
+        const categoriesUrl = isAdmin 
+          ? '/api/categories?showAll=true&includeSubcategories=true' 
+          : '/api/categories?includeSubcategories=true';
+        
+        const categoriesRes = await apiClient.get(categoriesUrl);
+        setCategories(categoriesRes.data);
       } catch (error) {
-        console.error('Failed to fetch offers from API:', error);
-      }
-      
-      // ÎNTOTDEAUNA folosește produsele marcate pentru carousel (indiferent de oferte API)
-      const carouselProducts = allProducts.filter((p: any) => p.showInCarousel === true);
-      console.log('Products with showInCarousel=true:', carouselProducts.length);
-      console.log('Carousel products:', carouselProducts.map((p: any) => ({ 
-        id: p.id, 
-        title: p.title, 
-        showInCarousel: p.showInCarousel, 
-        carouselOrder: p.carouselOrder 
-      })));
-      
-      if (carouselProducts.length > 0) {
-        console.log('Produse găsite pentru carousel:', carouselProducts.length);
-        
-        // Sort by carouselOrder (manual) or by discount (automatic)
-        const sortedProducts = carouselProducts.sort((a: any, b: any) => {
-          // If both have manual order, use that
-          if (a.carouselOrder > 0 && b.carouselOrder > 0) {
-            return a.carouselOrder - b.carouselOrder;
+        console.error('Failed to fetch categories from API:', error);
+        // Fallback: Extract unique categories from products by name
+        const categoryMap = new Map();
+        allProducts.forEach((p: any) => {
+          if (p.category && p.category.name) {
+            categoryMap.set(p.category.name, {
+              id: p.category.id,
+              name: p.category.name,
+              slug: p.category.slug,
+            });
           }
-          // If only one has manual order, prioritize it
-          if (a.carouselOrder > 0) return -1;
-          if (b.carouselOrder > 0) return 1;
-          
-          // Otherwise sort by discount percentage
-          const discountA = a.oldPrice ? ((a.oldPrice - a.price) / a.oldPrice) * 100 : 0;
-          const discountB = b.oldPrice ? ((b.oldPrice - b.price) / b.oldPrice) * 100 : 0;
-          return discountB - discountA;
         });
-        
-        const generatedOffers = sortedProducts.map((p: any) => {
-          const discountPercent = p.oldPrice ? Math.round(((p.oldPrice - p.price) / p.oldPrice) * 100) : 0;
-          return {
-            id: p.id,
-            productId: p.id, // Link direct la produs
-            title: p.title,
-            description: discountPercent > 0 ? `${t('discount')} ${discountPercent}%` : p.description || '',
-            image: p.image,
-            discount: discountPercent,
-          };
-        });
-        
-        // Suprascrie ofertele cu cele din produse marcate pentru carousel
-        setOffers(generatedOffers);
-        console.log('Oferte generate din produse carousel:', generatedOffers.length);
-        console.log('Generated offers:', generatedOffers);
-      } else {
-        console.log('Nu s-au găsit produse cu showInCarousel=true');
+        const uniqueCategories = Array.from(categoryMap.values());
+        setCategories(uniqueCategories);
+      }
+
+      // Fetch carousel items from new API
+      try {
+        const carouselRes = await apiClient.get('/api/carousel/active');
+        setCarouselItems(carouselRes.data || []);
+      } catch (error) {
+        console.error('Failed to fetch carousel items:', error);
       }
     } catch (error) {
       console.error('Failed to fetch data:', error);
@@ -164,34 +164,115 @@ export default function DashboardPage() {
 
       {/* Main Content */}
       <div className="flex-1 space-y-6">
-        {/* Carousel */}
-        {offers.length > 0 && <Carousel offers={offers} />}
+        {/* Carousel - arată doar când nu e selectată nicio categorie */}
+        {!selectedCategory && carouselItems.length > 0 && <Carousel items={carouselItems} />}
 
-        {/* Navigation History */}
-        {historyProducts.length > 0 && <NavigationHistory products={historyProducts} />}
+        {/* Navigation History - arată doar când nu e selectată nicio categorie */}
+        {!selectedCategory && historyProducts.length > 0 && <NavigationHistory products={historyProducts} />}
 
-        {/* All Products Section */}
+        {/* Products Section - când e selectată o categorie, ocupă tot spațiul */}
         <div className="bg-white rounded-lg shadow-md p-6">
           <h2 className="text-2xl font-bold text-gray-800 mb-4">
             🛍️ {selectedCategory 
               ? (categories.find((c: any) => c.id === selectedCategory)?.name || t('category')) 
               : t('allProducts')}
           </h2>
+
+          {/* Filters - show always */}
+          <div className="bg-gray-50 p-4 rounded-lg mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Search */}
+              <div>
+                <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">
+                  🔍 Caută produse
+                </label>
+                <input
+                  id="search"
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Caută după nume sau descriere..."
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              {/* Sort */}
+              <div>
+                <label htmlFor="sort" className="block text-sm font-medium text-gray-700 mb-2">
+                  📊 Sortează după
+                </label>
+                <select
+                  id="sort"
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="newest">Cele mai noi</option>
+                  <option value="name">Nume (A-Z)</option>
+                  <option value="price-asc">Preț crescător</option>
+                  <option value="price-desc">Preț descrescător</option>
+                  <option value="popularity">Popularitate</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Active Filters and Item Count */}
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap gap-2 items-center">
+                {(searchQuery || sortBy !== 'newest') && (
+                  <>
+                    <span className="text-sm text-gray-600">Filtre active:</span>
+                    {searchQuery && (
+                      <button
+                        onClick={() => setSearchQuery('')}
+                        className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm hover:bg-green-200 transition"
+                      >
+                        🔍 "{searchQuery}" ✕
+                      </button>
+                    )}
+                    {sortBy !== 'newest' && (
+                      <button
+                        onClick={() => setSortBy('newest')}
+                        className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm hover:bg-orange-200 transition"
+                      >
+                        📊 {sortBy} ✕
+                      </button>
+                    )}
+                    <button
+                      onClick={() => {
+                        setSearchQuery('');
+                        setSortBy('newest');
+                      }}
+                      className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm hover:bg-gray-200 transition"
+                    >
+                      Șterge toate
+                    </button>
+                  </>
+                )}
+              </div>
+              <span className="text-sm text-gray-600 font-medium">
+                {selectedCategory ? filteredProducts.length : products.slice(0, 10).length} produse
+              </span>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-            {products
-              .filter((product: any) => !selectedCategory || product.category?.id === selectedCategory)
-              .slice(0, 10)
+            {(selectedCategory ? filteredProducts : products)
+              .slice(
+                selectedCategory ? (currentPage - 1) * itemsPerPage : 0,
+                selectedCategory ? currentPage * itemsPerPage : 10
+              )
               .map((product: any) => (
               <Link
                 key={product.id}
                 href={`/products/${product.id}`}
                 className="group bg-gray-50 rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
               >
-                <div className="relative h-48 bg-gray-200">
+                <div className="relative h-48 bg-gray-200 flex items-center justify-center">
                   <img
                     src={product.image || '/placeholder.jpg'}
                     alt={product.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                    className="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform"
                   />
                 </div>
                 <div className="p-3">
@@ -213,14 +294,40 @@ export default function DashboardPage() {
               </Link>
             ))}
           </div>
-          <div className="mt-6 text-center">
-            <Link
-              href="/shop"
-              className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-            >
-              {t('viewAllProducts')}
-            </Link>
-          </div>
+
+          {/* Pagination - show when category is selected */}
+          {selectedCategory && filteredProducts.length > itemsPerPage && (
+            <div className="mt-6 flex justify-center items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                ← Anterior
+              </button>
+              <span className="px-4 py-2 text-gray-700">
+                Pagina {currentPage} din {Math.ceil(filteredProducts.length / itemsPerPage)}
+              </span>
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(Math.ceil(filteredProducts.length / itemsPerPage), prev + 1))}
+                disabled={currentPage >= Math.ceil(filteredProducts.length / itemsPerPage)}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Următor →
+              </button>
+            </div>
+          )}
+
+          {!selectedCategory && (
+            <div className="mt-6 text-center">
+              <Link
+                href="/shop"
+                className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              >
+                {t('viewAllProducts')}
+              </Link>
+            </div>
+          )}
         </div>
       </div>
 

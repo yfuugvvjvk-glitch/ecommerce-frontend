@@ -9,3 +9,23 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* Word wrap global - previne cuvintele tăiate */
+* {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+/* Asigură că textele lungi nu depășesc containerele */
+p, h1, h2, h3, h4, h5, h6, span, div, a, li, td, th {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+/* Pentru input-uri și textarea */
+input, textarea {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}

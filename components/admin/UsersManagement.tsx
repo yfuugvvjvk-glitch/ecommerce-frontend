@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { apiClient } from '@/lib/api-client';
 import { Eye, EyeOff, User, Mail, Phone, Calendar, ShoppingBag } from 'lucide-react';
 import Pagination from '@/components/Pagination';
+import FilterBar from './FilterBar';
 
 interface UserDetails {
   id: string;
@@ -23,29 +24,74 @@ interface UserDetails {
 
 export default function UsersManagement() {
   const [users, setUsers] = useState<any[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [selectedUser, setSelectedUser] = useState<UserDetails | null>(null);
   const [showUserDetails, setShowUserDetails] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalUsers, setTotalUsers] = useState(0);
-  const itemsPerPage = 10;
+  const itemsPerPage = 5; // MODIFICAT: 5 utilizatori per pagină
+
+  // Filtre și căutare
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterRole, setFilterRole] = useState('');
+  const [sortBy, setSortBy] = useState('name');
 
   useEffect(() => {
     fetchUsers();
-  }, [currentPage]);
+  }, []);
+
+  useEffect(() => {
+    // Filtrare și sortare locală
+    let filtered = [...users];
+
+    // Căutare
+    if (searchTerm) {
+      filtered = filtered.filter(u => 
+        u.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        u.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        u.phone?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Filtrare după rol
+    if (filterRole) {
+      filtered = filtered.filter(u => u.role === filterRole);
+    }
+
+    // Sortare
+    switch (sortBy) {
+      case 'name':
+        filtered.sort((a, b) => a.name.localeCompare(b.name));
+        break;
+      case 'email':
+        filtered.sort((a, b) => a.email.localeCompare(b.email));
+        break;
+      case 'date':
+        filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        break;
+      case 'orders':
+        filtered.sort((a, b) => (b._count?.orders || 0) - (a._count?.orders || 0));
+        break;
+    }
+
+    setFilteredUsers(filtered);
+    setCurrentPage(1); // Reset la prima pagină când se schimbă filtrele
+  }, [users, searchTerm, filterRole, sortBy]);
+
+  // Paginare locală
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
 
   const fetchUsers = async () => {
     try {
       setLoading(true);
-      const response = await apiClient.get(`/api/admin/users?page=${currentPage}&limit=${itemsPerPage}`);
+      // Fetch all users pentru filtrare locală
+      const response = await apiClient.get(`/api/admin/users?page=1&limit=1000`);
       setUsers(response.data.users);
-      if (response.data.pagination) {
-        setTotalPages(response.data.pagination.totalPages);
-        setTotalUsers(response.data.pagination.total);
-      }
     } catch (error) {
       console.error('Failed to fetch users:', error);
     } finally {
@@ -102,6 +148,42 @@ export default function UsersManagement() {
         </div>
       )}
 
+      {/* Filtre și căutare */}
+      <FilterBar
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Caută după nume, email, telefon..."
+        filters={[
+          {
+            label: 'Rol',
+            value: filterRole,
+            onChange: setFilterRole,
+            options: [
+              { value: '', label: 'Toate rolurile' },
+              { value: 'user', label: '👤 Utilizator' },
+              { value: 'admin', label: '👨‍💼 Administrator' }
+            ]
+          }
+        ]}
+        sortBy={sortBy}
+        onSortChange={setSortBy}
+        sortOptions={[
+          { value: 'name', label: '📝 Nume (A-Z)' },
+          { value: 'email', label: '📧 Email' },
+          { value: 'date', label: '📅 Data înregistrării' },
+          { value: 'orders', label: '🛒 Număr comenzi' }
+        ]}
+        onReset={() => {
+          setSearchTerm('');
+          setFilterRole('');
+          setSortBy('name');
+        }}
+        showReset={searchTerm !== '' || filterRole !== '' || sortBy !== 'name'}
+      />
+
+      <div className="mb-4 text-sm text-gray-600">
+        Afișare {startIndex + 1}-{Math.min(endIndex, filteredUsers.length)} din {filteredUsers.length} utilizatori
+      </div>
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead className="bg-gray-50">
@@ -115,7 +197,7 @@ export default function UsersManagement() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
-            {users.map((user) => (
+            {paginatedUsers.map((user) => (
               <tr key={user.id} className="hover:bg-gray-50">
                 <td className="px-4 py-3">{user.name}</td>
                 <td className="px-4 py-3">{user.email}</td>
@@ -156,7 +238,7 @@ export default function UsersManagement() {
         currentPage={currentPage}
         totalPages={totalPages}
         onPageChange={setCurrentPage}
-        totalItems={totalUsers}
+        totalItems={filteredUsers.length}
         itemsPerPage={itemsPerPage}
       />
 

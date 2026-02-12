@@ -12,20 +12,32 @@ import CategoriesManagement from '@/components/admin/CategoriesManagement';
 import InvoicesManagement from '@/components/admin/InvoicesManagement';
 import TestCardsManagement from '@/components/admin/TestCardsManagement';
 import ProductsManagement from '@/components/admin/ProductsManagement';
-import AdvancedProductManager from '@/components/admin/AdvancedProductManager';
 import InventoryDashboard from '@/components/admin/InventoryDashboard';
-import FinancialDashboard from '@/components/admin/FinancialDashboard';
 import ContentManager from '@/components/admin/ContentManager';
 import DeliveryScheduleManager from '@/components/admin/DeliveryScheduleManager';
-import ExpenseRevenueManager from '@/components/admin/ExpenseRevenueManager';
+import FinancialReports from '@/components/admin/FinancialReports';
 import DeliveryPaymentSettings from '@/components/admin/DeliveryPaymentSettings';
 import DeliveryLocationsManager from '@/components/admin/DeliveryLocationsManager';
 import UIElementsManager from '@/components/admin/UIElementsManager';
 
+interface AdminStats {
+  totalUsers?: number;
+  totalProducts?: number;
+  totalOrders?: number;
+  totalRevenue?: number;
+  recentOrders?: Array<{
+    id: string;
+    user: { name: string; email: string };
+    total: number;
+    createdAt: string;
+  }>;
+  [key: string]: unknown;
+}
+
 export default function AdminPage() {
   const { user } = useAuth();
   const router = useRouter();
-  const [stats, setStats] = useState<any>(null);
+  const [stats, setStats] = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'products' | 'orders' | 'vouchers' | 'offers' | 'categories' | 'invoices' | 'test-cards' | 'inventory' | 'financial' | 'content' | 'delivery-schedule' | 'delivery-locations' | 'payment-delivery' | 'ui-elements'>('dashboard');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -61,8 +73,9 @@ export default function AdminPage() {
       const results = response.data.results;
       const message = `Cleanup finalizat! Șterse: ${results.expiredVouchers} vouchere expirate, ${results.fullyUsedVouchers} vouchere utilizate, ${results.oldRejectedRequests} cereri respinse vechi, ${results.oldApprovedRequests} cereri aprobate vechi.`;
       setToast({ message, type: 'success' });
-    } catch (error: any) {
-      setToast({ message: error.response?.data?.error || 'Eroare la rulare cleanup', type: 'error' });
+    } catch (error) {
+      const err = error as { response?: { data?: { error?: string } } };
+      setToast({ message: err.response?.data?.error || 'Eroare la rulare cleanup', type: 'error' });
     }
   };
 
@@ -268,7 +281,7 @@ export default function AdminPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-gray-600 text-sm">Total Utilizatori</p>
-                  <p className="text-3xl font-bold text-blue-600">{stats.totalUsers}</p>
+                  <p className="text-3xl font-bold text-blue-600">{stats?.totalUsers || 0}</p>
                 </div>
                 <div className="text-4xl">👥</div>
               </div>
@@ -278,7 +291,7 @@ export default function AdminPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-gray-600 text-sm">Total Produse</p>
-                  <p className="text-3xl font-bold text-green-600">{stats.totalProducts}</p>
+                  <p className="text-3xl font-bold text-green-600">{stats?.totalProducts || 0}</p>
                 </div>
                 <div className="text-4xl">🛍️</div>
               </div>
@@ -288,7 +301,7 @@ export default function AdminPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-gray-600 text-sm">Total Comenzi</p>
-                  <p className="text-3xl font-bold text-purple-600">{stats.totalOrders}</p>
+                  <p className="text-3xl font-bold text-purple-600">{stats?.totalOrders || 0}</p>
                 </div>
                 <div className="text-4xl">📦</div>
               </div>
@@ -299,7 +312,7 @@ export default function AdminPage() {
                 <div>
                   <p className="text-gray-600 text-sm">Venit Total</p>
                   <p className="text-3xl font-bold text-orange-600">
-                    {stats.totalRevenue.toFixed(0)} RON
+                    {(stats?.totalRevenue || 0).toFixed(0)} RON
                   </p>
                 </div>
                 <div className="text-4xl">💰</div>
@@ -340,20 +353,24 @@ export default function AdminPage() {
           <div className="bg-white rounded-lg shadow p-6">
             <h2 className="text-xl font-bold mb-4">Comenzi Recente</h2>
             <div className="space-y-3">
-              {stats.recentOrders.map((order: any) => (
-                <div key={order.id} className="flex justify-between items-center p-3 bg-gray-50 rounded">
-                  <div>
-                    <p className="font-semibold">{order.user.name}</p>
-                    <p className="text-sm text-gray-600">{order.user.email}</p>
+              {stats?.recentOrders && stats.recentOrders.length > 0 ? (
+                stats.recentOrders.map((order) => (
+                  <div key={order.id} className="flex justify-between items-center p-3 bg-gray-50 rounded">
+                    <div>
+                      <p className="font-semibold">{order.user.name}</p>
+                      <p className="text-sm text-gray-600">{order.user.email}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-bold text-blue-600">{order.total.toFixed(2)} RON</p>
+                      <p className="text-sm text-gray-600">
+                        {new Date(order.createdAt).toLocaleDateString('ro-RO')}
+                      </p>
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-bold text-blue-600">{order.total.toFixed(2)} RON</p>
-                    <p className="text-sm text-gray-600">
-                      {new Date(order.createdAt).toLocaleDateString('ro-RO')}
-                    </p>
-                  </div>
-                </div>
-              ))}
+                ))
+              ) : (
+                <p className="text-gray-500 text-center py-4">Nu există comenzi recente</p>
+              )}
             </div>
           </div>
         </div>
@@ -430,7 +447,7 @@ export default function AdminPage() {
       {/* Financial Tab */}
       {activeTab === 'financial' && (
         <div className="bg-white rounded-lg shadow p-6">
-          <ExpenseRevenueManager />
+          <FinancialReports />
         </div>
       )}
 

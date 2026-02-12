@@ -27,18 +27,53 @@ interface OrderBlockSettings {
   blockNewOrders: boolean;
   blockReason: string;
   blockUntil?: string;
+  blockType: 'permanent' | 'temporary' | 'scheduled'; // Nou
   allowedPaymentMethods: string[];
+  blockedPaymentMethods: string[]; // Nou - metode blocate
+  allowedDeliveryMethods: string[];
+  blockedDeliveryMethods: string[]; // Nou - metode blocate
   minimumOrderValue: number;
   maximumOrderValue?: number;
+  // Blocare programată
+  scheduledBlocks?: Array<{
+    dayOfWeek?: number; // 0-6 (Duminică-Sâmbătă)
+    startTime?: string;
+    endTime?: string;
+    reason?: string;
+  }>;
+}
+
+interface PaymentMethod {
+  id: string;
+  name: string;
+  code: string;
+  isActive: boolean;
+}
+
+interface DeliveryMethod {
+  id: string;
+  name: string;
+  code: string;
+  isActive: boolean;
 }
 
 export default function DeliveryScheduleManager() {
   const [schedules, setSchedules] = useState<DeliverySchedule[]>([]);
+  const [filteredSchedules, setFilteredSchedules] = useState<DeliverySchedule[]>([]);
   const [blockSettings, setBlockSettings] = useState<OrderBlockSettings | null>(null);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const [deliveryMethods, setDeliveryMethods] = useState<DeliveryMethod[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'schedule' | 'blocking' | 'special-dates'>('schedule');
   const [showModal, setShowModal] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState<DeliverySchedule | null>(null);
+  
+  // Filtre
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [sortBy, setSortBy] = useState('name-asc');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   // Form states
   const [scheduleForm, setScheduleForm] = useState({
@@ -67,25 +102,87 @@ export default function DeliveryScheduleManager() {
   useEffect(() => {
     fetchData();
   }, []);
+  
+  // Filtrare și sortare pentru programe
+  useEffect(() => {
+    let filtered = [...schedules];
+
+    // Filtrare după termen de căutare
+    if (searchTerm) {
+      filtered = filtered.filter(schedule =>
+        schedule.name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Filtrare după status
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(schedule =>
+        statusFilter === 'active' ? schedule.isActive : !schedule.isActive
+      );
+    }
+
+    // Sortare
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'name-asc':
+          return a.name.localeCompare(b.name);
+        case 'name-desc':
+          return b.name.localeCompare(a.name);
+        case 'days-asc':
+          return a.deliveryDays.length - b.deliveryDays.length;
+        case 'days-desc':
+          return b.deliveryDays.length - a.deliveryDays.length;
+        default:
+          return 0;
+      }
+    });
+
+    setFilteredSchedules(filtered);
+  }, [schedules, searchTerm, statusFilter, sortBy]);
 
   const fetchData = async () => {
     try {
-      const [schedulesRes, blockSettingsRes] = await Promise.all([
+      const [schedulesRes, blockSettingsRes, paymentMethodsRes, deliveryMethodsRes] = await Promise.all([
         apiClient.get('/api/admin/delivery-schedules'),
-        apiClient.get('/api/admin/order-block-settings')
+        apiClient.get('/api/admin/order-block-settings'),
+        apiClient.get('/api/admin/payment-methods'),
+        apiClient.get('/api/admin/delivery-settings')
       ]);
       
       setSchedules(schedulesRes.data || []);
+      setFilteredSchedules(schedulesRes.data || []);
+      setPaymentMethods(paymentMethodsRes.data || []);
+      setDeliveryMethods(deliveryMethodsRes.data || []);
       setBlockSettings(blockSettingsRes.data || {
         blockNewOrders: false,
         blockReason: '',
-        allowedPaymentMethods: ['cash', 'card'],
-        minimumOrderValue: 0
+        blockType: 'permanent',
+        allowedPaymentMethods: [],
+        blockedPaymentMethods: [],
+        allowedDeliveryMethods: [],
+        blockedDeliveryMethods: [],
+        minimumOrderValue: 0,
+        scheduledBlocks: []
       });
     } catch (error) {
       console.error('Error fetching delivery data:', error);
       // Set mock data for now
       setSchedules([
+        {
+          id: '1',
+          name: 'Program Standard',
+          deliveryDays: [1, 2, 3, 4, 5], // Luni-Vineri
+          deliveryTimeSlots: [
+            { startTime: '09:00', endTime: '12:00', maxOrders: 5 },
+            { startTime: '14:00', endTime: '18:00', maxOrders: 8 }
+          ],
+          isActive: true,
+          blockOrdersAfter: '20:00',
+          advanceOrderDays: 1,
+          specialDates: []
+        }
+      ]);
+      setFilteredSchedules([
         {
           id: '1',
           name: 'Program Standard',
@@ -115,27 +212,43 @@ export default function DeliveryScheduleManager() {
     try {
       const scheduleData = {
         ...scheduleForm,
-        specialDates: []
+        specialDates: editingSchedule?.specialDates || []
       };
 
-      await apiClient.post('/api/admin/delivery-schedules', scheduleData);
+      if (editingSchedule) {
+        // UPDATE existing schedule
+        await apiClient.put(`/api/admin/delivery-schedules/${editingSchedule.id}`, scheduleData);
+        alert('Programul de livrare a fost actualizat cu succes!');
+      } else {
+        // CREATE new schedule
+        await apiClient.post('/api/admin/delivery-schedules', scheduleData);
+        alert('Programul de livrare a fost creat cu succes!');
+      }
+      
       setShowModal(false);
       resetForm();
       fetchData();
-      alert('Programul de livrare a fost creat cu succes!');
     } catch (error) {
-      console.error('Error creating schedule:', error);
-      alert('Eroare la crearea programului de livrare');
+      console.error('Error saving schedule:', error);
+      alert('Eroare la salvarea programului de livrare');
     }
   };
 
   const handleUpdateBlockSettings = async () => {
     try {
-      await apiClient.put('/api/admin/order-block-settings', blockSettings);
+      if (!blockSettings) {
+        alert('Setările de blocare nu sunt încărcate');
+        return;
+      }
+      
+      console.log('Sending block settings:', blockSettings);
+      const response = await apiClient.put('/api/admin/order-block-settings', blockSettings);
+      console.log('Response:', response);
       alert('Setările de blocare au fost actualizate!');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating block settings:', error);
-      alert('Eroare la actualizarea setărilor');
+      const errorMsg = error?.response?.data?.error || error?.message || 'Eroare necunoscută';
+      alert(`Eroare la actualizarea setărilor: ${errorMsg}`);
     }
   };
 
@@ -148,6 +261,36 @@ export default function DeliveryScheduleManager() {
     } catch (error) {
       console.error('Error adding special date:', error);
       alert('Eroare la adăugarea datei speciale');
+    }
+  };
+
+  const handleDeleteSpecialDate = async (scheduleId: string, dateIndex: number) => {
+    try {
+      if (!confirm('Sigur vrei să ștergi această dată specială?')) {
+        return;
+      }
+      
+      await apiClient.delete(`/api/admin/delivery-schedules/${scheduleId}/special-dates/${dateIndex}`);
+      fetchData();
+      alert('Data specială a fost ștearsă!');
+    } catch (error) {
+      console.error('Error deleting special date:', error);
+      alert('Eroare la ștergerea datei speciale');
+    }
+  };
+
+  const handleDeleteSchedule = async (scheduleId: string) => {
+    try {
+      if (!confirm('Sigur vrei să ștergi acest program de livrare?')) {
+        return;
+      }
+      
+      await apiClient.delete(`/api/admin/delivery-schedules/${scheduleId}`);
+      fetchData();
+      alert('Programul de livrare a fost șters!');
+    } catch (error) {
+      console.error('Error deleting schedule:', error);
+      alert('Eroare la ștergerea programului');
     }
   };
 
@@ -167,6 +310,13 @@ export default function DeliveryScheduleManager() {
     const days = ['Duminică', 'Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă'];
     return days[dayIndex];
   };
+  
+  // Paginare
+  const totalPages = Math.ceil(filteredSchedules.length / itemsPerPage);
+  const paginatedSchedules = filteredSchedules.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   if (loading) {
     return (
@@ -226,8 +376,76 @@ export default function DeliveryScheduleManager() {
       {/* Schedule Tab */}
       {activeTab === 'schedule' && (
         <div>
+          {/* Filtre și Căutare */}
+          <div className="bg-white border rounded-lg p-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Căutare */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  🔍 Caută
+                </label>
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Nume program..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              {/* Filtru Status */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  📊 Status
+                </label>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value as any)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="all">Toate statusurile</option>
+                  <option value="active">Activ</option>
+                  <option value="inactive">Inactiv</option>
+                </select>
+              </div>
+
+              {/* Sortare */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  ⬇️ Sortare
+                </label>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="name-asc">Nume (A → Z)</option>
+                  <option value="name-desc">Nume (Z → A)</option>
+                  <option value="days-asc">Zile (Puține → Multe)</option>
+                  <option value="days-desc">Zile (Multe → Puține)</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Butoane Reset */}
+            {(searchTerm || statusFilter !== 'all' || sortBy !== 'name-asc') && (
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={() => {
+                    setSearchTerm('');
+                    setStatusFilter('all');
+                    setSortBy('name-asc');
+                  }}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
+                >
+                  🔄 Resetează Filtrele
+                </button>
+              </div>
+            )}
+          </div>
+          
           <div className="flex justify-between items-center mb-4">
-            <h3 className="text-lg font-semibold">Programe de Livrare</h3>
+            <h3 className="text-lg font-semibold">Programe de Livrare ({filteredSchedules.length} din {schedules.length})</h3>
             <button
               onClick={() => {
                 resetForm();
@@ -240,7 +458,7 @@ export default function DeliveryScheduleManager() {
           </div>
 
           <div className="grid gap-4">
-            {schedules.map(schedule => (
+            {paginatedSchedules.map(schedule => (
               <div key={schedule.id} className="border rounded-lg p-4 hover:shadow-md transition">
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
@@ -302,11 +520,42 @@ export default function DeliveryScheduleManager() {
                     >
                       ✏️ Editează
                     </button>
+                    <button
+                      onClick={() => handleDeleteSchedule(schedule.id)}
+                      className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition text-sm"
+                    >
+                      🗑️ Șterge
+                    </button>
                   </div>
                 </div>
               </div>
             ))}
           </div>
+          
+          {/* Paginare */}
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center space-x-2 mt-6">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+              >
+                ← Anterior
+              </button>
+              
+              <span className="text-sm text-gray-600">
+                Pagina {currentPage} din {totalPages}
+              </span>
+              
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+              >
+                Următorul →
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -315,61 +564,122 @@ export default function DeliveryScheduleManager() {
         <div>
           <h3 className="text-lg font-semibold mb-4">Setări Blocare Comenzi</h3>
           
-          <div className="bg-white border rounded-lg p-6">
-            <div className="space-y-6">
-              {/* Blocare generală */}
-              <div>
-                <label className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    checked={blockSettings.blockNewOrders}
-                    onChange={(e) => setBlockSettings({
-                      ...blockSettings,
-                      blockNewOrders: e.target.checked
-                    })}
-                  />
-                  <span className="font-medium">Blochează toate comenzile noi</span>
-                </label>
-                
-                {blockSettings.blockNewOrders && (
-                  <div className="mt-3 space-y-3">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Motiv blocare
-                      </label>
-                      <input
-                        type="text"
-                        value={blockSettings.blockReason}
-                        onChange={(e) => setBlockSettings({
-                          ...blockSettings,
-                          blockReason: e.target.value
-                        })}
-                        className="w-full border rounded px-3 py-2"
-                        placeholder="Ex: Concediu, renovări, etc."
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Blochează până la (opțional)
-                      </label>
-                      <input
-                        type="datetime-local"
-                        value={blockSettings.blockUntil || ''}
-                        onChange={(e) => setBlockSettings({
-                          ...blockSettings,
-                          blockUntil: e.target.value
-                        })}
-                        className="border rounded px-3 py-2"
-                      />
-                    </div>
+          <div className="bg-white border rounded-lg p-6 space-y-6">
+            {/* Blocare generală */}
+            <div className="border-b pb-4">
+              <label className="flex items-center space-x-2 mb-3">
+                <input
+                  type="checkbox"
+                  checked={blockSettings.blockNewOrders}
+                  onChange={(e) => setBlockSettings({
+                    ...blockSettings,
+                    blockNewOrders: e.target.checked
+                  })}
+                />
+                <span className="font-medium text-lg">Blochează toate comenzile noi</span>
+              </label>
+              
+              {blockSettings.blockNewOrders && (
+                <div className="ml-6 space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Motiv blocare
+                    </label>
+                    <input
+                      type="text"
+                      value={blockSettings.blockReason}
+                      onChange={(e) => setBlockSettings({
+                        ...blockSettings,
+                        blockReason: e.target.value
+                      })}
+                      className="w-full border rounded px-3 py-2"
+                      placeholder="Ex: Concediu, renovări, etc."
+                    />
                   </div>
-                )}
-              </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Blochează până la (opțional)
+                    </label>
+                    <input
+                      type="datetime-local"
+                      value={blockSettings.blockUntil || ''}
+                      onChange={(e) => setBlockSettings({
+                        ...blockSettings,
+                        blockUntil: e.target.value
+                      })}
+                      className="border rounded px-3 py-2"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
 
-              {/* Restricții comenzi */}
-              <div>
-                <h4 className="font-medium mb-3">Restricții Comenzi</h4>
+            {/* Blocare Metode de Plată */}
+            <div className="border-b pb-4">
+              <h4 className="font-medium mb-3 text-lg">🔒 Blocare Metode de Plată</h4>
+              <p className="text-sm text-gray-600 mb-3">Selectează metodele de plată care sunt BLOCATE (clienții nu le pot folosi)</p>
+              <div className="space-y-2">
+                {paymentMethods.filter(m => m.isActive).map(method => (
+                  <label key={method.id} className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={blockSettings.blockedPaymentMethods?.includes(method.code) || false}
+                      onChange={(e) => {
+                        const blocked = blockSettings.blockedPaymentMethods || [];
+                        if (e.target.checked) {
+                          setBlockSettings({
+                            ...blockSettings,
+                            blockedPaymentMethods: [...blocked, method.code]
+                          });
+                        } else {
+                          setBlockSettings({
+                            ...blockSettings,
+                            blockedPaymentMethods: blocked.filter(m => m !== method.code)
+                          });
+                        }
+                      }}
+                    />
+                    <span>{method.name}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Blocare Metode de Livrare */}
+            <div className="border-b pb-4">
+              <h4 className="font-medium mb-3 text-lg">🚚 Blocare Metode de Livrare</h4>
+              <p className="text-sm text-gray-600 mb-3">Selectează metodele de livrare care sunt BLOCATE (clienții nu le pot folosi)</p>
+              <div className="space-y-2">
+                {deliveryMethods.filter(m => m.isActive).map(method => (
+                  <label key={method.id} className="flex items-center space-x-2">
+                    <input
+                      type="checkbox"
+                      checked={blockSettings.blockedDeliveryMethods?.includes(method.code) || false}
+                      onChange={(e) => {
+                        const blocked = blockSettings.blockedDeliveryMethods || [];
+                        if (e.target.checked) {
+                          setBlockSettings({
+                            ...blockSettings,
+                            blockedDeliveryMethods: [...blocked, method.code]
+                          });
+                        } else {
+                          setBlockSettings({
+                            ...blockSettings,
+                            blockedDeliveryMethods: blocked.filter(m => m !== method.code)
+                          });
+                        }
+                      }}
+                    />
+                    <span>{method.name}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            {/* Restricții Comenzi */}
+            <div>
+              <h4 className="font-medium mb-3 text-lg">💰 Restricții Valoare Comandă</h4>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -378,10 +688,10 @@ export default function DeliveryScheduleManager() {
                     </label>
                     <input
                       type="number"
-                      value={blockSettings.minimumOrderValue}
+                      value={blockSettings.minimumOrderValue || 0}
                       onChange={(e) => setBlockSettings({
                         ...blockSettings,
-                        minimumOrderValue: parseFloat(e.target.value)
+                        minimumOrderValue: parseFloat(e.target.value) || 0
                       })}
                       className="w-full border rounded px-3 py-2"
                     />
@@ -394,53 +704,26 @@ export default function DeliveryScheduleManager() {
                     <input
                       type="number"
                       value={blockSettings.maximumOrderValue || ''}
-                      onChange={(e) => setBlockSettings({
-                        ...blockSettings,
-                        maximumOrderValue: e.target.value ? parseFloat(e.target.value) : undefined
-                      })}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setBlockSettings({
+                          ...blockSettings,
+                          maximumOrderValue: val ? parseFloat(val) : undefined
+                        });
+                      }}
                       className="w-full border rounded px-3 py-2"
                     />
                   </div>
                 </div>
-              </div>
+            </div>
 
-              {/* Metode de plată permise */}
-              <div>
-                <h4 className="font-medium mb-3">Metode de Plată Permise</h4>
-                <div className="space-y-2">
-                  {['cash', 'card', 'transfer', 'crypto'].map(method => (
-                    <label key={method} className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        checked={blockSettings.allowedPaymentMethods.includes(method)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setBlockSettings({
-                              ...blockSettings,
-                              allowedPaymentMethods: [...blockSettings.allowedPaymentMethods, method]
-                            });
-                          } else {
-                            setBlockSettings({
-                              ...blockSettings,
-                              allowedPaymentMethods: blockSettings.allowedPaymentMethods.filter(m => m !== method)
-                            });
-                          }
-                        }}
-                      />
-                      <span className="capitalize">{method === 'cash' ? 'Numerar' : method === 'card' ? 'Card' : method === 'transfer' ? 'Transfer' : 'Crypto'}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-
-              <div className="flex justify-end">
-                <button
-                  onClick={handleUpdateBlockSettings}
-                  className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
-                >
-                  💾 Salvează Setări
-                </button>
-              </div>
+            <div className="flex justify-end pt-4">
+              <button
+                onClick={handleUpdateBlockSettings}
+                className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+              >
+                💾 Salvează Setări
+              </button>
             </div>
           </div>
         </div>
@@ -507,11 +790,19 @@ export default function DeliveryScheduleManager() {
                   <p className="font-medium">{new Date(specialDate.date).toLocaleDateString('ro-RO')}</p>
                   <p className="text-sm text-gray-600">{specialDate.reason}</p>
                 </div>
-                <span className={`px-2 py-1 rounded text-xs font-medium ${
-                  specialDate.isBlocked ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'
-                }`}>
-                  {specialDate.isBlocked ? 'Blocată' : 'Specială'}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className={`px-2 py-1 rounded text-xs font-medium ${
+                    specialDate.isBlocked ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'
+                  }`}>
+                    {specialDate.isBlocked ? 'Blocată' : 'Specială'}
+                  </span>
+                  <button
+                    onClick={() => handleDeleteSpecialDate(schedules[0]?.id || '1', index)}
+                    className="px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition text-sm"
+                  >
+                    🗑️ Șterge
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -617,7 +908,7 @@ export default function DeliveryScheduleManager() {
                           <input
                             type="number"
                             min="1"
-                            value={slot.maxOrders}
+                            value={slot.maxOrders || 1}
                             onChange={(e) => {
                               const newSlots = [...scheduleForm.deliveryTimeSlots];
                               newSlots[index].maxOrders = parseInt(e.target.value) || 1;
@@ -679,8 +970,8 @@ export default function DeliveryScheduleManager() {
                     type="number"
                     min="0"
                     max="30"
-                    value={scheduleForm.advanceOrderDays}
-                    onChange={(e) => setScheduleForm({...scheduleForm, advanceOrderDays: parseInt(e.target.value)})}
+                    value={scheduleForm.advanceOrderDays || 0}
+                    onChange={(e) => setScheduleForm({...scheduleForm, advanceOrderDays: parseInt(e.target.value) || 0})}
                     className="w-full border rounded px-3 py-2"
                   />
                 </div>

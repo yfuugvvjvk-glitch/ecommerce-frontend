@@ -2,16 +2,31 @@
 
 import { useEffect, useState } from 'react';
 import { apiClient } from '@/lib/api-client';
+import { usePagination } from '@/lib/usePagination';
+import Pagination from '@/components/Pagination';
+import FilterBar from './FilterBar';
+import RichTextEditor from '../RichTextEditor';
 
 export default function CategoriesManagement() {
   const [categories, setCategories] = useState<any[]>([]);
+  const [filteredCategories, setFilteredCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  
+  // Filtre și căutare
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [filterType, setFilterType] = useState('');
+  const [sortBy, setSortBy] = useState('name');
+  
   const [formData, setFormData] = useState({
     name: '',
     slug: '',
     icon: '',
+    description: '',
+    parentId: '',
+    isActive: true,
   });
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
@@ -19,9 +34,59 @@ export default function CategoriesManagement() {
     fetchCategories();
   }, []);
 
+  useEffect(() => {
+    // Filtrare și sortare
+    let filtered = [...categories];
+
+    // Căutare
+    if (searchTerm) {
+      filtered = filtered.filter(c => 
+        c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.slug?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        c.description?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Filtrare după status
+    if (filterStatus === 'active') {
+      filtered = filtered.filter(c => c.isActive);
+    } else if (filterStatus === 'inactive') {
+      filtered = filtered.filter(c => !c.isActive);
+    }
+
+    // Filtrare după tip (categorie principală vs subcategorie)
+    if (filterType === 'main') {
+      filtered = filtered.filter(c => !c.parentId);
+    } else if (filterType === 'sub') {
+      filtered = filtered.filter(c => c.parentId);
+    }
+
+    // Sortare
+    switch (sortBy) {
+      case 'name':
+        filtered.sort((a, b) => a.name.localeCompare(b.name));
+        break;
+      case 'products':
+        filtered.sort((a, b) => (b._count?.dataItems || 0) - (a._count?.dataItems || 0));
+        break;
+      case 'position':
+        filtered.sort((a, b) => (a.position || 0) - (b.position || 0));
+        break;
+    }
+
+    setFilteredCategories(filtered);
+  }, [categories, searchTerm, filterStatus, filterType, sortBy]);
+
+  // Pagination hook - MUST be at component top level
+  const { paginatedItems, currentPage, totalPages, goToPage, totalItems } = usePagination({ 
+    items: filteredCategories, 
+    itemsPerPage: 5 // MODIFICAT: 5 categorii per pagină
+  });
+
   const fetchCategories = async () => {
     try {
-      const response = await apiClient.get('/api/categories');
+      // Admin vede toate categoriile (inclusiv cele ascunse)
+      const response = await apiClient.get('/api/categories?showAll=true&includeSubcategories=true');
       setCategories(response.data);
     } catch (error) {
       console.error('Failed to fetch categories:', error);
@@ -36,6 +101,9 @@ export default function CategoriesManagement() {
       name: category.name,
       slug: category.slug,
       icon: category.icon || '',
+      description: category.description || '',
+      parentId: category.parentId || '',
+      isActive: category.isActive !== undefined ? category.isActive : true,
     });
     setShowForm(true);
   };
@@ -84,6 +152,9 @@ export default function CategoriesManagement() {
       name: '',
       slug: '',
       icon: '',
+      description: '',
+      parentId: '',
+      isActive: true,
     });
   };
 
@@ -111,6 +182,49 @@ export default function CategoriesManagement() {
         </div>
       )}
 
+      {/* Filtre și căutare */}
+      <FilterBar
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Caută după nume, slug sau descriere..."
+        filters={[
+          {
+            label: 'Status',
+            value: filterStatus,
+            onChange: setFilterStatus,
+            options: [
+              { value: '', label: 'Toate' },
+              { value: 'active', label: '✅ Active' },
+              { value: 'inactive', label: '❌ Inactive' }
+            ]
+          },
+          {
+            label: 'Tip',
+            value: filterType,
+            onChange: setFilterType,
+            options: [
+              { value: '', label: 'Toate tipurile' },
+              { value: 'main', label: '📁 Categorii principale' },
+              { value: 'sub', label: '📂 Subcategorii' }
+            ]
+          }
+        ]}
+        sortBy={sortBy}
+        onSortChange={setSortBy}
+        sortOptions={[
+          { value: 'name', label: '📝 Nume (A-Z)' },
+          { value: 'products', label: '📦 Număr produse' },
+          { value: 'position', label: '🔢 Poziție' }
+        ]}
+        onReset={() => {
+          setSearchTerm('');
+          setFilterStatus('');
+          setFilterType('');
+          setSortBy('name');
+        }}
+        showReset={searchTerm !== '' || filterStatus !== '' || filterType !== '' || sortBy !== 'name'}
+      />
+
       <button
         onClick={() => {
           if (showForm) resetForm();
@@ -127,23 +241,18 @@ export default function CategoriesManagement() {
           
           <div>
             <label className="block text-sm font-medium mb-1">Nume Categorie *</label>
-            <input
-              type="text"
+            <RichTextEditor
               value={formData.name}
-              onChange={(e) => {
-                const name = e.target.value;
+              onChange={(value) => {
                 setFormData({ 
                   ...formData, 
-                  name,
-                  slug: generateSlug(name)
+                  name: value,
+                  slug: generateSlug(value.replace(/<[^>]*>/g, '')) // Remove HTML tags for slug
                 });
               }}
-              className="w-full px-3 py-2 border rounded"
-              required
               placeholder="ex: Electronice"
             />
           </div>
-
           <div>
             <label className="block text-sm font-medium mb-1">Slug (URL) *</label>
             <input
@@ -158,6 +267,36 @@ export default function CategoriesManagement() {
           </div>
 
           <div>
+            <label className="block text-sm font-medium mb-1">Descriere</label>
+            <RichTextEditor
+              value={formData.description}
+              onChange={(value) => setFormData({ ...formData, description: value })}
+              placeholder="Descriere detaliată a categoriei..."
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-1">Categorie Părinte (opțional)</label>
+            <select
+              value={formData.parentId}
+              onChange={(e) => setFormData({ ...formData, parentId: e.target.value })}
+              className="w-full px-3 py-2 border rounded"
+            >
+              <option value="">-- Categorie Principală --</option>
+              {categories
+                .filter(cat => !cat.parentId && cat.id !== editingId)
+                .map(cat => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.icon} {cat.name}
+                  </option>
+                ))}
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              Lasă necompletat pentru categorie principală sau selectează o categorie părinte pentru subcategorie
+            </p>
+          </div>
+
+          <div>
             <label className="block text-sm font-medium mb-1">Icon (Emoji)</label>
             <input
               type="text"
@@ -169,6 +308,22 @@ export default function CategoriesManagement() {
             />
           </div>
 
+          <div className="flex items-center gap-3 p-3 bg-gray-50 rounded">
+            <input
+              type="checkbox"
+              id="isActive"
+              checked={formData.isActive}
+              onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+              className="w-4 h-4"
+            />
+            <label htmlFor="isActive" className="text-sm font-medium cursor-pointer">
+              👁️ Categorie vizibilă pentru utilizatori
+            </label>
+          </div>
+          <p className="text-xs text-gray-500 -mt-2 ml-7">
+            Categoriile ascunse nu vor fi afișate în site, dar produsele rămân accesibile
+          </p>
+
           <button
             type="submit"
             className="w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
@@ -179,37 +334,60 @@ export default function CategoriesManagement() {
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {categories.map((category) => (
-          <div key={category.id} className="bg-white border rounded-lg p-4">
-            <div className="flex justify-between items-start mb-2">
-              <div className="flex items-center gap-2">
-                {category.icon && <span className="text-2xl">{category.icon}</span>}
-                <div>
-                  <h3 className="font-bold">{category.name}</h3>
-                  <p className="text-xs text-gray-500">{category.slug}</p>
-                </div>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => handleEdit(category)}
-                  className="text-blue-600 hover:text-blue-800"
-                >
-                  ✏️
-                </button>
-                <button
-                  onClick={() => handleDelete(category.id)}
-                  className="text-red-600 hover:text-red-800"
-                >
-                  🗑️
-                </button>
-              </div>
+        {paginatedItems.map((category) => (
+                <div key={category.id} className={`bg-white border rounded-lg p-4 ${!category.isActive ? 'opacity-60 border-gray-300' : 'border-gray-200'}`}>
+                  <div className="flex justify-between items-start mb-2">
+                    <div className="flex items-center gap-2">
+                      {category.icon && <span className="text-2xl">{category.icon}</span>}
+                      <div>
+                        <h3 className="font-bold flex items-center gap-2">
+                          {category.name}
+                          {!category.isActive && <span className="text-xs bg-gray-200 px-2 py-0.5 rounded">Ascuns</span>}
+                        </h3>
+                        <p className="text-xs text-gray-500">{category.slug}</p>
+                        {category.parent && (
+                          <p className="text-xs text-blue-600 mt-1">
+                            └─ Sub: {category.parent.name}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleEdit(category)}
+                        className="text-blue-600 hover:text-blue-800"
+                        title="Editează"
+                      >
+                        ✏️
+                      </button>
+                      <button
+                        onClick={() => handleDelete(category.id)}
+                        className="text-red-600 hover:text-red-800"
+                        title="Șterge"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  </div>
+                  {category.description && (
+                    <p className="text-xs text-gray-600 mb-2 line-clamp-2">
+                      {category.description}
+                    </p>
+                  )}
+                  <p className="text-sm text-gray-600">
+                    {category._count?.dataItems || 0} produse
+                  </p>
             </div>
-            <p className="text-sm text-gray-600">
-              {category._count?.dataItems || 0} produse
-            </p>
-          </div>
-        ))}
+          ))}
       </div>
+      
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={goToPage}
+        itemsPerPage={10}
+        totalItems={totalItems}
+      />
     </div>
   );
 }

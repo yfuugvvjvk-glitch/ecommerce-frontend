@@ -75,7 +75,7 @@ export default function RegisterPage() {
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
           <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-            Full Name
+            Nume Complet
           </label>
           <input
             {...register('name')}
@@ -110,8 +110,95 @@ export default function RegisterPage() {
         </div>
 
         <div>
+          <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
+            Telefon (opțional)
+          </label>
+          <input
+            {...register('phone')}
+            type="tel"
+            id="phone"
+            placeholder="+40..."
+            className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        {/* Adresă detaliată */}
+        <div className="border-t pt-4">
+          <h3 className="text-sm font-semibold text-gray-700 mb-3">📍 Adresă de Livrare</h3>
+          
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1">
+                Oraș
+              </label>
+              <input
+                {...register('city')}
+                type="text"
+                id="city"
+                placeholder="ex: București"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="county" className="block text-sm font-medium text-gray-700 mb-1">
+                Județ
+              </label>
+              <input
+                {...register('county')}
+                type="text"
+                id="county"
+                placeholder="ex: Ilfov"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-3 gap-3 mt-3">
+            <div className="col-span-2">
+              <label htmlFor="street" className="block text-sm font-medium text-gray-700 mb-1">
+                Stradă
+              </label>
+              <input
+                {...register('street')}
+                type="text"
+                id="street"
+                placeholder="ex: Str. Victoriei"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="streetNumber" className="block text-sm font-medium text-gray-700 mb-1">
+                Număr
+              </label>
+              <input
+                {...register('streetNumber')}
+                type="text"
+                id="streetNumber"
+                placeholder="ex: 25"
+                className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          <div className="mt-3">
+            <label htmlFor="addressDetails" className="block text-sm font-medium text-gray-700 mb-1">
+              Detalii Adresă (opțional)
+            </label>
+            <input
+              {...register('addressDetails')}
+              type="text"
+              id="addressDetails"
+              placeholder="Bloc, Scară, Etaj, Apartament, etc."
+              className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+
+        <div>
           <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-            Password
+            Parolă
           </label>
           <input
             {...register('password')}
@@ -139,7 +226,7 @@ export default function RegisterPage() {
                 ))}
               </div>
               <p className="text-xs text-gray-600 mt-1">
-                Password strength: {passwordStrength.label}
+                Putere parolă: {passwordStrength.label}
               </p>
             </div>
           )}
@@ -155,7 +242,7 @@ export default function RegisterPage() {
           disabled={isLoading}
           className="w-full py-3 px-4 text-base font-medium bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition min-h-[44px]"
         >
-          {isLoading ? 'Creating account...' : 'Register'}
+          {isLoading ? 'Se creează contul...' : 'Înregistrare'}
         </button>
       </form>
 

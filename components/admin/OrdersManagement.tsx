@@ -147,6 +147,12 @@ export default function OrdersManagement() {
   };
 
   const filteredOrders = applyFilters();
+  
+  // Pagination hook - MUST be at component top level
+  const { paginatedItems, currentPage, totalPages, goToPage, totalItems } = usePagination({ 
+    items: filteredOrders, 
+    itemsPerPage: 5 // MODIFICAT: 5 comenzi per pagină
+  });
 
   const resetFilters = () => {
     setFilters({
@@ -387,12 +393,7 @@ export default function OrdersManagement() {
       </div>
 
       <div className="space-y-4">
-        {(() => {
-          const { paginatedItems, currentPage, totalPages, goToPage, totalItems } = usePagination({ items: filteredOrders, itemsPerPage: 10 });
-          
-          return (
-            <>
-              {paginatedItems.map((order) => (
+        {paginatedItems.map((order) => (
           <div key={order.id} className="bg-white border rounded-lg p-4">
             <div className="flex justify-between items-start mb-3">
               <div>
@@ -459,12 +460,9 @@ export default function OrdersManagement() {
           currentPage={currentPage}
           totalPages={totalPages}
           onPageChange={goToPage}
-          itemsPerPage={10}
+          itemsPerPage={5}
           totalItems={totalItems}
         />
-      </>
-    );
-  })()}
       </div>
     </div>
   );

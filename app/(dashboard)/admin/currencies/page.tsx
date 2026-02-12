@@ -97,8 +97,9 @@ export default function CurrenciesPage() {
 
       showMessage('success', `Cursuri actualizate cu succes! (${response.data.rates.length} monede)`);
       fetchData();
-    } catch (error: any) {
-      showMessage('error', error.response?.data?.error || 'Eroare la actualizarea cursurilor');
+    } catch (error) {
+      const err = error as { response?: { data?: { error?: string } } };
+      showMessage('error', err.response?.data?.error || 'Eroare la actualizarea cursurilor');
     } finally {
       setUpdating(false);
     }
@@ -118,8 +119,9 @@ export default function CurrenciesPage() {
       setShowAddModal(false);
       resetForm();
       fetchData();
-    } catch (error: any) {
-      showMessage('error', error.response?.data?.error || 'Eroare la adăugarea monedei');
+    } catch (error) {
+      const err = error as { response?: { data?: { error?: string } } };
+      showMessage('error', err.response?.data?.error || 'Eroare la adăugarea monedei');
     }
   };
 
@@ -139,8 +141,9 @@ export default function CurrenciesPage() {
       setEditingCurrency(null);
       resetForm();
       fetchData();
-    } catch (error: any) {
-      showMessage('error', error.response?.data?.error || 'Eroare la actualizarea monedei');
+    } catch (error) {
+      const err = error as { response?: { data?: { error?: string } } };
+      showMessage('error', err.response?.data?.error || 'Eroare la actualizarea monedei');
     }
   };
 
@@ -156,8 +159,9 @@ export default function CurrenciesPage() {
 
       showMessage('success', 'Monedă ștearsă cu succes!');
       fetchData();
-    } catch (error: any) {
-      showMessage('error', error.response?.data?.error || 'Eroare la ștergerea monedei');
+    } catch (error) {
+      const err = error as { response?: { data?: { error?: string } } };
+      showMessage('error', err.response?.data?.error || 'Eroare la ștergerea monedei');
     }
   };
 
@@ -172,8 +176,9 @@ export default function CurrenciesPage() {
 
       showMessage('success', 'Moneda de bază a fost setată!');
       fetchData();
-    } catch (error: any) {
-      showMessage('error', error.response?.data?.error || 'Eroare la setarea monedei de bază');
+    } catch (error) {
+      const err = error as { response?: { data?: { error?: string } } };
+      showMessage('error', err.response?.data?.error || 'Eroare la setarea monedei de bază');
     }
   };
 
@@ -191,8 +196,9 @@ export default function CurrenciesPage() {
       setShowRateModal(false);
       setRateFormData({ fromCurrencyCode: '', toCurrencyCode: '', rate: 0 });
       fetchData();
-    } catch (error: any) {
-      showMessage('error', error.response?.data?.error || 'Eroare la actualizarea cursului');
+    } catch (error) {
+      const err = error as { response?: { data?: { error?: string } } };
+      showMessage('error', err.response?.data?.error || 'Eroare la actualizarea cursului');
     }
   };
 
@@ -582,8 +588,8 @@ export default function CurrenciesPage() {
 
                 <div className="bg-yellow-50 border border-yellow-200 rounded p-3">
                   <p className="text-xs text-yellow-800">
-                    <strong>💡 Notă:</strong> Cursul va fi salvat ca "manual" și va suprascrie cursul automat.
-                    Pentru a reveni la cursul automat, folosește butoanele "Actualizează de la BNR/API".
+                    <strong>💡 Notă:</strong> Cursul va fi salvat ca &quot;manual&quot; și va suprascrie cursul automat.
+                    Pentru a reveni la cursul automat, folosește butoanele &quot;Actualizează de la BNR/API&quot;.
                   </p>
                 </div>
               </div>

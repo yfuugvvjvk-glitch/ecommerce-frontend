@@ -26,6 +26,9 @@ export default function ProductsPage() {
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<string>('newest');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   // Read search query and offer from URL
   useEffect(() => {
@@ -119,8 +122,29 @@ export default function ProductsPage() {
       );
     }
 
+    // Sort products
+    switch (sortBy) {
+      case 'name':
+        filtered.sort((a, b) => a.title.localeCompare(b.title));
+        break;
+      case 'price-asc':
+        filtered.sort((a, b) => a.price - b.price);
+        break;
+      case 'price-desc':
+        filtered.sort((a, b) => b.price - a.price);
+        break;
+      case 'popularity':
+        filtered.sort((a, b) => (b.reviewCount || 0) - (a.reviewCount || 0));
+        break;
+      case 'newest':
+      default:
+        filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        break;
+    }
+
     setFilteredProducts(filtered);
-  }, [products, selectedCategory, selectedStatus, searchQuery, isAdmin]);
+    setCurrentPage(1); // Reset to first page when filters change
+  }, [products, selectedCategory, selectedStatus, searchQuery, sortBy, isAdmin]);
 
   // Get category options from loaded categories
   const categoryOptions = ['all', ...categories.map(c => c.name)];
@@ -221,7 +245,7 @@ export default function ProductsPage() {
 
       {/* Filters */}
       <div className="bg-white p-4 rounded-lg shadow mb-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {/* Search */}
           <div>
             <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">
@@ -256,11 +280,30 @@ export default function ProductsPage() {
             </select>
           </div>
 
+          {/* Sort */}
+          <div>
+            <label htmlFor="sort" className="block text-sm font-medium text-gray-700 mb-2">
+              📊 Sortează după
+            </label>
+            <select
+              id="sort"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value="newest">Cele mai noi</option>
+              <option value="name">Nume (A-Z)</option>
+              <option value="price-asc">Preț crescător</option>
+              <option value="price-desc">Preț descrescător</option>
+              <option value="popularity">Popularitate</option>
+            </select>
+          </div>
+
           {/* Status Filter - Admin Only */}
           {isAdmin && (
             <div>
               <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-2">
-                📊 Status
+                ⬇️ Status
               </label>
               <select
                 id="status"
@@ -277,46 +320,62 @@ export default function ProductsPage() {
           )}
         </div>
 
-        {/* Active Filters */}
-        {(selectedCategory !== 'all' || selectedStatus !== 'all' || searchQuery) && (
-          <div className="mt-4 flex flex-wrap gap-2">
-            <span className="text-sm text-gray-600">Filtre active:</span>
-            {selectedCategory !== 'all' && (
-              <button
-                onClick={() => setSelectedCategory('all')}
-                className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm hover:bg-blue-200 transition"
-              >
-                📂 {selectedCategory} ✕
-              </button>
+        {/* Active Filters and Item Count */}
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap gap-2 items-center">
+            {(selectedCategory !== 'all' || selectedStatus !== 'all' || searchQuery || sortBy !== 'newest') && (
+              <>
+                <span className="text-sm text-gray-600">Filtre active:</span>
+                {selectedCategory !== 'all' && (
+                  <button
+                    onClick={() => setSelectedCategory('all')}
+                    className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm hover:bg-blue-200 transition"
+                  >
+                    📂 {selectedCategory} ✕
+                  </button>
+                )}
+                {selectedStatus !== 'all' && isAdmin && (
+                  <button
+                    onClick={() => setSelectedStatus('all')}
+                    className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm hover:bg-purple-200 transition"
+                  >
+                    ⬇️ {selectedStatus} ✕
+                  </button>
+                )}
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm hover:bg-green-200 transition"
+                  >
+                    🔍 "{searchQuery}" ✕
+                  </button>
+                )}
+                {sortBy !== 'newest' && (
+                  <button
+                    onClick={() => setSortBy('newest')}
+                    className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm hover:bg-orange-200 transition"
+                  >
+                    📊 {sortBy} ✕
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    setSelectedCategory('all');
+                    setSelectedStatus('all');
+                    setSearchQuery('');
+                    setSortBy('newest');
+                  }}
+                  className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm hover:bg-gray-200 transition"
+                >
+                  Șterge toate
+                </button>
+              </>
             )}
-            {selectedStatus !== 'all' && isAdmin && (
-              <button
-                onClick={() => setSelectedStatus('all')}
-                className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm hover:bg-purple-200 transition"
-              >
-                📊 {selectedStatus} ✕
-              </button>
-            )}
-            {searchQuery && (
-              <button
-                onClick={() => setSearchQuery('')}
-                className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm hover:bg-green-200 transition"
-              >
-                🔍 "{searchQuery}" ✕
-              </button>
-            )}
-            <button
-              onClick={() => {
-                setSelectedCategory('all');
-                setSelectedStatus('all');
-                setSearchQuery('');
-              }}
-              className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm hover:bg-gray-200 transition"
-            >
-              Șterge toate
-            </button>
           </div>
-        )}
+          <span className="text-sm text-gray-600 font-medium">
+            {filteredProducts.length} din {products.length} produse
+          </span>
+        </div>
       </div>
 
       {/* Form Modal - Admin Only */}
@@ -374,17 +433,20 @@ export default function ProductsPage() {
       )}
 
       {!error && viewMode === 'grid' && !loading && filteredProducts.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
-          {filteredProducts.map((product) => (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
+            {filteredProducts
+              .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+              .map((product) => (
             <div
               key={product.id}
               className="bg-white rounded-lg shadow hover:shadow-xl transition-all duration-300 overflow-hidden"
             >
-              <div className="relative h-48 bg-gray-200">
+              <div className="relative h-48 bg-gray-200 flex items-center justify-center">
                 <img
                   src={product.image}
                   alt={product.title}
-                  className="w-full h-full object-cover"
+                  className="max-w-full max-h-full object-contain"
                   onError={(e) => {
                     e.currentTarget.src =
                       'https://via.placeholder.com/300x200?text=No+Image';
@@ -510,8 +572,32 @@ export default function ProductsPage() {
                 </div>
               </div>
             </div>
-          ))}
-        </div>
+            ))}
+          </div>
+
+          {/* Pagination */}
+          {filteredProducts.length > itemsPerPage && (
+            <div className="mt-6 flex justify-center items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                ← Anterior
+              </button>
+              <span className="px-4 py-2 text-gray-700">
+                Pagina {currentPage} din {Math.ceil(filteredProducts.length / itemsPerPage)}
+              </span>
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(Math.ceil(filteredProducts.length / itemsPerPage), prev + 1))}
+                disabled={currentPage >= Math.ceil(filteredProducts.length / itemsPerPage)}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Următor →
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

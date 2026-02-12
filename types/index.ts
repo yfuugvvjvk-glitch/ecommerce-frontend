@@ -3,7 +3,12 @@ export interface User {
   email: string;
   name: string;
   phone?: string;
-  address?: string;
+  address?: string; // Legacy field
+  city?: string;
+  county?: string;
+  street?: string;
+  streetNumber?: string;
+  addressDetails?: string;
   avatar?: string;
   role: string;
   createdAt: string;

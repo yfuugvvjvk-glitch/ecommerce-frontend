@@ -31,6 +31,7 @@ interface SiteConfig {
 
 export default function ContentManager() {
   const [pages, setPages] = useState<Page[]>([]);
+  const [filteredPages, setFilteredPages] = useState<Page[]>([]);
   const [siteConfigs, setSiteConfigs] = useState<SiteConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'pages' | 'config' | 'media'>('pages');
@@ -45,6 +46,9 @@ export default function ContentManager() {
   });
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'published' | 'draft'>('all');
+  const [sortBy, setSortBy] = useState('date-desc');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   // Real-time updates
@@ -59,6 +63,48 @@ export default function ContentManager() {
     fetchPages();
     fetchSiteConfigs();
   }, []);
+  
+  // Filtrare și sortare pentru pagini
+  useEffect(() => {
+    let filtered = [...pages];
+
+    // Filtrare după termen de căutare
+    if (searchTerm) {
+      filtered = filtered.filter(page =>
+        page.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        page.slug.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Filtrare după status
+    if (filterStatus !== 'all') {
+      filtered = filtered.filter(page =>
+        filterStatus === 'published' ? page.isPublished : !page.isPublished
+      );
+    }
+
+    // Sortare
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'date-desc':
+          return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+        case 'date-asc':
+          return new Date(a.updatedAt).getTime() - new Date(b.updatedAt).getTime();
+        case 'title-asc':
+          return a.title.localeCompare(b.title);
+        case 'title-desc':
+          return b.title.localeCompare(a.title);
+        case 'slug-asc':
+          return a.slug.localeCompare(b.slug);
+        case 'slug-desc':
+          return b.slug.localeCompare(a.slug);
+        default:
+          return 0;
+      }
+    });
+
+    setFilteredPages(filtered);
+  }, [pages, searchTerm, filterStatus, sortBy]);
 
   useEffect(() => {
     if (toast) {
@@ -71,9 +117,11 @@ export default function ContentManager() {
     try {
       const response = await apiClient.get('/api/admin/content/pages');
       setPages(response.data || []);
+      setFilteredPages(response.data || []);
     } catch (error) {
       console.error('Error fetching pages:', error);
       setPages([]);
+      setFilteredPages([]);
       setToast({ message: 'Eroare la încărcarea paginilor', type: 'error' });
     } finally {
       setLoading(false);
@@ -161,16 +209,12 @@ export default function ContentManager() {
     }
   };
 
-  const filteredPages = pages.filter(page => {
-    const matchesSearch = page.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         page.slug.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesFilter = filterStatus === 'all' || 
-                         (filterStatus === 'published' && page.isPublished) ||
-                         (filterStatus === 'draft' && !page.isPublished);
-    
-    return matchesSearch && matchesFilter;
-  });
+  // Paginare
+  const totalPages = Math.ceil(filteredPages.length / itemsPerPage);
+  const paginatedPages = filteredPages.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   if (editingPage) {
     return (
@@ -256,19 +300,19 @@ export default function ContentManager() {
           {/* Filtre și controale */}
           <div className="bg-white border rounded-lg p-4 mb-6">
             <div className="flex flex-col md:flex-row gap-4 items-end">
-              <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex-1 grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Căutare</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">🔍 Căutare</label>
                   <input
                     type="text"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    placeholder="Caută după titlu sau ID..."
+                    placeholder="Caută după titlu sau slug..."
                     className="w-full border rounded px-3 py-2"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">📊 Status</label>
                   <select
                     value={filterStatus}
                     onChange={(e) => setFilterStatus(e.target.value as any)}
@@ -277,6 +321,21 @@ export default function ContentManager() {
                     <option value="all">Toate</option>
                     <option value="published">Publicate</option>
                     <option value="draft">Draft</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">⬇️ Sortare</label>
+                  <select
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value)}
+                    className="w-full border rounded px-3 py-2"
+                  >
+                    <option value="date-desc">Data (Nou → Vechi)</option>
+                    <option value="date-asc">Data (Vechi → Nou)</option>
+                    <option value="title-asc">Titlu (A → Z)</option>
+                    <option value="title-desc">Titlu (Z → A)</option>
+                    <option value="slug-asc">Slug (A → Z)</option>
+                    <option value="slug-desc">Slug (Z → A)</option>
                   </select>
                 </div>
               </div>
@@ -288,11 +347,27 @@ export default function ContentManager() {
                 ➕ Pagină Nouă
               </button>
             </div>
+            
+            {/* Butoane Reset */}
+            {(searchTerm || filterStatus !== 'all' || sortBy !== 'date-desc') && (
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={() => {
+                    setSearchTerm('');
+                    setFilterStatus('all');
+                    setSortBy('date-desc');
+                  }}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
+                >
+                  🔄 Resetează Filtrele
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Lista pagini */}
           <div className="space-y-3">
-            {filteredPages.map(page => (
+            {paginatedPages.map(page => (
               <div key={page.id} className="bg-white border rounded-lg p-4 hover:shadow-md transition">
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
@@ -357,7 +432,7 @@ export default function ContentManager() {
               </div>
             ))}
             
-            {filteredPages.length === 0 && (
+            {paginatedPages.length === 0 && (
               <div className="text-center py-12 text-gray-500">
                 <p>Nu au fost găsite pagini</p>
                 {searchTerm && (
@@ -366,6 +441,31 @@ export default function ContentManager() {
               </div>
             )}
           </div>
+          
+          {/* Paginare */}
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center space-x-2 mt-6">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+              >
+                ← Anterior
+              </button>
+              
+              <span className="text-sm text-gray-600">
+                Pagina {currentPage} din {totalPages}
+              </span>
+              
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+              >
+                Următorul →
+              </button>
+            </div>
+          )}
         </div>
       )}
 

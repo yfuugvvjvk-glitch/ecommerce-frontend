@@ -2,14 +2,24 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { apiClient } from '@/lib/api-client';
+import { usePagination } from '@/lib/usePagination';
+import Pagination from '@/components/Pagination';
+import FilterBar from './FilterBar';
 
 export default function OffersManagement() {
   const [offers, setOffers] = useState<any[]>([]);
+  const [filteredOffers, setFilteredOffers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Filtre și căutare
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [sortBy, setSortBy] = useState('title');
+  
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -27,6 +37,47 @@ export default function OffersManagement() {
     fetchOffers();
     fetchProducts();
   }, []);
+
+  useEffect(() => {
+    // Filtrare și sortare
+    let filtered = [...offers];
+
+    // Căutare
+    if (searchTerm) {
+      filtered = filtered.filter(o => 
+        o.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        o.description?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Filtrare după status
+    if (filterStatus === 'active') {
+      filtered = filtered.filter(o => o.active);
+    } else if (filterStatus === 'inactive') {
+      filtered = filtered.filter(o => !o.active);
+    }
+
+    // Sortare
+    switch (sortBy) {
+      case 'title':
+        filtered.sort((a, b) => a.title.localeCompare(b.title));
+        break;
+      case 'discount':
+        filtered.sort((a, b) => b.discount - a.discount);
+        break;
+      case 'date':
+        filtered.sort((a, b) => new Date(b.validUntil).getTime() - new Date(a.validUntil).getTime());
+        break;
+    }
+
+    setFilteredOffers(filtered);
+  }, [offers, searchTerm, filterStatus, sortBy]);
+
+  // Pagination hook - MUST be at component top level
+  const { paginatedItems, currentPage, totalPages, goToPage, totalItems } = usePagination({ 
+    items: filteredOffers, 
+    itemsPerPage: 5 // MODIFICAT: 5 oferte per pagină
+  });
 
   const fetchProducts = async () => {
     try {
@@ -173,6 +224,38 @@ export default function OffersManagement() {
           {toast.message}
         </div>
       )}
+
+      {/* Filtre și căutare */}
+      <FilterBar
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Caută după titlu sau descriere..."
+        filters={[
+          {
+            label: 'Status',
+            value: filterStatus,
+            onChange: setFilterStatus,
+            options: [
+              { value: '', label: 'Toate' },
+              { value: 'active', label: '✅ Active' },
+              { value: 'inactive', label: '❌ Inactive' }
+            ]
+          }
+        ]}
+        sortBy={sortBy}
+        onSortChange={setSortBy}
+        sortOptions={[
+          { value: 'title', label: '📝 Titlu (A-Z)' },
+          { value: 'discount', label: '💰 Discount' },
+          { value: 'date', label: '📅 Data expirării' }
+        ]}
+        onReset={() => {
+          setSearchTerm('');
+          setFilterStatus('');
+          setSortBy('title');
+        }}
+        showReset={searchTerm !== '' || filterStatus !== '' || sortBy !== 'title'}
+      />
 
       <button
         onClick={() => {
@@ -336,48 +419,56 @@ export default function OffersManagement() {
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {offers.map((offer) => (
-          <div key={offer.id} className="bg-white border rounded-lg overflow-hidden">
-            {offer.image && (
-              <img src={offer.image} alt={offer.title} className="w-full h-48 object-cover" />
-            )}
-            <div className="p-4">
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <h3 className="font-bold text-lg">{offer.title}</h3>
-                  <p className="text-sm text-gray-600">{offer.description}</p>
+        {paginatedItems.map((offer) => (
+                <div key={offer.id} className="bg-white border rounded-lg overflow-hidden">
+                  {offer.image && (
+                    <img src={offer.image} alt={offer.title} className="w-full h-48 object-cover" />
+                  )}
+                  <div className="p-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <h3 className="font-bold text-lg">{offer.title}</h3>
+                        <p className="text-sm text-gray-600">{offer.description}</p>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleEdit(offer)}
+                          className="text-blue-600 hover:text-blue-800"
+                        >
+                          ✏️
+                        </button>
+                        <button
+                          onClick={() => handleDelete(offer.id)}
+                          className="text-red-600 hover:text-red-800"
+                        >
+                          🗑️
+                        </button>
+                      </div>
+                    </div>
+                    <div className="text-sm space-y-1">
+                      <p><strong>Discount:</strong> {offer.discount}%</p>
+                      <p>
+                        <strong>Status:</strong>{' '}
+                        <span className={offer.active ? 'text-green-600' : 'text-red-600'}>
+                          {offer.active ? 'Activă' : 'Inactivă'}
+                        </span>
+                      </p>
+                      {offer.validUntil && (
+                        <p><strong>Valabil până:</strong> {new Date(offer.validUntil).toLocaleDateString('ro-RO')}</p>
+                      )}
+                    </div>
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleEdit(offer)}
-                    className="text-blue-600 hover:text-blue-800"
-                  >
-                    ✏️
-                  </button>
-                  <button
-                    onClick={() => handleDelete(offer.id)}
-                    className="text-red-600 hover:text-red-800"
-                  >
-                    🗑️
-                  </button>
-                </div>
-              </div>
-              <div className="text-sm space-y-1">
-                <p><strong>Discount:</strong> {offer.discount}%</p>
-                <p>
-                  <strong>Status:</strong>{' '}
-                  <span className={offer.active ? 'text-green-600' : 'text-red-600'}>
-                    {offer.active ? 'Activă' : 'Inactivă'}
-                  </span>
-                </p>
-                {offer.validUntil && (
-                  <p><strong>Valabil până:</strong> {new Date(offer.validUntil).toLocaleDateString('ro-RO')}</p>
-                )}
-              </div>
-            </div>
-          </div>
-        ))}
+              ))}
       </div>
+      
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={goToPage}
+        itemsPerPage={10}
+        totalItems={totalItems}
+      />
     </div>
   );
 }

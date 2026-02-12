@@ -20,10 +20,19 @@ interface TestCard {
 
 export default function TestCardsManagement() {
   const [testCards, setTestCards] = useState<TestCard[]>([]);
+  const [filteredCards, setFilteredCards] = useState<TestCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingCard, setEditingCard] = useState<TestCard | null>(null);
   const [showSensitiveData, setShowSensitiveData] = useState<{[key: string]: boolean}>({});
+  
+  // Filtre
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [cardTypeFilter, setCardTypeFilter] = useState('all');
+  const [sortBy, setSortBy] = useState('date-desc');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   const [formData, setFormData] = useState({
     cardNumber: '',
@@ -38,11 +47,60 @@ export default function TestCardsManagement() {
   useEffect(() => {
     fetchTestCards();
   }, []);
+  
+  // Filtrare și sortare
+  useEffect(() => {
+    let filtered = [...testCards];
+
+    // Filtrare după termen de căutare
+    if (searchTerm) {
+      filtered = filtered.filter(card => 
+        card.cardHolder.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        card.cardNumber.includes(searchTerm) ||
+        card.cardType.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Filtrare după status
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(card => 
+        statusFilter === 'active' ? card.isActive : !card.isActive
+      );
+    }
+
+    // Filtrare după tip card
+    if (cardTypeFilter !== 'all') {
+      filtered = filtered.filter(card => card.cardType === cardTypeFilter);
+    }
+
+    // Sortare
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'date-desc':
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        case 'date-asc':
+          return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+        case 'balance-desc':
+          return b.balance - a.balance;
+        case 'balance-asc':
+          return a.balance - b.balance;
+        case 'holder-asc':
+          return a.cardHolder.localeCompare(b.cardHolder);
+        case 'holder-desc':
+          return b.cardHolder.localeCompare(a.cardHolder);
+        default:
+          return 0;
+      }
+    });
+
+    setFilteredCards(filtered);
+  }, [testCards, searchTerm, statusFilter, cardTypeFilter, sortBy]);
 
   const fetchTestCards = async () => {
     try {
       const response = await apiClient.get('/api/test-cards/admin/all');
       setTestCards(response.data);
+      setFilteredCards(response.data);
     } catch (error) {
       console.error('Error fetching test cards:', error);
     } finally {
@@ -131,13 +189,20 @@ export default function TestCardsManagement() {
       </div>
     );
   }
+  
+  // Paginare
+  const totalPages = Math.ceil(filteredCards.length / itemsPerPage);
+  const paginatedCards = filteredCards.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">Carduri de Test</h2>
-          <p className="text-gray-600">Gestionează cardurile de test pentru simularea plăților</p>
+          <p className="text-gray-600">Gestionează cardurile de test pentru simularea plăților ({filteredCards.length} din {testCards.length})</p>
         </div>
         <div className="flex space-x-3">
           <button
@@ -154,6 +219,94 @@ export default function TestCardsManagement() {
             Card Nou
           </button>
         </div>
+      </div>
+
+      {/* Filtre și Căutare */}
+      <div className="bg-white p-4 rounded-lg shadow mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Căutare */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              🔍 Caută
+            </label>
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Nume, număr card, tip..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          {/* Filtru Status */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              📊 Status
+            </label>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as any)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">Toate statusurile</option>
+              <option value="active">Activ</option>
+              <option value="inactive">Inactiv</option>
+            </select>
+          </div>
+
+          {/* Filtru Tip Card */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              💳 Tip Card
+            </label>
+            <select
+              value={cardTypeFilter}
+              onChange={(e) => setCardTypeFilter(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">Toate tipurile</option>
+              <option value="VISA">VISA</option>
+              <option value="MASTERCARD">MASTERCARD</option>
+              <option value="AMEX">AMEX</option>
+            </select>
+          </div>
+
+          {/* Sortare */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              ⬇️ Sortare
+            </label>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="date-desc">Data (Nou → Vechi)</option>
+              <option value="date-asc">Data (Vechi → Nou)</option>
+              <option value="balance-desc">Balanță (Mare → Mică)</option>
+              <option value="balance-asc">Balanță (Mică → Mare)</option>
+              <option value="holder-asc">Purtător (A → Z)</option>
+              <option value="holder-desc">Purtător (Z → A)</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Butoane Reset */}
+        {(searchTerm || statusFilter !== 'all' || cardTypeFilter !== 'all' || sortBy !== 'date-desc') && (
+          <div className="mt-4 flex justify-end">
+            <button
+              onClick={() => {
+                setSearchTerm('');
+                setStatusFilter('all');
+                setCardTypeFilter('all');
+                setSortBy('date-desc');
+              }}
+              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
+            >
+              🔄 Resetează Filtrele
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Create Form */}
@@ -279,7 +432,7 @@ export default function TestCardsManagement() {
 
       {/* Cards List */}
       <div className="grid gap-6">
-        {testCards.map((card) => (
+        {paginatedCards.map((card) => (
           <div key={card.id} className="bg-white p-6 rounded-lg shadow-md border">
             <div className="flex items-start justify-between">
               <div className="flex-1">
@@ -359,6 +512,31 @@ export default function TestCardsManagement() {
           </div>
         ))}
       </div>
+      
+      {/* Paginare */}
+      {totalPages > 1 && (
+        <div className="flex justify-center items-center space-x-2 mt-6">
+          <button
+            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+            disabled={currentPage === 1}
+            className="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+          >
+            ← Anterior
+          </button>
+          
+          <span className="text-sm text-gray-600">
+            Pagina {currentPage} din {totalPages}
+          </span>
+          
+          <button
+            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+            disabled={currentPage === totalPages}
+            className="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+          >
+            Următorul →
+          </button>
+        </div>
+      )}
 
       {testCards.length === 0 && (
         <div className="text-center py-12">

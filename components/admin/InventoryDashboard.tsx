@@ -3,6 +3,9 @@
 import { useState, useEffect } from 'react';
 import { Package, AlertTriangle, TrendingUp, TrendingDown, Calendar, DollarSign, Clock, Truck } from 'lucide-react';
 import { useWebSocket } from '@/lib/useWebSocket';
+import { usePagination } from '@/lib/usePagination';
+import Pagination from '@/components/Pagination';
+import FilterBar from './FilterBar';
 
 interface StockReport {
   totalProducts: number;
@@ -85,6 +88,8 @@ export default function InventoryDashboard() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<'all' | 'low_stock' | 'out_of_stock' | 'expired' | 'expiring_soon'>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState('name');
+  const [categoryFilter, setCategoryFilter] = useState('');
 
   // Real-time updates
   const { isConnected } = useWebSocket({
@@ -105,7 +110,7 @@ export default function InventoryDashboard() {
 
   useEffect(() => {
     filterProducts();
-  }, [products, filter, searchTerm]);
+  }, [products, filter, searchTerm, sortBy, categoryFilter]);
 
   const fetchInventoryData = async () => {
     try {
@@ -168,6 +173,13 @@ export default function InventoryDashboard() {
       });
     }
 
+    // Filtrare după categorie
+    if (categoryFilter) {
+      filtered = filtered.filter(product =>
+        product.category.name.toLowerCase().includes(categoryFilter.toLowerCase())
+      );
+    }
+
     // Filtrare după termen de căutare
     if (searchTerm) {
       filtered = filtered.filter(product =>
@@ -176,8 +188,36 @@ export default function InventoryDashboard() {
       );
     }
 
+    // Sortare
+    switch (sortBy) {
+      case 'name':
+        filtered.sort((a, b) => a.title.localeCompare(b.title));
+        break;
+      case 'stock':
+        filtered.sort((a, b) => b.availableStock - a.availableStock);
+        break;
+      case 'value':
+        filtered.sort((a, b) => b.stockValue - a.stockValue);
+        break;
+      case 'sold':
+        filtered.sort((a, b) => b.totalSold - a.totalSold);
+        break;
+    }
+
     setFilteredProducts(filtered);
   };
+
+  // Pagination
+  const { 
+    paginatedItems, 
+    currentPage, 
+    totalPages, 
+    goToPage, 
+    totalItems 
+  } = usePagination({ 
+    items: filteredProducts, 
+    itemsPerPage: 5 
+  });
 
   const updateStock = async (productId: string, newStock: number) => {
     try {
@@ -312,68 +352,70 @@ export default function InventoryDashboard() {
 
       {/* Filtre și căutare */}
       <div className="bg-white p-4 rounded-lg shadow-sm border">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="flex-1">
-            <input
-              type="text"
-              placeholder="Caută produse..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-3 py-2 border rounded-md"
-            />
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => setFilter('all')}
-              className={`px-4 py-2 rounded-md text-sm font-medium ${
-                filter === 'all' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              Toate ({products.length})
-            </button>
-            <button
-              onClick={() => setFilter('low_stock')}
-              className={`px-4 py-2 rounded-md text-sm font-medium ${
-                filter === 'low_stock' ? 'bg-yellow-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              Stoc Scăzut ({report?.lowStock || 0})
-            </button>
-            <button
-              onClick={() => setFilter('out_of_stock')}
-              className={`px-4 py-2 rounded-md text-sm font-medium ${
-                filter === 'out_of_stock' ? 'bg-red-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              Fără Stoc ({report?.outOfStock || 0})
-            </button>
-            <button
-              onClick={() => setFilter('expired')}
-              className={`px-4 py-2 rounded-md text-sm font-medium ${
-                filter === 'expired' ? 'bg-red-800 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              Expirate ({report?.expired || 0})
-            </button>
-          </div>
-        </div>
+        <FilterBar
+          searchTerm={searchTerm}
+          onSearchChange={setSearchTerm}
+          searchPlaceholder="Caută produse sau categorii..."
+          filters={[
+            {
+              label: 'Status',
+              value: filter,
+              onChange: (value) => setFilter(value as any),
+              options: [
+                { value: 'all', label: `Toate (${products.length})` },
+                { value: 'low_stock', label: `⚠️ Stoc Scăzut (${report?.lowStock || 0})` },
+                { value: 'out_of_stock', label: `❌ Fără Stoc (${report?.outOfStock || 0})` },
+                { value: 'expired', label: `🚫 Expirate (${report?.expired || 0})` },
+                { value: 'expiring_soon', label: `⏰ Expiră Curând (${report?.expiringSoon || 0})` }
+              ]
+            },
+            {
+              label: 'Categorie',
+              value: categoryFilter,
+              onChange: setCategoryFilter,
+              options: [
+                { value: '', label: 'Toate categoriile' },
+                ...Array.from(new Set(products.map(p => p.category.name))).map(cat => ({
+                  value: cat,
+                  label: cat
+                }))
+              ]
+            }
+          ]}
+          sortBy={sortBy}
+          onSortChange={setSortBy}
+          sortOptions={[
+            { value: 'name', label: '📝 Nume (A-Z)' },
+            { value: 'stock', label: '📦 Stoc' },
+            { value: 'value', label: '💰 Valoare' },
+            { value: 'sold', label: '📊 Vândute' }
+          ]}
+          onReset={() => {
+            setSearchTerm('');
+            setFilter('all');
+            setCategoryFilter('');
+            setSortBy('name');
+          }}
+          showReset={searchTerm !== '' || filter !== 'all' || categoryFilter !== '' || sortBy !== 'name'}
+        />
       </div>
       {/* Lista detaliată de produse */}
       <div className="bg-white rounded-lg shadow-sm border">
         <div className="px-6 py-4 border-b">
           <h3 className="text-lg font-medium text-gray-900">
-            Produse ({filteredProducts.length})
+            Produse ({totalItems} {totalItems !== filteredProducts.length && `din ${filteredProducts.length} filtrate`})
           </h3>
         </div>
         
-        {filteredProducts.length === 0 ? (
+        {paginatedItems.length === 0 ? (
           <div className="p-6 text-center text-gray-500">
             <Package className="h-12 w-12 mx-auto mb-4 text-gray-300" />
             <p>Nu există produse care să corespundă filtrelor selectate</p>
           </div>
         ) : (
-          <div className="divide-y">
-            {filteredProducts.map((product) => (
+          <>
+            <div className="divide-y">
+              {paginatedItems.map((product) => (
               <div key={product.id} className="p-6">
                 <div className="flex items-start justify-between">
                   {/* Informații principale */}
@@ -575,6 +617,17 @@ export default function InventoryDashboard() {
               </div>
             ))}
           </div>
+          
+          <div className="px-6 py-4 border-t">
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={goToPage}
+              itemsPerPage={5}
+              totalItems={totalItems}
+            />
+          </div>
+          </>
         )}
       </div>
     </div>

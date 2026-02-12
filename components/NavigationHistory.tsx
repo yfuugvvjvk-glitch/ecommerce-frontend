@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTranslation } from './LanguageSwitcher';
+import CurrencyPrice from './CurrencyPrice';
 
 interface Product {
   id: string;
@@ -20,16 +21,23 @@ export default function NavigationHistory({ products }: NavigationHistoryProps) 
   const { t } = useTranslation();
   const [startIndex, setStartIndex] = useState(0);
   const itemsPerView = 5;
+  
+  // Limitează la maxim 10 produse
+  const limitedProducts = products.slice(0, 10);
 
-  if (products.length === 0) {
+  if (limitedProducts.length === 0) {
     return null;
   }
 
   const goToPrevious = () => {
     setStartIndex((prev) => {
+      // Navigare circulară: dacă suntem la început, mergi la sfârșit
       if (prev === 0) {
-        return Math.max(0, products.length - itemsPerView);
+        // Calculează ultimul index valid pentru a afișa itemsPerView produse
+        const lastValidIndex = Math.max(0, limitedProducts.length - itemsPerView);
+        return lastValidIndex;
       }
+      // Altfel, mergi înapoi cu itemsPerView
       return Math.max(0, prev - itemsPerView);
     });
   };
@@ -37,14 +45,15 @@ export default function NavigationHistory({ products }: NavigationHistoryProps) 
   const goToNext = () => {
     setStartIndex((prev) => {
       const next = prev + itemsPerView;
-      if (next >= products.length) {
+      // Navigare circulară: dacă depășim lungimea, revino la început
+      if (next >= limitedProducts.length) {
         return 0;
       }
       return next;
     });
   };
 
-  const visibleProducts = products.slice(startIndex, startIndex + itemsPerView);
+  const visibleProducts = limitedProducts.slice(startIndex, startIndex + itemsPerView);
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
@@ -88,7 +97,7 @@ export default function NavigationHistory({ products }: NavigationHistoryProps) 
                   {product.title}
                 </h3>
                 <p className="text-sm font-bold text-blue-600 mt-1">
-                  {product.price.toFixed(2)} RON
+                  <CurrencyPrice amount={product.price} />
                 </p>
               </div>
             </div>

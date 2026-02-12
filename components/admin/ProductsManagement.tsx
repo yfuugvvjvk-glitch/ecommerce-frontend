@@ -5,7 +5,7 @@ import { apiClient } from '@/lib/api-client';
 import { useWebSocket } from '@/lib/useWebSocket';
 import { usePagination } from '@/lib/usePagination';
 import Pagination from '@/components/Pagination';
-import CarouselPositionSelector from '@/components/admin/CarouselPositionSelector';
+import RichTextEditor from '@/components/RichTextEditor';
 
 interface Category {
   id: string;
@@ -24,6 +24,8 @@ interface Product {
   categoryId: string;
   image: string;
   category: { name: string };
+  status?: string; // NOU: published sau draft
+  stockDisplayMode?: string; // NOU: visible, status_only, hidden
   isPerishable: boolean;
   expirationDate?: string;
   productionDate?: string;
@@ -60,6 +62,7 @@ interface PaymentMethod {
 
 export default function ProductsManagement() {
   const [products, setProducts] = useState<Product[]>([]);
+  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]); // NOU: Produse filtrate
   const [categories, setCategories] = useState<Category[]>([]);
   const [deliverySettings, setDeliverySettings] = useState<DeliverySettings[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
@@ -68,15 +71,31 @@ export default function ProductsManagement() {
   const [showModal, setShowModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'products' | 'delivery' | 'payment'>('products');
 
+  // NOU: Filtre și căutare
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [sortBy, setSortBy] = useState('name'); // name, category, price-asc, price-desc, date, popularity
+
+  // Pagination hook - MUST be at top level - MODIFICAT la 5 produse per pagină
+  const { paginatedItems, currentPage, totalPages, goToPage, startIndex, endIndex, totalItems } = usePagination({ 
+    items: filteredProducts, // Folosim produsele filtrate
+    itemsPerPage: 5 // MODIFICAT: 5 produse per pagină
+  });
+
   // Form states
   const [productForm, setProductForm] = useState({
+    id: '', // NOU: ID-ul produsului pentru update
     title: '',
     description: '',
+    importantInfo: '', // NOU: Informații importante cu formatare HTML
     price: 0,
     oldPrice: undefined as number | undefined,
     stock: 0,
     categoryId: '',
     image: '',
+    status: 'published', // NOU: published sau draft
+    stockDisplayMode: 'visible', // NOU: visible, status_only, hidden
     isPerishable: false,
     expirationDate: '',
     productionDate: '',
@@ -85,7 +104,6 @@ export default function ProductsManagement() {
     deliveryTimeDays: 0,
     isActive: true,
     showInCarousel: false, // Nou: Afișează în carousel
-    carouselOrder: 0, // Nou: Ordine în carousel
     unitType: 'piece',
     unitName: 'bucată',
     priceType: 'per_unit', // NOU: Tipul de preț - "fixed" sau "per_unit"
@@ -133,7 +151,7 @@ export default function ProductsManagement() {
   const fetchData = async () => {
     try {
       const [productsRes, categoriesRes, deliveryRes, paymentRes] = await Promise.all([
-        apiClient.get('/api/data'),
+        apiClient.get('/api/data?showAll=true'), // Admin vede toate produsele
         apiClient.get('/api/categories'),
         apiClient.get('/api/admin/delivery-settings'),
         apiClient.get('/api/admin/payment-methods')
@@ -156,8 +174,59 @@ export default function ProductsManagement() {
     }
   };
 
+  // NOU: Filtrare și sortare
+  useEffect(() => {
+    let filtered = [...products];
+
+    // Căutare
+    if (searchTerm) {
+      filtered = filtered.filter(p => 
+        p.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.category.name.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Filtrare după categorie
+    if (filterCategory) {
+      filtered = filtered.filter(p => p.categoryId === filterCategory);
+    }
+
+    // Filtrare după status
+    if (filterStatus) {
+      filtered = filtered.filter(p => p.status === filterStatus);
+    }
+
+    // Sortare
+    switch (sortBy) {
+      case 'name':
+        filtered.sort((a, b) => a.title.localeCompare(b.title));
+        break;
+      case 'category':
+        filtered.sort((a, b) => a.category.name.localeCompare(b.category.name));
+        break;
+      case 'price-asc':
+        filtered.sort((a, b) => a.price - b.price);
+        break;
+      case 'price-desc':
+        filtered.sort((a, b) => b.price - a.price);
+        break;
+      case 'date':
+        // Sortare după ID (mai nou = ID mai mare în general)
+        filtered.sort((a, b) => b.id.localeCompare(a.id));
+        break;
+      case 'stock':
+        filtered.sort((a, b) => (b.availableStock || b.stock) - (a.availableStock || a.stock));
+        break;
+    }
+
+    setFilteredProducts(filtered);
+  }, [products, searchTerm, filterCategory, filterStatus, sortBy]);
+
   const handleProductUpdate = async (productId: string) => {
     try {
+      console.log('🔄 Updating product with ID:', productId);
+      
       // Validate required fields
       if (!productForm.title || !productForm.categoryId || productForm.price <= 0) {
         alert('Vă rugăm să completați toate câmpurile obligatorii (titlu, categorie, preț)');
@@ -175,11 +244,14 @@ export default function ProductsManagement() {
         title: productForm.title,
         description: productForm.description,
         content: productForm.description,
+        importantInfo: productForm.importantInfo || '', // NOU
         price: productForm.price,
         oldPrice: productForm.oldPrice || null,
         stock: productForm.stock,
         categoryId: productForm.categoryId,
         image: productForm.image,
+        status: productForm.status || 'published', // NOU
+        stockDisplayMode: productForm.stockDisplayMode || 'visible', // NOU
         
         // Advanced fields
         isPerishable: productForm.isPerishable,
@@ -191,7 +263,6 @@ export default function ProductsManagement() {
         deliveryTimeDays: productForm.deliveryTimeDays,
         isActive: productForm.isActive,
         showInCarousel: productForm.showInCarousel, // Nou
-        carouselOrder: productForm.carouselOrder, // Nou
         unitType: productForm.unitType,
         unitName: productForm.unitName,
         priceType: productForm.priceType || 'per_unit', // NOU: Tipul de preț
@@ -200,19 +271,20 @@ export default function ProductsManagement() {
         minQuantity: productForm.availableQuantities.length > 0 
           ? Math.min(...productForm.availableQuantities) 
           : 1,
-        quantityStep: 1,
-        status: 'published'
+        quantityStep: 1
       };
 
-      console.log('Sending product data:', productData);
+      console.log('📤 Sending product data:', productData);
+      console.log('🔗 URL:', `/api/data/${productId}`);
+      
       const response = await apiClient.put(`/api/data/${productId}`, productData);
-      console.log('Update response:', response);
+      console.log('✅ Update response:', response);
 
       setShowModal(false);
       fetchData();
       alert('Produsul a fost actualizat cu succes!');
     } catch (error: any) {
-      console.error('Error updating product:', error);
+      console.error('❌ Error updating product:', error);
       console.error('Error response:', error.response?.data);
       alert(`Eroare la actualizarea produsului: ${error.response?.data?.error || error.message}`);
     }
@@ -279,11 +351,14 @@ export default function ProductsManagement() {
         title: productForm.title,
         description: productForm.description,
         content: productForm.description || productForm.title, // Required by backend
+        importantInfo: productForm.importantInfo || '', // NOU
         price: productForm.price,
         oldPrice: productForm.oldPrice || null,
         stock: productForm.stock || 0,
         categoryId: productForm.categoryId,
         image: productForm.image || '/images/placeholder.jpg',
+        status: productForm.status || 'published', // NOU
+        stockDisplayMode: productForm.stockDisplayMode || 'visible', // NOU
         
         // Advanced fields - cu valori default pentru a evita undefined
         isPerishable: productForm.isPerishable || false,
@@ -295,7 +370,6 @@ export default function ProductsManagement() {
         deliveryTimeDays: productForm.deliveryTimeDays || null,
         isActive: productForm.isActive !== undefined ? productForm.isActive : true,
         showInCarousel: productForm.showInCarousel || false,
-        carouselOrder: productForm.carouselOrder || 0,
         unitType: productForm.unitType || 'piece',
         unitName: productForm.unitName || 'bucată',
         priceType: productForm.priceType || 'per_unit', // NOU: Tipul de preț
@@ -306,10 +380,7 @@ export default function ProductsManagement() {
         minQuantity: productForm.availableQuantities.length > 0 
           ? Math.min(...productForm.availableQuantities) 
           : 1,
-        quantityStep: 1,
-        
-        // Set default status
-        status: 'published'
+        quantityStep: 1
       };
 
       console.log('📦 Sending product data:', productData);
@@ -331,13 +402,17 @@ export default function ProductsManagement() {
 
   const resetProductForm = () => {
     setProductForm({
+      id: '', // NOU: resetăm ID-ul
       title: '',
       description: '',
+      importantInfo: '', // NOU
       price: 0,
       oldPrice: undefined,
       stock: 0,
       categoryId: '',
       image: '',
+      status: 'published', // NOU: default la published
+      stockDisplayMode: 'visible', // NOU: default la visible
       isPerishable: false,
       expirationDate: '',
       productionDate: '',
@@ -346,7 +421,6 @@ export default function ProductsManagement() {
       deliveryTimeDays: 0,
       isActive: true,
       showInCarousel: false, // Nou
-      carouselOrder: 0, // Nou
       unitType: 'piece',
       unitName: 'bucată',
       priceType: 'per_unit',
@@ -373,15 +447,22 @@ export default function ProductsManagement() {
   };
 
   const openProductModal = (product: Product) => {
+    console.log('🔓 Opening product modal for product:', product);
+    console.log('Product ID:', product.id);
+    
     setSelectedProduct(product);
     setProductForm({
+      id: product.id, // NOU: Salvăm ID-ul în form
       title: product.title,
       description: product.description || '',
+      importantInfo: product.importantInfo || '', // NOU
       price: product.price,
       oldPrice: product.oldPrice || undefined,
       stock: product.stock,
       categoryId: product.categoryId,
       image: product.image,
+      status: product.status || 'published', // NOU
+      stockDisplayMode: product.stockDisplayMode || 'visible', // NOU
       isPerishable: product.isPerishable || false,
       expirationDate: product.expirationDate || '',
       productionDate: product.productionDate || '',
@@ -390,7 +471,6 @@ export default function ProductsManagement() {
       deliveryTimeDays: product.deliveryTimeDays || 0,
       isActive: product.isActive,
       showInCarousel: product.showInCarousel || false, // Nou
-      carouselOrder: product.carouselOrder || 0, // Nou
       unitType: product.unitType || 'piece',
       unitName: product.unitName || 'bucată',
       priceType: product.priceType || 'per_unit', // NOU: Tipul de preț
@@ -400,6 +480,8 @@ export default function ProductsManagement() {
       quantityStep: product.quantityStep || 1
     });
     setShowModal(true);
+    
+    console.log('✅ Selected product set to:', product.id);
   };
 
   if (loading) {
@@ -459,7 +541,7 @@ export default function ProductsManagement() {
         <div>
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-lg font-semibold">
-              Gestionare Completă Produse ({products.length} total)
+              Gestionare Completă Produse ({filteredProducts.length} / {products.length} total)
             </h3>
             <button
               onClick={() => {
@@ -472,18 +554,239 @@ export default function ProductsManagement() {
               ➕ Adaugă Produs Nou
             </button>
           </div>
+
+          {/* NOU: Filtre și Căutare */}
+          <div className="bg-white border rounded-lg p-4 mb-6 space-y-4">
+            <h4 className="font-semibold text-lg mb-3">🔍 Căutare și Filtre</h4>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Căutare */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Căutare
+                </label>
+                <input
+                  type="text"
+                  placeholder="Caută după nume, descriere..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full border rounded px-3 py-2"
+                />
+              </div>
+
+              {/* Filtrare după categorie */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Categorie
+                </label>
+                <select
+                  value={filterCategory}
+                  onChange={(e) => setFilterCategory(e.target.value)}
+                  className="w-full border rounded px-3 py-2"
+                >
+                  <option value="">Toate categoriile</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Filtrare după status */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Status
+                </label>
+                <select
+                  value={filterStatus}
+                  onChange={(e) => setFilterStatus(e.target.value)}
+                  className="w-full border rounded px-3 py-2"
+                >
+                  <option value="">Toate statusurile</option>
+                  <option value="published">✅ Publicat</option>
+                  <option value="draft">📝 Draft</option>
+                </select>
+              </div>
+
+              {/* Sortare */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Sortare
+                </label>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="w-full border rounded px-3 py-2"
+                >
+                  <option value="name">📝 Nume (A-Z)</option>
+                  <option value="category">📁 Categorie</option>
+                  <option value="price-asc">💰 Preț (crescător)</option>
+                  <option value="price-desc">💰 Preț (descrescător)</option>
+                  <option value="date">📅 Data (recent)</option>
+                  <option value="stock">📦 Stoc</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Buton reset filtre */}
+            {(searchTerm || filterCategory || filterStatus || sortBy !== 'name') && (
+              <button
+                onClick={() => {
+                  setSearchTerm('');
+                  setFilterCategory('');
+                  setFilterStatus('');
+                  setSortBy('name');
+                }}
+                className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 transition"
+              >
+                🔄 Resetează filtrele
+              </button>
+            )}
+          </div>
+
+          {/* Global Settings Section */}
+          <div className="bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-200 rounded-lg p-4 mb-6">
+            <h4 className="font-semibold text-lg mb-3 flex items-center gap-2">
+              <span>🌐</span> Setări Globale - Aplică la Toate Produsele
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              
+              {/* Global Status Control */}
+              <div className="bg-white p-4 rounded-lg border">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Status Global Produse
+                </label>
+                <select
+                  id="globalStatus"
+                  className="w-full border rounded px-3 py-2 mb-3"
+                  defaultValue=""
+                >
+                  <option value="">Selectează acțiune...</option>
+                  <option value="published">✅ Publică toate produsele</option>
+                  <option value="draft">📝 Pune toate în draft</option>
+                </select>
+                <button
+                  onClick={async () => {
+                    const select = document.getElementById('globalStatus') as HTMLSelectElement;
+                    const status = select.value;
+                    if (!status) {
+                      alert('Selectează o acțiune');
+                      return;
+                    }
+                    if (!confirm(`Sigur vrei să setezi TOATE produsele la status "${status === 'published' ? 'Publicat' : 'Draft'}"?`)) {
+                      return;
+                    }
+                    try {
+                      await Promise.all(products.map(p => 
+                        apiClient.put(`/api/data/${p.id}`, { 
+                          status // Doar schimbăm status-ul, restul rămâne neschimbat
+                        })
+                      ));
+                      fetchData();
+                      alert('Status actualizat pentru toate produsele!');
+                      select.value = '';
+                    } catch (error) {
+                      console.error('Error updating global status:', error);
+                      alert('Eroare la actualizarea statusului global');
+                    }
+                  }}
+                  className="w-full px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition"
+                >
+                  Aplică Status Global
+                </button>
+              </div>
+
+              {/* Global Stock Display Control */}
+              <div className="bg-white p-4 rounded-lg border">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Mod Afișare Stoc Global
+                </label>
+                <select
+                  id="globalStockMode"
+                  className="w-full border rounded px-3 py-2 mb-3"
+                  defaultValue=""
+                >
+                  <option value="">Selectează acțiune...</option>
+                  <option value="visible">👁️ Vizibil (cantitate exactă)</option>
+                  <option value="status_only">ℹ️ Doar Stare</option>
+                  <option value="hidden">🚫 Ascuns</option>
+                </select>
+                <button
+                  onClick={async () => {
+                    const select = document.getElementById('globalStockMode') as HTMLSelectElement;
+                    const stockDisplayMode = select.value;
+                    if (!stockDisplayMode) {
+                      alert('Selectează o acțiune');
+                      return;
+                    }
+                    const modeNames = {
+                      visible: 'Vizibil',
+                      status_only: 'Doar Stare',
+                      hidden: 'Ascuns'
+                    };
+                    if (!confirm(`Sigur vrei să setezi TOATE produsele la mod afișare stoc "${modeNames[stockDisplayMode as keyof typeof modeNames]}"?`)) {
+                      return;
+                    }
+                    try {
+                      await Promise.all(products.map(p => 
+                        apiClient.put(`/api/data/${p.id}`, { 
+                          stockDisplayMode // Doar schimbăm modul de afișare stoc, restul rămâne neschimbat
+                        })
+                      ));
+                      fetchData();
+                      alert('Mod afișare stoc actualizat pentru toate produsele!');
+                      select.value = '';
+                    } catch (error) {
+                      console.error('Error updating global stock display:', error);
+                      alert('Eroare la actualizarea modului de afișare stoc');
+                    }
+                  }}
+                  className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                >
+                  Aplică Mod Stoc Global
+                </button>
+              </div>
+
+            </div>
+          </div>
           
           <div className="grid gap-4">
-            {(() => {
-              const { paginatedItems, currentPage, totalPages, goToPage, startIndex, endIndex, totalItems } = usePagination({ items: products, itemsPerPage: 10 });
-              
-              return (
-                <>
-                  {paginatedItems.map(product => (
+            {paginatedItems.map(product => (
               <div key={product.id} className="border rounded-lg p-4 hover:shadow-md transition">
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
-                    <h4 className="font-semibold text-lg">{product.title}</h4>
+                    <div className="flex items-center gap-2 mb-2">
+                      <h4 className="font-semibold text-lg">{product.title}</h4>
+                      
+                      {/* Status Badge */}
+                      {product.status === 'draft' ? (
+                        <span className="px-2 py-1 bg-yellow-100 text-yellow-800 rounded text-xs font-medium">
+                          📝 Draft
+                        </span>
+                      ) : (
+                        <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-xs font-medium">
+                          ✅ Publicat
+                        </span>
+                      )}
+                      
+                      {/* Stock Display Mode Badge */}
+                      {product.stockDisplayMode === 'hidden' && (
+                        <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded text-xs font-medium">
+                          🚫 Stoc Ascuns
+                        </span>
+                      )}
+                      {product.stockDisplayMode === 'status_only' && (
+                        <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium">
+                          ℹ️ Doar Stare
+                        </span>
+                      )}
+                      {product.stockDisplayMode === 'visible' && (
+                        <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded text-xs font-medium">
+                          👁️ Stoc Vizibil
+                        </span>
+                      )}
+                    </div>
                     <p className="text-gray-600 mb-2">{product.category.name}</p>
                     
                     {/* Informații despre vânzare și preț */}
@@ -582,9 +885,6 @@ export default function ProductsManagement() {
               itemsPerPage={10}
               totalItems={totalItems}
             />
-          </>
-        );
-      })()}
           </div>
         </div>
       )}
@@ -743,14 +1043,16 @@ export default function ProductsManagement() {
               <div className="border rounded-lg p-4">
                 <h4 className="font-semibold mb-3">📝 Informații de Bază</h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <input
-                    type="text"
-                    placeholder="Titlu produs (ex: Mere Golden)"
-                    value={productForm.title}
-                    onChange={(e) => setProductForm({...productForm, title: e.target.value})}
-                    className="border rounded px-3 py-2"
-                    required
-                  />
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Titlu produs *
+                    </label>
+                    <RichTextEditor
+                      value={productForm.title}
+                      onChange={(value) => setProductForm({...productForm, title: value})}
+                      placeholder="Titlu produs (ex: Mere Golden)"
+                    />
+                  </div>
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -832,13 +1134,108 @@ export default function ProductsManagement() {
                     className="border rounded px-3 py-2 col-span-2"
                   />
                   
-                  <textarea
-                    placeholder="Descriere produs (opțional)"
-                    value={productForm.description}
-                    onChange={(e) => setProductForm({...productForm, description: e.target.value})}
-                    className="border rounded px-3 py-2 col-span-2"
-                    rows={3}
-                  />
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Descriere produs (opțional)
+                    </label>
+                    <RichTextEditor
+                      value={productForm.description}
+                      onChange={(value) => setProductForm({...productForm, description: value})}
+                      placeholder="Descriere produs (opțional)"
+                    />
+                  </div>
+                  
+                  {/* Important Info with Rich Text Editor */}
+                  <div className="col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      ⚠️ Informații Importante (opțional)
+                    </label>
+                    <RichTextEditor
+                      value={productForm.importantInfo}
+                      onChange={(value) => setProductForm({...productForm, importantInfo: value})}
+                      placeholder="Adaugă informații importante despre produs (ex: alergeni, instrucțiuni speciale, etc.)"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Visibility & Stock Display Settings */}
+              <div className="border rounded-lg p-4 bg-blue-50">
+                <h4 className="font-semibold mb-3">👁️ Vizibilitate și Afișare Stoc</h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  
+                  {/* Product Status */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Status Produs
+                    </label>
+                    <select
+                      value={productForm.status}
+                      onChange={(e) => setProductForm({...productForm, status: e.target.value})}
+                      className="w-full border rounded px-3 py-2"
+                    >
+                      <option value="published">✅ Publicat (vizibil pentru toți)</option>
+                      <option value="draft">📝 Draft (vizibil doar pentru admin)</option>
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {productForm.status === 'published' 
+                        ? 'Produsul este vizibil pentru toți utilizatorii' 
+                        : 'Produsul este vizibil doar pentru administratori'}
+                    </p>
+                  </div>
+
+                  {/* Stock Display Mode */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Mod Afișare Stoc
+                    </label>
+                    <select
+                      value={productForm.stockDisplayMode}
+                      onChange={(e) => setProductForm({...productForm, stockDisplayMode: e.target.value})}
+                      className="w-full border rounded px-3 py-2"
+                    >
+                      <option value="visible">👁️ Vizibil (arată cantitatea exactă)</option>
+                      <option value="status_only">ℹ️ Doar Stare (disponibil/indisponibil)</option>
+                      <option value="hidden">🚫 Ascuns (nu arată informații stoc)</option>
+                    </select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {productForm.stockDisplayMode === 'visible' && 'Utilizatorii văd: "În stoc: 50 bucăți"'}
+                      {productForm.stockDisplayMode === 'status_only' && 'Utilizatorii văd: "Disponibil" sau "Indisponibil"'}
+                      {productForm.stockDisplayMode === 'hidden' && 'Utilizatorii nu văd informații despre stoc'}
+                    </p>
+                  </div>
+
+                  {/* Preview */}
+                  <div className="col-span-2 bg-white p-3 rounded border">
+                    <p className="text-sm font-medium text-gray-700 mb-2">👀 Preview pentru utilizatori:</p>
+                    <div className="flex items-center gap-4">
+                      {productForm.status === 'draft' && (
+                        <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded text-sm">
+                          📝 Produs ascuns (draft)
+                        </span>
+                      )}
+                      {productForm.status === 'published' && (
+                        <>
+                          {productForm.stockDisplayMode === 'visible' && (
+                            <span className="px-3 py-1 bg-green-100 text-green-800 rounded text-sm">
+                              În stoc: {productForm.stock} {productForm.unitName}
+                            </span>
+                          )}
+                          {productForm.stockDisplayMode === 'status_only' && (
+                            <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded text-sm">
+                              {productForm.stock > 0 ? '✅ Disponibil' : '❌ Indisponibil'}
+                            </span>
+                          )}
+                          {productForm.stockDisplayMode === 'hidden' && (
+                            <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded text-sm">
+                              Disponibil la comandă
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+
                 </div>
               </div>
 
@@ -1112,34 +1509,7 @@ export default function ProductsManagement() {
                 )}
               </div>
 
-              {/* Delivery Settings */}
-              <div className="border rounded-lg p-4">
-                <h4 className="font-semibold mb-3">🚚 Setări Livrare</h4>
-                <p className="text-sm text-gray-600 mb-3">
-                  Livrarea se face la locația specificată în ziua aleasă de client la checkout.
-                </p>
-                <div className="grid grid-cols-2 gap-4">
-                  <input
-                    type="number"
-                    value={productForm.deliveryTimeHours}
-                    onChange={(e) => setProductForm({...productForm, deliveryTimeHours: parseInt(e.target.value)})}
-                    className="border rounded px-3 py-2"
-                    placeholder="Ore livrare (opțional)"
-                  />
-                  <input
-                    type="number"
-                    value={productForm.deliveryTimeDays}
-                    onChange={(e) => setProductForm({...productForm, deliveryTimeDays: parseInt(e.target.value)})}
-                    className="border rounded px-3 py-2"
-                    placeholder="Zile livrare (opțional)"
-                  />
-                </div>
-                <p className="text-xs text-gray-500 mt-2">
-                  Aceste câmpuri sunt opționale și pot fi folosite pentru produse speciale cu timp de livrare diferit.
-                </p>
-              </div>
-
-              {/* Active Status */}
+              {/* Active Status & Carousel */}
               <div className="border rounded-lg p-4">
                 <div className="space-y-3">
                   <label className="flex items-center space-x-2">
@@ -1155,18 +1525,16 @@ export default function ProductsManagement() {
                     <input
                       type="checkbox"
                       checked={!!productForm.showInCarousel}
-                      onChange={(e) => setProductForm({...productForm, showInCarousel: e.target.checked, carouselOrder: e.target.checked ? productForm.carouselOrder : 0})}
+                      onChange={(e) => setProductForm({...productForm, showInCarousel: e.target.checked})}
                     />
                     <span className="font-medium">🎨 Afișează în Carousel (Flux)</span>
                   </label>
                   
                   {productForm.showInCarousel && (
-                    <div className="ml-6 mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                      <CarouselPositionSelector
-                        selectedPosition={productForm.carouselOrder}
-                        onPositionChange={(position) => setProductForm({...productForm, carouselOrder: position})}
-                        currentProductId={selectedProduct?.id}
-                      />
+                    <div className="ml-6 p-3 bg-blue-50 rounded border border-blue-200">
+                      <p className="text-sm text-blue-800">
+                        ✅ Produsul va apărea în carousel. Ordinea se gestionează automat.
+                      </p>
                     </div>
                   )}
                 </div>
@@ -1181,10 +1549,10 @@ export default function ProductsManagement() {
                 Anulează
               </button>
               <button
-                onClick={() => selectedProduct ? handleProductUpdate(selectedProduct.id) : handleCreateProduct()}
+                onClick={() => productForm.id ? handleProductUpdate(productForm.id) : handleCreateProduct()}
                 className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
               >
-                💾 {selectedProduct ? 'Actualizează' : 'Creează'} Produs
+                💾 {productForm.id ? 'Actualizează' : 'Creează'} Produs
               </button>
             </div>
           </div>

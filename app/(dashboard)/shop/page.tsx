@@ -18,6 +18,8 @@ export default function ShopPage() {
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 10000]);
   const [minRating, setMinRating] = useState<number>(0);
   const [sortBy, setSortBy] = useState<string>('newest');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12;
 
   useEffect(() => {
     const urlSearch = searchParams.get('search');
@@ -108,6 +110,7 @@ export default function ShopPage() {
     }
 
     setFilteredProducts(filtered);
+    setCurrentPage(1); // Reset to first page when filters change
   }, [products, selectedCategory, searchQuery, priceRange, minRating, sortBy]);
 
   const categoryOptions = ['all', ...categories.map(c => c.name)];
@@ -235,6 +238,72 @@ export default function ShopPage() {
             </button>
           </div>
         </div>
+
+        {/* Active Filters and Item Count */}
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap gap-2 items-center">
+            {(selectedCategory !== 'all' || searchQuery || minRating > 0 || priceRange[0] !== 0 || priceRange[1] !== 10000 || sortBy !== 'newest') && (
+              <>
+                <span className="text-sm text-gray-600">Filtre active:</span>
+                {selectedCategory !== 'all' && (
+                  <button
+                    onClick={() => setSelectedCategory('all')}
+                    className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm hover:bg-blue-200 transition"
+                  >
+                    📂 {selectedCategory} ✕
+                  </button>
+                )}
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm hover:bg-green-200 transition"
+                  >
+                    🔍 "{searchQuery}" ✕
+                  </button>
+                )}
+                {minRating > 0 && (
+                  <button
+                    onClick={() => setMinRating(0)}
+                    className="px-3 py-1 bg-yellow-100 text-yellow-700 rounded-full text-sm hover:bg-yellow-200 transition"
+                  >
+                    ⭐ {minRating}+ ✕
+                  </button>
+                )}
+                {(priceRange[0] !== 0 || priceRange[1] !== 10000) && (
+                  <button
+                    onClick={() => setPriceRange([0, 10000])}
+                    className="px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-sm hover:bg-purple-200 transition"
+                  >
+                    💰 {priceRange[0]}-{priceRange[1]} RON ✕
+                  </button>
+                )}
+                {sortBy !== 'newest' && (
+                  <button
+                    onClick={() => setSortBy('newest')}
+                    className="px-3 py-1 bg-orange-100 text-orange-700 rounded-full text-sm hover:bg-orange-200 transition"
+                  >
+                    📊 {sortBy} ✕
+                  </button>
+                )}
+                <button
+                  onClick={() => {
+                    setSelectedCategory('all');
+                    setSearchQuery('');
+                    setMinRating(0);
+                    setPriceRange([0, 10000]);
+                    setSortBy('newest');
+                  }}
+                  className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm hover:bg-gray-200 transition"
+                >
+                  Șterge toate
+                </button>
+              </>
+            )}
+          </div>
+          <span className="text-sm text-gray-600 font-medium">
+            {filteredProducts.length} din {products.length} produse
+          </span>
+        </div>
       </div>
 
       {/* Products Grid */}
@@ -243,18 +312,21 @@ export default function ShopPage() {
           <p className="text-gray-600 text-lg">{t('noProductsFound')}</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {filteredProducts.map((product) => (
+        <>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {filteredProducts
+              .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+              .map((product) => (
             <Link
               key={product.id}
               href={`/products/${product.id}`}
               className="bg-white rounded-lg shadow hover:shadow-xl transition-all overflow-hidden"
             >
-              <div className="relative h-48 bg-gray-200">
+              <div className="relative h-48 bg-gray-200 flex items-center justify-center">
                 <img
                   src={product.image}
                   alt={product.title}
-                  className="w-full h-full object-cover"
+                  className="max-w-full max-h-full object-contain"
                   onError={(e) => {
                     e.currentTarget.src = 'https://via.placeholder.com/300x200?text=No+Image';
                   }}
@@ -326,6 +398,30 @@ export default function ShopPage() {
             </Link>
           ))}
         </div>
+
+        {/* Pagination */}
+        {filteredProducts.length > itemsPerPage && (
+          <div className="mt-6 flex justify-center items-center gap-2">
+            <button
+              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+              className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              ← Anterior
+            </button>
+            <span className="px-4 py-2 text-gray-700">
+              Pagina {currentPage} din {Math.ceil(filteredProducts.length / itemsPerPage)}
+            </span>
+            <button
+              onClick={() => setCurrentPage(prev => Math.min(Math.ceil(filteredProducts.length / itemsPerPage), prev + 1))}
+              disabled={currentPage >= Math.ceil(filteredProducts.length / itemsPerPage)}
+              className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Următor →
+            </button>
+          </div>
+        )}
+      </>
       )}
     </div>
   );

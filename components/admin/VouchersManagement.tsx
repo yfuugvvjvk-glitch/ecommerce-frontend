@@ -4,9 +4,11 @@ import { useEffect, useState } from 'react';
 import { apiClient } from '@/lib/api-client';
 import { usePagination } from '@/lib/usePagination';
 import Pagination from '@/components/Pagination';
+import FilterBar from './FilterBar';
 
 export default function VouchersManagement() {
   const [vouchers, setVouchers] = useState<any[]>([]);
+  const [filteredVouchers, setFilteredVouchers] = useState<any[]>([]);
   const [voucherRequests, setVoucherRequests] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -14,6 +16,13 @@ export default function VouchersManagement() {
   const [activeTab, setActiveTab] = useState<'vouchers' | 'requests'>('vouchers');
   const [editingRequest, setEditingRequest] = useState<any | null>(null);
   const [showRequestForm, setShowRequestForm] = useState(false);
+  
+  // Filtre și căutare
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [filterType, setFilterType] = useState('');
+  const [sortBy, setSortBy] = useState('code');
+  
   const [requestFormData, setRequestFormData] = useState({
     code: '',
     description: '',
@@ -40,13 +49,77 @@ export default function VouchersManagement() {
     fetchVoucherRequests();
   }, []);
 
+  useEffect(() => {
+    // Filtrare și sortare
+    let filtered = [...vouchers];
+
+    // Căutare
+    if (searchTerm) {
+      filtered = filtered.filter(v => 
+        v.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        v.description?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Filtrare după status
+    if (filterStatus === 'active') {
+      filtered = filtered.filter(v => v.isActive);
+    } else if (filterStatus === 'inactive') {
+      filtered = filtered.filter(v => !v.isActive);
+    }
+
+    // Filtrare după tip
+    if (filterType) {
+      filtered = filtered.filter(v => v.discountType === filterType);
+    }
+
+    // Sortare
+    switch (sortBy) {
+      case 'code':
+        filtered.sort((a, b) => a.code.localeCompare(b.code));
+        break;
+      case 'value':
+        filtered.sort((a, b) => b.discountValue - a.discountValue);
+        break;
+      case 'usage':
+        filtered.sort((a, b) => b.usedCount - a.usedCount);
+        break;
+      case 'date':
+        filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        break;
+    }
+
+    setFilteredVouchers(filtered);
+  }, [vouchers, searchTerm, filterStatus, filterType, sortBy]);
+
+  // Pagination hook - MUST be at component top level
+  const { paginatedItems, currentPage, totalPages, goToPage, totalItems } = usePagination({ 
+    items: filteredVouchers, 
+    itemsPerPage: 5 // MODIFICAT: 5 vouchere per pagină
+  });
+
   const fetchVouchers = async () => {
     try {
+      console.log('🔍 Fetching vouchers...');
       const response = await apiClient.get('/api/admin/vouchers');
-      // Asigură-te că response.data este un array
-      setVouchers(Array.isArray(response.data) ? response.data : []);
+      console.log('📦 Vouchers response:', response.data);
+      
+      // Check if response.data is an array or an object with vouchers property
+      let vouchersData = [];
+      if (Array.isArray(response.data)) {
+        vouchersData = response.data;
+      } else if (response.data && Array.isArray(response.data.vouchers)) {
+        vouchersData = response.data.vouchers;
+      } else if (response.data && typeof response.data === 'object') {
+        // If it's an object, try to extract array from common property names
+        vouchersData = response.data.data || response.data.items || [];
+      }
+      
+      console.log('✅ Setting vouchers:', vouchersData);
+      console.log('📊 Vouchers count:', vouchersData.length);
+      setVouchers(vouchersData);
     } catch (error) {
-      console.error('Failed to fetch vouchers:', error);
+      console.error('❌ Failed to fetch vouchers:', error);
       setVouchers([]); // Set empty array on error
     } finally {
       setLoading(false);
@@ -231,6 +304,50 @@ export default function VouchersManagement() {
 
       {activeTab === 'vouchers' && (
         <>
+          {/* Filtre și căutare */}
+          <FilterBar
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+            searchPlaceholder="Caută după cod sau descriere..."
+            filters={[
+              {
+                label: 'Status',
+                value: filterStatus,
+                onChange: setFilterStatus,
+                options: [
+                  { value: '', label: 'Toate' },
+                  { value: 'active', label: '✅ Active' },
+                  { value: 'inactive', label: '❌ Inactive' }
+                ]
+              },
+              {
+                label: 'Tip Discount',
+                value: filterType,
+                onChange: setFilterType,
+                options: [
+                  { value: '', label: 'Toate tipurile' },
+                  { value: 'PERCENTAGE', label: '% Procent' },
+                  { value: 'FIXED', label: '💰 Fix' }
+                ]
+              }
+            ]}
+            sortBy={sortBy}
+            onSortChange={setSortBy}
+            sortOptions={[
+              { value: 'code', label: '📝 Cod (A-Z)' },
+              { value: 'value', label: '💰 Valoare' },
+              { value: 'usage', label: '📊 Utilizări' },
+              { value: 'date', label: '📅 Data' }
+            ]}
+            onReset={() => {
+              setSearchTerm('');
+              setFilterStatus('');
+              setFilterType('');
+              setSortBy('code');
+            }}
+            showReset={searchTerm !== '' || filterStatus !== '' || filterType !== '' || sortBy !== 'code'}
+          />
+
           <button
         onClick={() => {
           setShowForm(!showForm);
@@ -345,12 +462,7 @@ export default function VouchersManagement() {
       )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {(() => {
-              const { paginatedItems, currentPage, totalPages, goToPage, totalItems } = usePagination({ items: vouchers, itemsPerPage: 10 });
-              
-              return (
-                <>
-                  {paginatedItems.map((voucher) => (
+            {paginatedItems.map((voucher) => (
               <div key={voucher.id} className="bg-white border rounded-lg p-4">
                 <div className="flex justify-between items-start mb-2">
                   <div>
@@ -390,18 +502,15 @@ export default function VouchersManagement() {
                 </div>
               </div>
             ))}
-            
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={goToPage}
-              itemsPerPage={10}
-              totalItems={totalItems}
-            />
-          </>
-        );
-      })()}
           </div>
+          
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={goToPage}
+            itemsPerPage={10}
+            totalItems={totalItems}
+          />
         </>
       )}
 

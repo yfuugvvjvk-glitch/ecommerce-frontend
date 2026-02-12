@@ -132,66 +132,99 @@ export default function ProductDetailsPage() {
   }
 
   return (
-    <div className="max-w-6xl mx-auto">
-      <button onClick={() => router.back()} className="mb-4 text-blue-600 hover:text-blue-800">
+    <div className="max-w-7xl mx-auto px-4">
+      <button onClick={() => router.back()} className="mb-4 text-blue-600 hover:text-blue-800 flex items-center gap-2">
         ← {t('back')}
       </button>
 
-      <div className="bg-white rounded-lg shadow-md overflow-hidden">
-        <div className="grid md:grid-cols-2 gap-8 p-8">
-          <div className="relative">
-            <img
-              src={product.image || '/placeholder.jpg'}
-              alt={product.title}
-              className="w-full h-96 object-cover rounded-lg"
-            />
+      <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+        {/* Layout 2 coloane */}
+        <div className="grid lg:grid-cols-2 gap-8 p-6">
+          
+          {/* COLOANA STÂNGA - Imagine + Descrieri */}
+          <div className="space-y-6">
+            {/* Imagine produs */}
+            <div className="relative bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center" style={{minHeight: '400px', maxHeight: '500px'}}>
+              <img
+                src={product.image || '/placeholder.jpg'}
+                alt={product.title}
+                className="max-w-full max-h-full object-contain"
+              />
+            </div>
+
+            {/* Descrieri sub imagine */}
+            <div className="space-y-4">
+              {product.description && (
+                <div>
+                  <p className="text-gray-600 leading-relaxed">{product.description}</p>
+                </div>
+              )}
+
+              {product.content && (
+                <div>
+                  <p className="text-gray-600 leading-relaxed whitespace-pre-wrap">{product.content}</p>
+                </div>
+              )}
+
+              {/* Informații Importante - NU SE AFIȘEAZĂ DELOC DACĂ E GOL */}
+              {product.importantInfo && (() => {
+                // Elimină tagurile HTML și verifică dacă mai rămâne text
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = product.importantInfo;
+                const textContent = tempDiv.textContent || tempDiv.innerText || '';
+                return textContent.trim() !== '';
+              })() && (
+                <div className="bg-yellow-50 border-2 border-yellow-300 rounded-lg p-4">
+                  <div 
+                    className="text-gray-800 leading-relaxed"
+                    style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}
+                    dangerouslySetInnerHTML={{ __html: product.importantInfo }}
+                  />
+                </div>
+              )}
+
+              {/* Advance Order Warning */}
+              {product.advanceOrderDays > 0 && (
+                <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
+                  <p className="text-sm text-orange-800">
+                    <strong>⚠️ Comandă în avans:</strong> Acest produs trebuie comandat cu minimum {product.advanceOrderDays} {product.advanceOrderDays === 1 ? 'zi' : 'zile'} înainte de livrare.
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
 
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">{product.title}</h1>
+          {/* COLOANA DREAPTA - Preț, Calculator, Favorite */}
+          <div className="space-y-6">
             
-            {/* Rating */}
-            {product.averageRating > 0 && (
-              <div className="flex items-center gap-2 mb-4">
-                <div className="flex items-center">
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <span
-                      key={star}
-                      className={`text-2xl ${
-                        star <= Math.round(product.averageRating)
-                          ? 'text-yellow-400'
-                          : 'text-gray-300'
-                      }`}
-                    >
-                      ★
-                    </span>
-                  ))}
-                </div>
-                <span className="text-lg font-semibold text-gray-700">
-                  {product.averageRating.toFixed(1)}
-                </span>
-                <span className="text-sm text-gray-500">
-                  ({product.reviewCount || 0} {product.reviewCount === 1 ? 'recenzie' : 'recenzii'})
-                </span>
-              </div>
-            )}
+            {/* Header cu titlu și favorite */}
+            <div className="flex items-start justify-between gap-4">
+              <h1 className="text-3xl font-bold text-gray-900 flex-1">{product.title}</h1>
+              <button
+                onClick={toggleFavorite}
+                className="flex-shrink-0 p-3 border-2 border-gray-300 rounded-full hover:border-red-500 hover:bg-red-50 transition"
+                title={isFavorite ? 'Șterge din favorite' : 'Adaugă la favorite'}
+              >
+                <Heart className={`h-6 w-6 ${isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
+              </button>
+            </div>
             
-            {/* Preț - afișare diferită pentru preț fix vs per unitate */}
-            <div className="mb-6">
+            {/* Preț */}
+            <div className="bg-blue-50 rounded-lg p-4 border-2 border-blue-200">
               <div className="flex items-baseline gap-3">
                 <span className="text-4xl font-bold text-blue-600">
                   <CurrencyPrice amount={product.price} />
                 </span>
                 {product.priceType === 'per_unit' && product.unitName && product.unitName !== 'bucată' ? (
                   <span className="text-lg text-gray-600">
-                    per {product.unitName}
+                    / {product.unitName}
                   </span>
                 ) : (
                   <span className="text-lg text-gray-600">
-                    per produs
+                    / produs
                     {product.availableQuantities && product.availableQuantities.length > 0 && product.availableQuantities[0] > 1 && (
                       <span className="block text-sm text-gray-500 mt-1">
-                        (fiecare produs = {product.availableQuantities[0]} {product.unitName || 'buc'})
+                        (fiecare = {product.availableQuantities[0]} {product.unitName || 'buc'})
                       </span>
                     )}
                   </span>
@@ -209,208 +242,125 @@ export default function ProductDetailsPage() {
               )}
             </div>
 
-            {/* Cantități disponibile - Afișare diferită pentru preț fix vs per unitate */}
-            {product.availableQuantities && product.availableQuantities.length > 0 && (
-              <div className="mb-6">
-                {product.priceType === 'per_unit' ? (
-                  // PREȚ PER UNITATE - prețul se înmulțește cu cantitatea
-                  <>
-                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4 mb-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-2xl">📦</span>
-                        <h3 className="font-bold text-gray-800 text-lg">Alege cantitatea dorită:</h3>
-                      </div>
-                      <p className="text-sm text-gray-600">
-                        Prețul este <strong className="text-blue-600">{product.price.toFixed(2)} RON per {product.unitName || 'bucată'}</strong>
-                      </p>
-                    </div>
-
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                      {product.availableQuantities.map((quantity: number) => {
-                        const totalPrice = quantity * product.price;
-                        return (
-                          <button
-                            key={quantity}
-                            onClick={() => setSelectedQuantity(quantity)}
-                            className={`relative p-4 border-2 rounded-xl transition-all transform hover:scale-105 ${
-                              selectedQuantity === quantity
-                                ? 'bg-blue-600 text-white border-blue-600 shadow-lg'
-                                : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400 hover:shadow-md'
-                            }`}
-                          >
-                            {selectedQuantity === quantity && (
-                              <div className="absolute -top-2 -right-2 bg-green-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
-                                ✓
-                              </div>
-                            )}
-                            <div className="text-center">
-                              <div className={`text-2xl font-bold mb-1 ${selectedQuantity === quantity ? 'text-white' : 'text-gray-800'}`}>
-                                {quantity} {product.unitName || 'buc'}
-                              </div>
-                              <div className={`text-sm font-semibold ${selectedQuantity === quantity ? 'text-blue-100' : 'text-blue-600'}`}>
-                                <CurrencyPrice amount={totalPrice} />
-                              </div>
-                              <div className={`text-xs mt-1 ${selectedQuantity === quantity ? 'text-blue-100' : 'text-gray-500'}`}>
-                                ({product.price.toFixed(2)} RON/{product.unitName})
-                              </div>
-                            </div>
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm text-gray-700">
-                          Cantitate selectată: <strong className="text-gray-900">{selectedQuantity} {product.unitName || 'buc'}</strong>
-                        </span>
-                        <span className="text-lg font-bold text-green-600">
-                          Total: <CurrencyPrice amount={selectedQuantity * product.price} />
-                        </span>
-                      </div>
-                    </div>
-                  </>
+            {/* Stoc - afișare bazată pe stockDisplayMode */}
+            <div>
+              {/* Verifică dacă există informații despre stoc */}
+              {product.stockStatus === 'unknown' ? (
+                // Hidden mode - nu arată nimic
+                null
+              ) : product.stockStatus ? (
+                // Status only mode - arată doar disponibil/indisponibil
+                <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full ${
+                  product.stockStatus === 'available' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                }`}>
+                  <span className="text-lg">{product.stockStatus === 'available' ? '✓' : '✗'}</span>
+                  <span className="font-semibold">
+                    {product.stockStatus === 'available' ? 'Disponibil' : 'Indisponibil'}
+                  </span>
+                </div>
+              ) : product.stock !== undefined ? (
+                // Visible mode - arată cantitatea exactă
+                product.stock > 0 ? (
+                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-800 rounded-full">
+                    <span className="text-lg">✓</span>
+                    <span className="font-semibold">
+                      În stoc: {product.availableStock || product.stock} {product.priceType === 'fixed' ? 'produse' : product.unitName || 'buc'}
+                    </span>
+                  </div>
                 ) : (
-                  // PREȚ FIX - prețul NU se înmulțește, doar cantitatea
-                  <>
-                    <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-4 mb-4">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="text-2xl">🏷️</span>
-                        <h3 className="font-bold text-gray-800 text-lg">Preț fix per produs</h3>
-                      </div>
-                      <p className="text-sm text-gray-600">
-                        Fiecare produs costă <strong className="text-green-600">{product.price.toFixed(2)} RON</strong>
-                        {product.availableQuantities && product.availableQuantities.length > 0 && product.availableQuantities[0] > 1 && (
-                          <span className="block mt-1">
-                            📦 Fiecare produs conține <strong className="text-blue-600">{product.availableQuantities[0]} {product.unitName || 'unități'}</strong>
-                          </span>
-                        )}
-                      </p>
-                    </div>
+                  <span className="inline-flex items-center gap-2 px-4 py-2 bg-red-100 text-red-800 rounded-full">
+                    <span className="text-lg">✗</span>
+                    <span className="font-semibold">{t('outOfStock')}</span>
+                  </span>
+                )
+              ) : null}
+            </div>
 
-                    <div className="bg-white border-2 border-green-500 rounded-xl p-4 shadow-md">
-                      <div className="flex items-center justify-between mb-3">
-                        <div>
-                          <span className="text-lg font-semibold text-gray-800">Câte produse dorești?</span>
-                          {product.availableQuantities && product.availableQuantities.length > 0 && product.availableQuantities[0] > 1 && (
-                            <span className="block text-xs text-gray-500 mt-1">
-                              Se vinde doar în ambalaje de {product.availableQuantities[0]} {product.unitName}
-                            </span>
-                          )}
-                        </div>
-                        <span className="text-2xl font-bold text-green-600">
-                          <CurrencyPrice amount={product.price} /> / buc
-                        </span>
-                      </div>
-                      
-                      <div className="flex items-center gap-4 mb-3">
-                        <button
-                          onClick={() => setSelectedQuantity(Math.max(1, selectedQuantity - 1))}
-                          className="w-10 h-10 bg-gray-200 hover:bg-gray-300 rounded-lg font-bold text-xl"
-                        >
-                          −
-                        </button>
-                        <input
-                          type="number"
-                          min="1"
-                          value={selectedQuantity}
-                          onChange={(e) => setSelectedQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                          className="flex-1 text-center text-2xl font-bold border-2 border-gray-300 rounded-lg py-2"
-                        />
-                        <button
-                          onClick={() => setSelectedQuantity(selectedQuantity + 1)}
-                          className="w-10 h-10 bg-gray-200 hover:bg-gray-300 rounded-lg font-bold text-xl"
-                        >
-                          +
-                        </button>
-                      </div>
+            {/* Calculator cantitate */}
+            {product.availableQuantities && product.availableQuantities.length > 0 && (
+              <div className="bg-white border-2 border-gray-300 rounded-xl p-5 shadow-sm">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Selectează cantitatea</h3>
+                
+                {/* Butoane +/- */}
+                <div className="flex items-center gap-4 mb-4">
+                  <button
+                    onClick={() => setSelectedQuantity(Math.max(product.availableQuantities[0] || 1, selectedQuantity - (product.quantityStep || 1)))}
+                    className="w-12 h-12 bg-gray-200 hover:bg-gray-300 rounded-lg font-bold text-2xl flex items-center justify-center transition"
+                  >
+                    −
+                  </button>
+                  <input
+                    type="number"
+                    min={product.availableQuantities[0] || 1}
+                    step={product.quantityStep || 1}
+                    value={selectedQuantity}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value) || product.availableQuantities[0] || 1;
+                      setSelectedQuantity(Math.max(product.availableQuantities[0] || 1, val));
+                    }}
+                    className="flex-1 text-center text-2xl font-bold border-2 border-gray-300 rounded-lg py-3"
+                  />
+                  <button
+                    onClick={() => setSelectedQuantity(selectedQuantity + (product.quantityStep || 1))}
+                    className="w-12 h-12 bg-gray-200 hover:bg-gray-300 rounded-lg font-bold text-2xl flex items-center justify-center transition"
+                  >
+                    +
+                  </button>
+                </div>
 
-                      <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <span className="text-sm text-gray-700">
-                              <strong className="text-gray-900">{selectedQuantity}</strong> {selectedQuantity === 1 ? 'produs' : 'produse'}
-                            </span>
-                            {product.availableQuantities && product.availableQuantities.length > 0 && product.availableQuantities[0] > 1 && (
-                              <span className="block text-xs text-blue-600 mt-1">
-                                = {selectedQuantity * product.availableQuantities[0]} {product.unitName} total
-                              </span>
-                            )}
-                          </div>
-                          <span className="text-xl font-bold text-green-600">
-                            Total: <CurrencyPrice amount={selectedQuantity * product.price} />
-                          </span>
-                        </div>
-                      </div>
+                {/* Total */}
+                <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg mb-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-700">
+                      Cantitate: <strong className="text-gray-900">{selectedQuantity} {product.unitName}</strong>
+                    </span>
+                    <span className="text-2xl font-bold text-blue-600">
+                      <CurrencyPrice amount={selectedQuantity * product.price} />
+                    </span>
+                  </div>
+                </div>
+
+                {/* Cantități rapide */}
+                {product.availableQuantities.length > 1 && (
+                  <div>
+                    <p className="text-sm text-gray-600 mb-2">Cantități rapide:</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      {product.availableQuantities.slice(0, 6).map((quantity: number) => (
+                        <button
+                          key={quantity}
+                          onClick={() => setSelectedQuantity(quantity)}
+                          className={`p-2 border-2 rounded-lg transition-all text-center ${
+                            selectedQuantity === quantity
+                              ? 'bg-blue-600 text-white border-blue-600'
+                              : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400'
+                          }`}
+                        >
+                          <div className="font-bold">{quantity}</div>
+                          <div className="text-xs opacity-75">{product.unitName}</div>
+                        </button>
+                      ))}
                     </div>
-                  </>
+                  </div>
                 )}
               </div>
             )}
 
-            {/* Advance Order Warning */}
-            {product.advanceOrderDays > 0 && (
-              <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-4">
-                <p className="text-sm text-orange-800">
-                  <strong>⚠️ Comandă în avans:</strong> Acest produs trebuie comandat cu minimum {product.advanceOrderDays} {product.advanceOrderDays === 1 ? 'zi' : 'zile'} înainte de livrare.
-                </p>
-              </div>
-            )}
-
-            <div className="mb-6">
-              {product.stock > 0 ? (
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-800 rounded-full">
-                  <span className="text-lg">✓</span>
-                  <span className="font-semibold">
-                    În stoc: {product.availableStock || product.stock} {product.priceType === 'fixed' ? 'produse' : product.unitName || 'buc'}
-                  </span>
-                  {product.priceType === 'fixed' && product.availableQuantities && product.availableQuantities.length > 0 && product.availableQuantities[0] > 1 && (
-                    <span className="text-sm opacity-75">
-                      (= {(product.availableStock || product.stock) * product.availableQuantities[0]} {product.unitName} total)
-                    </span>
-                  )}
-                </div>
-              ) : (
-                <span className="inline-flex items-center gap-2 px-4 py-2 bg-red-100 text-red-800 rounded-full">
-                  <span className="text-lg">✗</span>
-                  <span className="font-semibold">{t('outOfStock')}</span>
-                </span>
-              )}
-            </div>
-
-            <div className="mb-6">
-              <h3 className="font-semibold text-gray-800 mb-2">{t('description')}:</h3>
-              <p className="text-gray-600">{product.description || 'Fără descriere'}</p>
-            </div>
-
-            <div className="mb-6">
-              <h3 className="font-semibold text-gray-800 mb-2">Detalii:</h3>
-              <p className="text-gray-600 whitespace-pre-wrap">{product.content}</p>
-            </div>
-
-            <div className="flex gap-4">
-              <button
-                onClick={toggleFavorite}
-                className="flex items-center gap-2 px-6 py-3 border-2 border-gray-300 rounded-lg hover:border-red-500 hover:text-red-500 transition"
-              >
-                <Heart className={`h-5 w-5 ${isFavorite ? 'fill-red-500 text-red-500' : ''}`} />
-                {isFavorite ? t('removeFromFavorites') : t('addToFavorites')}
-              </button>
-
-              <button
-                onClick={addToCart}
-                disabled={product.stock === 0}
-                className="flex-1 flex items-center justify-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition"
-              >
-                <ShoppingCart className="h-5 w-5" />
-                {t('addToCart')}
-              </button>
-            </div>
+            {/* Buton Adaugă în coș */}
+            <button
+              onClick={addToCart}
+              disabled={product.stock === 0}
+              className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-blue-600 text-white text-lg font-semibold rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition shadow-lg"
+            >
+              <ShoppingCart className="h-6 w-6" />
+              Adaugă în coș
+            </button>
           </div>
         </div>
 
-        {/* Reviews Section */}
-        <ReviewsSection productId={params.id as string} />
+        {/* Secțiunea completă de recenzii - sub cele 2 coloane, pe toată lățimea */}
+        <div id="reviews" className="border-t p-6">
+          <ReviewsSection productId={params.id as string} />
+        </div>
       </div>
     </div>
   );

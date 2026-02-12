@@ -40,6 +40,12 @@ export default function InvoicesManagement() {
   const [yearFilter, setYearFilter] = useState('all');
   const [sortBy, setSortBy] = useState('date-desc');
 
+  // Pagination hook - MUST be at component top level
+  const { paginatedItems: paginatedInvoices, currentPage: paginationPage, totalPages: paginationTotalPages, goToPage, totalItems } = usePagination({ 
+    items: filteredInvoices, 
+    itemsPerPage: 10 
+  });
+
   useEffect(() => {
     fetchInvoices();
   }, [currentPage]);
@@ -341,12 +347,7 @@ export default function InvoicesManagement() {
       ) : (
         <>
           <div className="space-y-4">
-            {(() => {
-              const { paginatedItems, currentPage, totalPages, goToPage, totalItems } = usePagination({ items: filteredInvoices, itemsPerPage: 10 });
-              
-              return (
-                <>
-                  {paginatedItems.map((invoice) => (
+            {paginatedInvoices.map((invoice) => (
               <div key={invoice.id} className="bg-white rounded-lg shadow border border-gray-200 p-6">
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
                   <div className="flex items-start space-x-4 mb-4 lg:mb-0">
@@ -421,18 +422,15 @@ export default function InvoicesManagement() {
                 </div>
               </div>
             ))}
-            
-            <Pagination
-              currentPage={currentPage}
-              totalPages={totalPages}
-              onPageChange={goToPage}
-              itemsPerPage={10}
-              totalItems={totalItems}
-            />
-          </>
-        );
-      })()}
           </div>
+          
+          <Pagination
+            currentPage={paginationPage}
+            totalPages={paginationTotalPages}
+            onPageChange={goToPage}
+            itemsPerPage={10}
+            totalItems={totalItems}
+          />
         </>
       )}
     </div>

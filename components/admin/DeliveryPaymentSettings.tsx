@@ -38,12 +38,21 @@ interface TimeSlot {
 export default function DeliveryPaymentSettings() {
   const [activeTab, setActiveTab] = useState<'delivery' | 'payment'>('delivery');
   const [deliveryMethods, setDeliveryMethods] = useState<DeliveryMethod[]>([]);
+  const [filteredDeliveryMethods, setFilteredDeliveryMethods] = useState<DeliveryMethod[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const [filteredPaymentMethods, setFilteredPaymentMethods] = useState<PaymentMethod[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingDelivery, setEditingDelivery] = useState<DeliveryMethod | null>(null);
   const [editingPayment, setEditingPayment] = useState<PaymentMethod | null>(null);
   const [showDeliveryForm, setShowDeliveryForm] = useState(false);
   const [showPaymentForm, setShowPaymentForm] = useState(false);
+  
+  // Filtre
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all');
+  const [sortBy, setSortBy] = useState('name-asc');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   const daysOfWeek = [
     { value: 1, label: 'Luni' },
@@ -58,6 +67,80 @@ export default function DeliveryPaymentSettings() {
   useEffect(() => {
     loadData();
   }, [activeTab]);
+  
+  // Filtrare și sortare
+  useEffect(() => {
+    if (activeTab === 'delivery') {
+      let filtered = [...deliveryMethods];
+
+      // Filtrare după termen de căutare
+      if (searchTerm) {
+        filtered = filtered.filter(method =>
+          method.name.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      }
+
+      // Filtrare după status
+      if (statusFilter !== 'all') {
+        filtered = filtered.filter(method =>
+          statusFilter === 'active' ? method.isActive : !method.isActive
+        );
+      }
+
+      // Sortare
+      filtered.sort((a, b) => {
+        switch (sortBy) {
+          case 'name-asc':
+            return a.name.localeCompare(b.name);
+          case 'name-desc':
+            return b.name.localeCompare(a.name);
+          case 'cost-asc':
+            return a.deliveryCost - b.deliveryCost;
+          case 'cost-desc':
+            return b.deliveryCost - a.deliveryCost;
+          default:
+            return 0;
+        }
+      });
+
+      setFilteredDeliveryMethods(filtered);
+    } else {
+      let filtered = [...paymentMethods];
+
+      // Filtrare după termen de căutare
+      if (searchTerm) {
+        filtered = filtered.filter(method =>
+          method.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          method.type.toLowerCase().includes(searchTerm.toLowerCase())
+        );
+      }
+
+      // Filtrare după status
+      if (statusFilter !== 'all') {
+        filtered = filtered.filter(method =>
+          statusFilter === 'active' ? method.isActive : !method.isActive
+        );
+      }
+
+      // Sortare
+      filtered.sort((a, b) => {
+        switch (sortBy) {
+          case 'name-asc':
+            return a.name.localeCompare(b.name);
+          case 'name-desc':
+            return b.name.localeCompare(a.name);
+          case 'type-asc':
+            return a.type.localeCompare(b.type);
+          case 'type-desc':
+            return b.type.localeCompare(a.type);
+          default:
+            return 0;
+        }
+      });
+
+      setFilteredPaymentMethods(filtered);
+    }
+  }, [deliveryMethods, paymentMethods, searchTerm, statusFilter, sortBy, activeTab]);
 
   const loadData = async () => {
     setLoading(true);
@@ -71,6 +154,7 @@ export default function DeliveryPaymentSettings() {
         if (response.ok) {
           const data = await response.json();
           setDeliveryMethods(data);
+          setFilteredDeliveryMethods(data);
         }
       } else {
         const response = await fetch(`${API_URL}/api/admin/payment-methods`, {
@@ -79,6 +163,7 @@ export default function DeliveryPaymentSettings() {
         if (response.ok) {
           const data = await response.json();
           setPaymentMethods(data);
+          setFilteredPaymentMethods(data);
         }
       }
     } catch (error) {
@@ -210,6 +295,15 @@ export default function DeliveryPaymentSettings() {
   if (loading) {
     return <div className="p-8 text-center">Se încarcă...</div>;
   }
+  
+  // Paginare
+  const totalPages = activeTab === 'delivery' 
+    ? Math.ceil(filteredDeliveryMethods.length / itemsPerPage)
+    : Math.ceil(filteredPaymentMethods.length / itemsPerPage);
+    
+  const paginatedItems = activeTab === 'delivery'
+    ? filteredDeliveryMethods.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+    : filteredPaymentMethods.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
   return (
     <div className="p-6">
@@ -240,6 +334,74 @@ export default function DeliveryPaymentSettings() {
 
       {activeTab === 'delivery' ? (
         <div>
+          {/* Filtre și Căutare */}
+          <div className="bg-white border rounded-lg p-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Căutare */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  🔍 Caută
+                </label>
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Nume metodă..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              {/* Filtru Status */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  📊 Status
+                </label>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value as any)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="all">Toate statusurile</option>
+                  <option value="active">Activ</option>
+                  <option value="inactive">Inactiv</option>
+                </select>
+              </div>
+
+              {/* Sortare */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  ⬇️ Sortare
+                </label>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="name-asc">Nume (A → Z)</option>
+                  <option value="name-desc">Nume (Z → A)</option>
+                  <option value="cost-asc">Cost (Mic → Mare)</option>
+                  <option value="cost-desc">Cost (Mare → Mic)</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Butoane Reset */}
+            {(searchTerm || statusFilter !== 'all' || sortBy !== 'name-asc') && (
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={() => {
+                    setSearchTerm('');
+                    setStatusFilter('all');
+                    setSortBy('name-asc');
+                  }}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
+                >
+                  🔄 Resetează Filtrele
+                </button>
+              </div>
+            )}
+          </div>
+          
           <button
             onClick={() => {
               setEditingDelivery({
@@ -256,7 +418,7 @@ export default function DeliveryPaymentSettings() {
           </button>
 
           <div className="grid gap-4">
-            {deliveryMethods.map((method) => (
+            {paginatedItems.map((method: any) => (
               <div key={method.id} className="border p-4 rounded">
                 <div className="flex justify-between items-start">
                   <div>
@@ -291,6 +453,31 @@ export default function DeliveryPaymentSettings() {
               </div>
             ))}
           </div>
+          
+          {/* Paginare */}
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center space-x-2 mt-6">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+              >
+                ← Anterior
+              </button>
+              
+              <span className="text-sm text-gray-600">
+                Pagina {currentPage} din {totalPages}
+              </span>
+              
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+              >
+                Următorul →
+              </button>
+            </div>
+          )}
 
           {showDeliveryForm && editingDelivery && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
@@ -390,6 +577,74 @@ export default function DeliveryPaymentSettings() {
         </div>
       ) : (
         <div>
+          {/* Filtre și Căutare pentru Payment */}
+          <div className="bg-white border rounded-lg p-4 mb-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* Căutare */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  🔍 Caută
+                </label>
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Nume sau tip metodă..."
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              {/* Filtru Status */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  📊 Status
+                </label>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value as any)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="all">Toate statusurile</option>
+                  <option value="active">Activ</option>
+                  <option value="inactive">Inactiv</option>
+                </select>
+              </div>
+
+              {/* Sortare */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  ⬇️ Sortare
+                </label>
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="name-asc">Nume (A → Z)</option>
+                  <option value="name-desc">Nume (Z → A)</option>
+                  <option value="type-asc">Tip (A → Z)</option>
+                  <option value="type-desc">Tip (Z → A)</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Butoane Reset */}
+            {(searchTerm || statusFilter !== 'all' || sortBy !== 'name-asc') && (
+              <div className="mt-4 flex justify-end">
+                <button
+                  onClick={() => {
+                    setSearchTerm('');
+                    setStatusFilter('all');
+                    setSortBy('name-asc');
+                  }}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
+                >
+                  🔄 Resetează Filtrele
+                </button>
+              </div>
+            )}
+          </div>
+          
           <button
             onClick={() => {
               setEditingPayment({
@@ -406,7 +661,7 @@ export default function DeliveryPaymentSettings() {
           </button>
 
           <div className="grid gap-4">
-            {paymentMethods.map((method) => (
+            {paginatedItems.map((method: any) => (
               <div key={method.id} className="border p-4 rounded">
                 <div className="flex justify-between items-start">
                   <div>
@@ -440,6 +695,31 @@ export default function DeliveryPaymentSettings() {
               </div>
             ))}
           </div>
+          
+          {/* Paginare */}
+          {totalPages > 1 && (
+            <div className="flex justify-center items-center space-x-2 mt-6">
+              <button
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+              >
+                ← Anterior
+              </button>
+              
+              <span className="text-sm text-gray-600">
+                Pagina {currentPage} din {totalPages}
+              </span>
+              
+              <button
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+              >
+                Următorul →
+              </button>
+            </div>
+          )}
 
           {showPaymentForm && editingPayment && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">

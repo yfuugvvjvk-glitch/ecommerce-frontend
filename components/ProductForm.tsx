@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { apiClient } from '@/lib/api-client';
+import RichTextEditor from './RichTextEditor';
 
 type ProductInput = {
   title: string;
@@ -27,6 +28,9 @@ export default function ProductForm({ onSubmit, onCancel, initialData, isLoading
   const [categories, setCategories] = useState<any[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [imageUrl, setImageUrl] = useState(initialData?.image || '');
+  const [title, setTitle] = useState(initialData?.title || '');
+  const [description, setDescription] = useState(initialData?.description || '');
+  const [content, setContent] = useState(initialData?.content || '');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -98,12 +102,13 @@ export default function ProductForm({ onSubmit, onCancel, initialData, isLoading
           <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
             Titlu *
           </label>
-          <input
-            {...register('title', { required: 'Titlul este obligatoriu' })}
-            id="title"
-            className="w-full px-4 py-3 text-base border rounded focus:ring-2 focus:ring-blue-500 focus:outline-none"
-            aria-invalid={errors.title ? 'true' : 'false'}
-            aria-describedby={errors.title ? 'title-error' : undefined}
+          <RichTextEditor
+            value={title}
+            onChange={(value) => {
+              setTitle(value);
+              setValue('title', value);
+            }}
+            placeholder="Adaugă titlul produsului..."
           />
           {errors.title && (
             <p id="title-error" className="text-red-600 text-sm mt-1" role="alert">
@@ -264,10 +269,13 @@ export default function ProductForm({ onSubmit, onCancel, initialData, isLoading
         <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
           Descriere Scurtă
         </label>
-        <input
-          {...register('description')}
-          id="description"
-          className="w-full px-4 py-3 text-base border rounded focus:ring-2 focus:ring-blue-500 focus:outline-none"
+        <RichTextEditor
+          value={description}
+          onChange={(value) => {
+            setDescription(value);
+            setValue('description', value);
+          }}
+          placeholder="Adaugă o descriere scurtă..."
         />
       </div>
 
@@ -275,18 +283,16 @@ export default function ProductForm({ onSubmit, onCancel, initialData, isLoading
         <label htmlFor="content" className="block text-sm font-medium text-gray-700 mb-1">
           Conținut Detaliat *
         </label>
-        <textarea
-          {...register('content', { required: 'Conținutul este obligatoriu' })}
-          id="content"
-          rows={4}
-          className="w-full px-4 py-3 text-base border rounded focus:ring-2 focus:ring-blue-500 focus:outline-none"
-          aria-invalid={errors.content ? 'true' : 'false'}
-          aria-describedby={errors.content ? 'content-error' : undefined}
+        <RichTextEditor
+          value={content}
+          onChange={(value) => {
+            setContent(value);
+            setValue('content', value);
+          }}
+          placeholder="Adaugă conținut detaliat..."
         />
         {errors.content && (
-          <p id="content-error" className="text-red-600 text-sm mt-1" role="alert">
-            {errors.content.message}
-          </p>
+          <p className="text-red-500 text-sm mt-1">{errors.content.message}</p>
         )}
       </div>
 

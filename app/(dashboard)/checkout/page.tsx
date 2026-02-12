@@ -21,6 +21,7 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<string>('cash');
   const [deliveryMethod, setDeliveryMethod] = useState<string>('');
   const [selectedDeliveryLocation, setSelectedDeliveryLocation] = useState<string>('');
+  const [useCustomAddress, setUseCustomAddress] = useState(false);
   const [deliveryLocations, setDeliveryLocations] = useState<any[]>([]);
   const [deliveryMethods, setDeliveryMethods] = useState<any[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
@@ -192,8 +193,21 @@ export default function CheckoutPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!shippingAddress.trim() && selectedMethod?.type === 'courier') {
-      alert('Te rog introdu adresa de livrare');
+    // Validare adresă pentru courier
+    if (selectedMethod?.type === 'courier') {
+      if (useCustomAddress && !shippingAddress.trim()) {
+        alert('Te rog introdu adresa de livrare personalizată');
+        return;
+      }
+      if (!useCustomAddress && !selectedDeliveryLocation) {
+        alert('Te rog selectează o locație de livrare sau introdu o adresă personalizată');
+        return;
+      }
+    }
+
+    // Validare locație pentru pickup
+    if (selectedMethod?.type === 'pickup' && !selectedDeliveryLocation) {
+      alert('Te rog selectează o locație de ridicare');
       return;
     }
 
@@ -272,10 +286,14 @@ export default function CheckoutPage() {
           price: item.dataItem?.price || item.price,
         })),
         total: appliedVoucher ? appliedVoucher.finalTotal : cart.total,
-        shippingAddress,
+        shippingAddress: useCustomAddress ? shippingAddress : (
+          selectedDeliveryLocation ? 
+            deliveryLocations.find(loc => loc.id === selectedDeliveryLocation)?.address : 
+            shippingAddress
+        ),
         paymentMethod,
         deliveryMethod,
-        deliveryLocationId: selectedMethod?.type === 'pickup' ? selectedDeliveryLocation : null,
+        deliveryLocationId: selectedDeliveryLocation || null,
         voucherCode: appliedVoucher ? voucherCode : undefined,
         orderLocalTime,
         orderLocation,
@@ -400,7 +418,28 @@ export default function CheckoutPage() {
               <div className="text-sm space-y-1">
                 <p><strong>Metodă:</strong> {deliveryMethods.find(m => m.id === deliveryMethod)?.name || 'Necunoscută'}</p>
                 {selectedMethod?.type === 'courier' && (
-                  <p><strong>Adresă:</strong> {shippingAddress}</p>
+                  <>
+                    {useCustomAddress ? (
+                      <div>
+                        <p><strong>Adresă personalizată:</strong></p>
+                        <p className="ml-4 text-gray-600">{shippingAddress}</p>
+                      </div>
+                    ) : selectedDeliveryLocation ? (
+                      <div>
+                        <p><strong>Locația de livrare:</strong></p>
+                        {(() => {
+                          const location = deliveryLocations.find(loc => loc.id === selectedDeliveryLocation);
+                          return location ? (
+                            <div className="ml-4 text-gray-600">
+                              <p>{location.name}</p>
+                              <p>📍 {location.address}, {location.city}</p>
+                              {location.phone && <p>📞 {location.phone}</p>}
+                            </div>
+                          ) : null;
+                        })()}
+                      </div>
+                    ) : null}
+                  </>
                 )}
                 {selectedMethod?.type === 'pickup' && selectedDeliveryLocation && (
                   <div>
@@ -612,85 +651,165 @@ export default function CheckoutPage() {
             </div>
           </div>
 
-          {/* Delivery Location Selection */}
-          {selectedMethod?.type === 'pickup' && deliveryLocations.length > 0 && (
+          {/* Delivery Location Selection - For ALL delivery types */}
+          {selectedMethod && deliveryLocations.length > 0 && (
             <div className="bg-white p-6 rounded-lg shadow">
-              <h2 className="text-xl font-bold mb-4">📍 Locația de ridicare</h2>
-              <div className="space-y-3">
-                {deliveryLocations.map((location) => (
-                  <label key={location.id} className="flex items-start gap-3 p-3 border rounded cursor-pointer hover:bg-gray-50">
+              <h2 className="text-xl font-bold mb-4">
+                {selectedMethod.type === 'pickup' ? '📍 Locația de ridicare' : '📍 Locația de livrare'}
+              </h2>
+              
+              {/* Toggle pentru adresă personalizată (doar pentru courier) */}
+              {selectedMethod.type === 'courier' && (
+                <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+                  <label className="flex items-center gap-2 cursor-pointer">
                     <input
-                      type="radio"
-                      name="deliveryLocation"
-                      value={location.id}
-                      checked={selectedDeliveryLocation === location.id}
-                      onChange={(e) => handleDeliveryLocationChange(e.target.value)}
-                      className="w-4 h-4 mt-1"
+                      type="checkbox"
+                      checked={useCustomAddress}
+                      onChange={(e) => {
+                        setUseCustomAddress(e.target.checked);
+                        if (!e.target.checked) {
+                          // Resetează la locația principală când se dezactivează adresa personalizată
+                          const mainLocation = deliveryLocations.find(loc => loc.isMainLocation);
+                          if (mainLocation) {
+                            setSelectedDeliveryLocation(mainLocation.id);
+                          }
+                        }
+                      }}
+                      className="w-4 h-4"
                     />
-                    <div className="flex-1">
-                      <div className="font-semibold flex items-center gap-2">
-                        {location.name}
-                        {location.isMainLocation && (
-                          <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs">
-                            Principală
-                          </span>
+                    <span className="text-sm font-medium text-blue-900">
+                      Vreau să introduc o adresă personalizată
+                    </span>
+                  </label>
+                  <p className="text-xs text-blue-700 mt-1 ml-6">
+                    Bifează dacă adresa ta nu este în lista de locații standard
+                  </p>
+                </div>
+              )}
+
+              {/* Locații standard */}
+              {!useCustomAddress && (
+                <div className="space-y-3">
+                  {deliveryLocations.map((location) => (
+                    <label key={location.id} className="flex items-start gap-3 p-3 border rounded cursor-pointer hover:bg-gray-50">
+                      <input
+                        type="radio"
+                        name="deliveryLocation"
+                        value={location.id}
+                        checked={selectedDeliveryLocation === location.id}
+                        onChange={(e) => handleDeliveryLocationChange(e.target.value)}
+                        className="w-4 h-4 mt-1"
+                      />
+                      <div className="flex-1">
+                        <div className="font-semibold flex items-center gap-2">
+                          {location.name}
+                          {location.isMainLocation && (
+                            <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs">
+                              Principală
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-sm text-gray-600 mt-1">
+                          📍 {location.address}, {location.city}
+                        </div>
+                        {location.phone && (
+                          <div className="text-sm text-gray-600">
+                            📞 {location.phone}
+                          </div>
+                        )}
+                        {selectedMethod.type === 'courier' && location.deliveryFee !== undefined && (
+                          <div className="text-sm font-medium text-green-600 mt-1">
+                            💰 Cost livrare: {location.deliveryFee === 0 ? 'GRATUIT' : `${location.deliveryFee} RON`}
+                            {location.freeDeliveryThreshold && location.deliveryFee > 0 && (
+                              <span className="text-xs ml-1">
+                                (Gratuit peste {location.freeDeliveryThreshold} RON)
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        {location.specialInstructions && (
+                          <div className="text-sm text-blue-600 mt-1">
+                            ℹ️ {location.specialInstructions}
+                          </div>
+                        )}
+                        {location.workingHours && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            🕒 Program: {(() => {
+                              try {
+                                // workingHours vine deja ca obiect din API
+                                const hours = location.workingHours;
+                                
+                                const today = new Date().getDay();
+                                const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                                const todayHours = hours[dayNames[today]];
+                                
+                                // Verifică dacă este string simplu (ex: "09:00-18:00" sau "Închis")
+                                if (typeof todayHours === 'string') {
+                                  return todayHours === 'Închis' || todayHours === 'Closed' 
+                                    ? 'Astăzi: Închis' 
+                                    : `Astăzi: ${todayHours}`;
+                                } 
+                                // Sau obiect cu isOpen, start, end
+                                else if (todayHours?.isOpen) {
+                                  return `Astăzi: ${todayHours.start}-${todayHours.end}`;
+                                } else {
+                                  return 'Astăzi: Închis';
+                                }
+                              } catch (error) {
+                                console.error('Error parsing working hours:', error);
+                                return 'Program disponibil la locație';
+                              }
+                            })()}
+                          </div>
                         )}
                       </div>
-                      <div className="text-sm text-gray-600 mt-1">
-                        📍 {location.address}, {location.city}
-                      </div>
-                      {location.phone && (
-                        <div className="text-sm text-gray-600">
-                          📞 {location.phone}
-                        </div>
-                      )}
-                      {location.specialInstructions && (
-                        <div className="text-sm text-blue-600 mt-1">
-                          ℹ️ {location.specialInstructions}
-                        </div>
-                      )}
-                      {location.workingHours && (
-                        <div className="text-xs text-gray-500 mt-1">
-                          🕒 Program: {(() => {
-                            try {
-                              const hours = JSON.parse(location.workingHours);
-                              const today = new Date().getDay();
-                              const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-                              const todayHours = hours[dayNames[today]];
-                              return todayHours?.isOpen ? `Astăzi: ${todayHours.start}-${todayHours.end}` : 'Astăzi: Închis';
-                            } catch {
-                              return 'Program disponibil la locație';
-                            }
-                          })()}
-                        </div>
-                      )}
+                    </label>
+                  ))}
+                </div>
+              )}
+
+              {/* Adresă personalizată */}
+              {useCustomAddress && selectedMethod.type === 'courier' && (
+                <div className="space-y-3">
+                  <textarea
+                    value={shippingAddress}
+                    onChange={(e) => setShippingAddress(e.target.value)}
+                    className="w-full px-4 py-3 border rounded focus:ring-2 focus:ring-blue-500"
+                    rows={3}
+                    placeholder="Introdu adresa completă de livrare (Stradă, Număr, Bloc, Scară, Apartament, Oraș, Județ, Cod poștal)"
+                    required
+                  />
+                  <div className="p-4 bg-orange-50 border-2 border-orange-300 rounded-lg">
+                    <p className="text-sm font-semibold text-orange-900 mb-2">
+                      ⚠️ Adresă Personalizată - Taxă Suplimentară
+                    </p>
+                    <p className="text-sm text-orange-800 mb-3">
+                      Pentru adrese în afara locațiilor standard, <strong>se percepe o taxă suplimentară de livrare</strong> care variază în funcție de:
+                    </p>
+                    <ul className="text-sm text-orange-800 mb-3 ml-4 space-y-1">
+                      <li>📍 <strong>Locație</strong> - distanța față de magazin</li>
+                      <li>📅 <strong>Data</strong> - ziua livrării</li>
+                      <li>🕐 <strong>Ora</strong> - intervalul orar dorit</li>
+                    </ul>
+                    <div className="bg-orange-100 p-3 rounded border border-orange-300">
+                      <p className="text-sm font-semibold text-orange-900 mb-2">
+                        📞 Contactează-ne pentru confirmare și calcul taxă:
+                      </p>
+                      <p className="text-sm text-orange-800">
+                        <strong>Telefon:</strong> {contactInfo?.phone || '+40 753615752'}<br/>
+                        <strong>Email:</strong> {contactInfo?.email || 'crys.cristi@yahoo.com'}
+                      </p>
+                      <p className="text-xs text-orange-700 mt-2 italic">
+                        * Comanda va fi confirmată telefonic înainte de procesare
+                      </p>
                     </div>
-                  </label>
-                ))}
-              </div>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
-          {/* Shipping Address */}
-          {selectedMethod?.type === 'courier' && (
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h2 className="text-xl font-bold mb-4">📍 Adresa de livrare</h2>
-              <textarea
-                value={shippingAddress}
-                onChange={(e) => setShippingAddress(e.target.value)}
-                className="w-full px-4 py-3 border rounded focus:ring-2 focus:ring-blue-500"
-                rows={3}
-                placeholder="Introdu adresa completă de livrare"
-                required
-              />
-              <p className="text-sm text-gray-600 mt-2">
-                📌 Livrăm la locațiile standard din lista de mai sus.
-              </p>
-              <p className="text-sm text-orange-600 mt-1">
-                ⚠️ Pentru adrese speciale (în afara locațiilor standard), te rugăm să ne contactezi la <strong>{contactInfo?.contact_phone || '+40 753615752'}</strong> sau <strong>{contactInfo?.contact_email || 'crys.cristi@yahoo.com'}</strong>
-              </p>
-            </div>
-          )}
+          {/* Shipping Address - REMOVED, now integrated above */}
 
           {/* Payment Method */}
           <div className="bg-white p-6 rounded-lg shadow">
@@ -799,7 +918,8 @@ export default function CheckoutPage() {
             <button
               onClick={() => setShowReview(true)}
               disabled={submitting || checking || stockErrors.length > 0 || 
-                       (selectedMethod?.type === 'courier' && !shippingAddress.trim()) ||
+                       (selectedMethod?.type === 'courier' && useCustomAddress && !shippingAddress.trim()) ||
+                       (selectedMethod?.type === 'courier' && !useCustomAddress && !selectedDeliveryLocation) ||
                        (selectedMethod?.type === 'pickup' && !selectedDeliveryLocation)}
               className="w-full mt-4 px-4 py-3 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium disabled:opacity-50"
             >

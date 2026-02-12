@@ -22,6 +22,7 @@ interface UIElement {
 
 export default function UIElementsManager() {
   const [elements, setElements] = useState<UIElement[]>([]);
+  const [filteredElements, setFilteredElements] = useState<UIElement[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingElement, setEditingElement] = useState<UIElement | null>(null);
@@ -34,6 +35,15 @@ export default function UIElementsManager() {
     size: 'medium',
     isVisible: true,
   });
+  
+  // Filtre
+  const [searchTerm, setSearchTerm] = useState('');
+  const [typeFilter, setTypeFilter] = useState('all');
+  const [positionFilter, setPositionFilter] = useState('all');
+  const [visibilityFilter, setVisibilityFilter] = useState<'all' | 'visible' | 'hidden'>('all');
+  const [sortBy, setSortBy] = useState('order-asc');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
   const pageOptions = [
     { value: 'all', label: 'Toate paginile' },
@@ -65,6 +75,53 @@ export default function UIElementsManager() {
   useEffect(() => {
     fetchElements();
   }, []);
+  
+  // Filtrare și sortare
+  useEffect(() => {
+    let filtered = [...elements];
+
+    // Filtrare după termen de căutare
+    if (searchTerm) {
+      filtered = filtered.filter(element =>
+        element.label.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    // Filtrare după tip
+    if (typeFilter !== 'all') {
+      filtered = filtered.filter(element => element.type === typeFilter);
+    }
+
+    // Filtrare după poziție
+    if (positionFilter !== 'all') {
+      filtered = filtered.filter(element => element.position === positionFilter);
+    }
+
+    // Filtrare după vizibilitate
+    if (visibilityFilter !== 'all') {
+      filtered = filtered.filter(element =>
+        visibilityFilter === 'visible' ? element.isVisible : !element.isVisible
+      );
+    }
+
+    // Sortare
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case 'order-asc':
+          return a.order - b.order;
+        case 'order-desc':
+          return b.order - a.order;
+        case 'label-asc':
+          return a.label.localeCompare(b.label);
+        case 'label-desc':
+          return b.label.localeCompare(a.label);
+        default:
+          return 0;
+      }
+    });
+
+    setFilteredElements(filtered);
+  }, [elements, searchTerm, typeFilter, positionFilter, visibilityFilter, sortBy]);
 
   const fetchElements = async () => {
     try {
@@ -75,6 +132,36 @@ export default function UIElementsManager() {
       
       // Date demo pentru moment
       setElements([
+        {
+          id: '1',
+          type: 'button',
+          label: 'Chat AI',
+          icon: '🤖',
+          position: 'floating',
+          page: ['all'],
+          order: 1,
+          size: 'large',
+          color: '#3B82F6',
+          isVisible: true,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        {
+          id: '2',
+          type: 'button',
+          label: 'Ajutor',
+          icon: '❓',
+          position: 'floating',
+          page: ['all'],
+          order: 2,
+          size: 'medium',
+          color: '#10B981',
+          isVisible: true,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+      ]);
+      setFilteredElements([
         {
           id: '1',
           type: 'button',
@@ -182,13 +269,20 @@ export default function UIElementsManager() {
       </div>
     );
   }
+  
+  // Paginare
+  const totalPages = Math.ceil(filteredElements.length / itemsPerPage);
+  const paginatedElements = filteredElements.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold">Gestionare Elemente UI</h2>
-          <p className="text-gray-600">Gestionează butoane, bannere și alte elemente vizibile pe site</p>
+          <p className="text-gray-600">Gestionează butoane, bannere și alte elemente vizibile pe site ({filteredElements.length} din {elements.length})</p>
         </div>
         <button
           onClick={() => {
@@ -210,9 +304,116 @@ export default function UIElementsManager() {
         </button>
       </div>
 
+      {/* Filtre și Căutare */}
+      <div className="bg-white border rounded-lg p-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          {/* Căutare */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              🔍 Caută
+            </label>
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Etichetă..."
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+
+          {/* Filtru Tip */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              📦 Tip
+            </label>
+            <select
+              value={typeFilter}
+              onChange={(e) => setTypeFilter(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">Toate tipurile</option>
+              <option value="button">Buton</option>
+              <option value="banner">Banner</option>
+              <option value="widget">Widget</option>
+              <option value="section">Secțiune</option>
+            </select>
+          </div>
+
+          {/* Filtru Poziție */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              📍 Poziție
+            </label>
+            <select
+              value={positionFilter}
+              onChange={(e) => setPositionFilter(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">Toate pozițiile</option>
+              <option value="header">Header</option>
+              <option value="footer">Footer</option>
+              <option value="sidebar">Sidebar</option>
+              <option value="floating">Floating</option>
+              <option value="custom">Custom</option>
+            </select>
+          </div>
+
+          {/* Filtru Vizibilitate */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              👁️ Vizibilitate
+            </label>
+            <select
+              value={visibilityFilter}
+              onChange={(e) => setVisibilityFilter(e.target.value as any)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="all">Toate</option>
+              <option value="visible">Vizibil</option>
+              <option value="hidden">Ascuns</option>
+            </select>
+          </div>
+
+          {/* Sortare */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              ⬇️ Sortare
+            </label>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="order-asc">Ordine (Mic → Mare)</option>
+              <option value="order-desc">Ordine (Mare → Mic)</option>
+              <option value="label-asc">Etichetă (A → Z)</option>
+              <option value="label-desc">Etichetă (Z → A)</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Butoane Reset */}
+        {(searchTerm || typeFilter !== 'all' || positionFilter !== 'all' || visibilityFilter !== 'all' || sortBy !== 'order-asc') && (
+          <div className="mt-4 flex justify-end">
+            <button
+              onClick={() => {
+                setSearchTerm('');
+                setTypeFilter('all');
+                setPositionFilter('all');
+                setVisibilityFilter('all');
+                setSortBy('order-asc');
+              }}
+              className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition"
+            >
+              🔄 Resetează Filtrele
+            </button>
+          </div>
+        )}
+      </div>
+
       {/* Lista elemente */}
       <div className="grid gap-4">
-        {elements.map((element, index) => (
+        {paginatedElements.map((element, index) => (
           <div
             key={element.id}
             className={`bg-white border rounded-lg p-4 ${
@@ -297,7 +498,7 @@ export default function UIElementsManager() {
           </div>
         ))}
 
-        {elements.length === 0 && (
+        {filteredElements.length === 0 && (
           <div className="text-center py-12 text-gray-500">
             <p className="text-xl mb-2">📭</p>
             <p>Nu există elemente UI configurate</p>
@@ -305,6 +506,31 @@ export default function UIElementsManager() {
           </div>
         )}
       </div>
+      
+      {/* Paginare */}
+      {totalPages > 1 && (
+        <div className="flex justify-center items-center space-x-2 mt-6">
+          <button
+            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+            disabled={currentPage === 1}
+            className="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+          >
+            ← Anterior
+          </button>
+          
+          <span className="text-sm text-gray-600">
+            Pagina {currentPage} din {totalPages}
+          </span>
+          
+          <button
+            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+            disabled={currentPage === totalPages}
+            className="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+          >
+            Următorul →
+          </button>
+        </div>
+      )}
 
       {/* Modal Adăugare/Editare */}
       {showAddModal && (

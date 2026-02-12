@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { apiClient } from '@/lib/api-client';
 import { useWebSocket } from '@/lib/useWebSocket';
+import { usePagination } from '@/lib/usePagination';
+import Pagination from '@/components/Pagination';
 
 interface DeliveryLocation {
   id: string;
@@ -25,7 +27,7 @@ interface DeliveryLocation {
   updatedAt: string;
 }
 
-interface LocationForm {
+interface FormData {
   name: string;
   address: string;
   city: string;
@@ -47,6 +49,7 @@ interface LocationForm {
   };
   contactPerson: string;
   specialInstructions: string;
+  isMainLocation: boolean;
   coordinates: { lat: number; lng: number };
 }
 
@@ -57,7 +60,13 @@ export default function DeliveryLocationsManager() {
   const [editingLocation, setEditingLocation] = useState<DeliveryLocation | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
-  const [locationForm, setLocationForm] = useState<LocationForm>({
+  // Pagination hook - MUST be at component top level
+  const { paginatedItems, currentPage, totalPages, goToPage, totalItems } = usePagination({ 
+    items: locations, 
+    itemsPerPage: 10 
+  });
+
+  const [formData, setFormData] = useState<FormData>({
     name: '',
     address: '',
     city: '',
@@ -79,6 +88,7 @@ export default function DeliveryLocationsManager() {
     },
     contactPerson: '',
     specialInstructions: '',
+    isMainLocation: false,
     coordinates: { lat: 44.4268, lng: 26.1025 }
   });
 
@@ -121,10 +131,10 @@ export default function DeliveryLocationsManager() {
     
     try {
       if (editingLocation) {
-        await apiClient.put(`/api/admin/delivery-locations/${editingLocation.id}`, locationForm);
+        await apiClient.put(`/api/admin/delivery-locations/${editingLocation.id}`, formData);
         setToast({ message: 'Locația a fost actualizată!', type: 'success' });
       } else {
-        await apiClient.post('/api/admin/delivery-locations', locationForm);
+        await apiClient.post('/api/admin/delivery-locations', formData);
         setToast({ message: 'Locația a fost creată!', type: 'success' });
       }
       
@@ -174,7 +184,7 @@ export default function DeliveryLocationsManager() {
   };
 
   const resetForm = () => {
-    setLocationForm({
+    setFormData({
       name: '',
       address: '',
       city: '',
@@ -196,6 +206,7 @@ export default function DeliveryLocationsManager() {
       },
       contactPerson: '',
       specialInstructions: '',
+      isMainLocation: false,
       coordinates: { lat: 44.4268, lng: 26.1025 }
     });
   };
@@ -230,7 +241,7 @@ export default function DeliveryLocationsManager() {
       }
     }
 
-    setLocationForm({
+    setFormData({
       name: location.name,
       address: location.address,
       city: location.city,
@@ -244,6 +255,7 @@ export default function DeliveryLocationsManager() {
       workingHours,
       contactPerson: location.contactPerson || '',
       specialInstructions: location.specialInstructions || '',
+      isMainLocation: location.isMainLocation,
       coordinates
     });
     setShowModal(true);
@@ -301,7 +313,7 @@ export default function DeliveryLocationsManager() {
 
       {/* Lista locațiilor */}
       <div className="grid gap-4">
-        {locations.map(location => {
+        {paginatedItems.map(location => {
           const workingHours = parseWorkingHours(location.workingHours);
           
           return (
@@ -413,24 +425,32 @@ export default function DeliveryLocationsManager() {
             </div>
           );
         })}
-
-        {locations.length === 0 && (
-          <div className="text-center py-12 bg-gray-50 rounded-lg">
-            <p className="text-gray-500 mb-4">Nu există locații de livrare configurate</p>
-            <button
-              onClick={() => {
-                setEditingLocation(null);
-                resetForm();
-                setShowModal(true);
-              }}
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
-            >
-              ➕ Adaugă Prima Locație
-            </button>
-          </div>
-        )}
       </div>
-
+      
+      <Pagination
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPageChange={goToPage}
+        itemsPerPage={10}
+        totalItems={totalItems}
+      />
+      
+      {locations.length === 0 && (
+        <div className="text-center py-12 bg-gray-50 rounded-lg">
+          <p className="text-gray-500 mb-4">Nu există locații de livrare configurate</p>
+          <button
+            onClick={() => {
+              setEditingLocation(null);
+              resetForm();
+              setShowModal(true);
+            }}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+          >
+            ➕ Adaugă Prima Locație
+          </button>
+        </div>
+      )}
+      
       {/* Modal pentru adăugare/editare */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -455,8 +475,8 @@ export default function DeliveryLocationsManager() {
                   <input
                     type="text"
                     placeholder="Nume locație (ex: Depozit Central)"
-                    value={locationForm.name}
-                    onChange={(e) => setLocationForm({...locationForm, name: e.target.value})}
+                    value={formData.name}
+                    onChange={(e) => setFormData({...formData, name: e.target.value})}
                     className="border rounded px-3 py-2"
                     required
                   />
@@ -464,8 +484,8 @@ export default function DeliveryLocationsManager() {
                   <input
                     type="text"
                     placeholder="Oraș"
-                    value={locationForm.city}
-                    onChange={(e) => setLocationForm({...locationForm, city: e.target.value})}
+                    value={formData.city}
+                    onChange={(e) => setFormData({...formData, city: e.target.value})}
                     className="border rounded px-3 py-2"
                     required
                   />
@@ -473,8 +493,8 @@ export default function DeliveryLocationsManager() {
                   <input
                     type="text"
                     placeholder="Adresa completă"
-                    value={locationForm.address}
-                    onChange={(e) => setLocationForm({...locationForm, address: e.target.value})}
+                    value={formData.address}
+                    onChange={(e) => setFormData({...formData, address: e.target.value})}
                     className="border rounded px-3 py-2 col-span-2"
                     required
                   />
@@ -482,16 +502,16 @@ export default function DeliveryLocationsManager() {
                   <input
                     type="text"
                     placeholder="Cod poștal (opțional)"
-                    value={locationForm.postalCode}
-                    onChange={(e) => setLocationForm({...locationForm, postalCode: e.target.value})}
+                    value={formData.postalCode}
+                    onChange={(e) => setFormData({...formData, postalCode: e.target.value})}
                     className="border rounded px-3 py-2"
                   />
                   
                   <input
                     type="text"
                     placeholder="Persoana de contact (opțional)"
-                    value={locationForm.contactPerson}
-                    onChange={(e) => setLocationForm({...locationForm, contactPerson: e.target.value})}
+                    value={formData.contactPerson}
+                    onChange={(e) => setFormData({...formData, contactPerson: e.target.value})}
                     className="border rounded px-3 py-2"
                   />
                 </div>
@@ -504,16 +524,16 @@ export default function DeliveryLocationsManager() {
                   <input
                     type="tel"
                     placeholder="Telefon (ex: +40 123 456 789)"
-                    value={locationForm.phone}
-                    onChange={(e) => setLocationForm({...locationForm, phone: e.target.value})}
+                    value={formData.phone}
+                    onChange={(e) => setFormData({...formData, phone: e.target.value})}
                     className="border rounded px-3 py-2"
                   />
                   
                   <input
                     type="email"
                     placeholder="Email (opțional)"
-                    value={locationForm.email}
-                    onChange={(e) => setLocationForm({...locationForm, email: e.target.value})}
+                    value={formData.email}
+                    onChange={(e) => setFormData({...formData, email: e.target.value})}
                     className="border rounded px-3 py-2"
                   />
                 </div>
@@ -530,8 +550,8 @@ export default function DeliveryLocationsManager() {
                     <input
                       type="number"
                       step="0.01"
-                      value={locationForm.deliveryFee}
-                      onChange={(e) => setLocationForm({...locationForm, deliveryFee: parseFloat(e.target.value) || 0})}
+                      value={formData.deliveryFee}
+                      onChange={(e) => setFormData({...formData, deliveryFee: parseFloat(e.target.value) || 0})}
                       className="w-full border rounded px-3 py-2"
                       required
                     />
@@ -544,8 +564,8 @@ export default function DeliveryLocationsManager() {
                     <input
                       type="number"
                       step="0.01"
-                      value={locationForm.freeDeliveryThreshold}
-                      onChange={(e) => setLocationForm({...locationForm, freeDeliveryThreshold: parseFloat(e.target.value) || 0})}
+                      value={formData.freeDeliveryThreshold}
+                      onChange={(e) => setFormData({...formData, freeDeliveryThreshold: parseFloat(e.target.value) || 0})}
                       className="w-full border rounded px-3 py-2"
                     />
                   </div>
@@ -556,8 +576,8 @@ export default function DeliveryLocationsManager() {
                     </label>
                     <input
                       type="number"
-                      value={locationForm.deliveryRadius}
-                      onChange={(e) => setLocationForm({...locationForm, deliveryRadius: parseInt(e.target.value) || 0})}
+                      value={formData.deliveryRadius}
+                      onChange={(e) => setFormData({...formData, deliveryRadius: parseInt(e.target.value) || 0})}
                       className="w-full border rounded px-3 py-2"
                     />
                   </div>
@@ -568,7 +588,7 @@ export default function DeliveryLocationsManager() {
               <div className="border rounded-lg p-4">
                 <h4 className="font-semibold mb-3">🕒 Program de Lucru</h4>
                 <div className="space-y-3">
-                  {Object.entries(locationForm.workingHours).map(([day, hours]) => (
+                  {Object.entries(formData.workingHours).map(([day, hours]) => (
                     <div key={day} className="flex items-center gap-4">
                       <div className="w-20">
                         <span className="capitalize font-medium">{day}</span>
@@ -578,10 +598,10 @@ export default function DeliveryLocationsManager() {
                         <input
                           type="checkbox"
                           checked={hours.isOpen}
-                          onChange={(e) => setLocationForm({
-                            ...locationForm,
+                          onChange={(e) => setFormData({
+                            ...formData,
                             workingHours: {
-                              ...locationForm.workingHours,
+                              ...formData.workingHours,
                               [day]: { ...hours, isOpen: e.target.checked }
                             }
                           })}
@@ -595,10 +615,10 @@ export default function DeliveryLocationsManager() {
                           <input
                             type="time"
                             value={hours.start}
-                            onChange={(e) => setLocationForm({
-                              ...locationForm,
+                            onChange={(e) => setFormData({
+                              ...formData,
                               workingHours: {
-                                ...locationForm.workingHours,
+                                ...formData.workingHours,
                                 [day]: { ...hours, start: e.target.value }
                               }
                             })}
@@ -608,10 +628,10 @@ export default function DeliveryLocationsManager() {
                           <input
                             type="time"
                             value={hours.end}
-                            onChange={(e) => setLocationForm({
-                              ...locationForm,
+                            onChange={(e) => setFormData({
+                              ...formData,
                               workingHours: {
-                                ...locationForm.workingHours,
+                                ...formData.workingHours,
                                 [day]: { ...hours, end: e.target.value }
                               }
                             })}
@@ -629,8 +649,8 @@ export default function DeliveryLocationsManager() {
                 <h4 className="font-semibold mb-3">ℹ️ Instrucțiuni Speciale</h4>
                 <textarea
                   placeholder="Instrucțiuni pentru clienți (ex: Ne găsiți la adresa de mai sus. Sunați când ajungeți.)"
-                  value={locationForm.specialInstructions}
-                  onChange={(e) => setLocationForm({...locationForm, specialInstructions: e.target.value})}
+                  value={formData.specialInstructions}
+                  onChange={(e) => setFormData({...formData, specialInstructions: e.target.value})}
                   className="w-full border rounded px-3 py-2"
                   rows={3}
                 />
@@ -647,10 +667,10 @@ export default function DeliveryLocationsManager() {
                     <input
                       type="number"
                       step="0.000001"
-                      value={locationForm.coordinates.lat}
-                      onChange={(e) => setLocationForm({
-                        ...locationForm,
-                        coordinates: { ...locationForm.coordinates, lat: parseFloat(e.target.value) || 0 }
+                      value={formData.coordinates.lat}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        coordinates: { ...formData.coordinates, lat: parseFloat(e.target.value) || 0 }
                       })}
                       className="w-full border rounded px-3 py-2"
                     />
@@ -663,10 +683,10 @@ export default function DeliveryLocationsManager() {
                     <input
                       type="number"
                       step="0.000001"
-                      value={locationForm.coordinates.lng}
-                      onChange={(e) => setLocationForm({
-                        ...locationForm,
-                        coordinates: { ...locationForm.coordinates, lng: parseFloat(e.target.value) || 0 }
+                      value={formData.coordinates.lng}
+                      onChange={(e) => setFormData({
+                        ...formData,
+                        coordinates: { ...formData.coordinates, lng: parseFloat(e.target.value) || 0 }
                       })}
                       className="w-full border rounded px-3 py-2"
                     />
@@ -679,8 +699,8 @@ export default function DeliveryLocationsManager() {
                 <label className="flex items-center space-x-2">
                   <input
                     type="checkbox"
-                    checked={locationForm.isActive}
-                    onChange={(e) => setLocationForm({...locationForm, isActive: e.target.checked})}
+                    checked={formData.isActive}
+                    onChange={(e) => setFormData({...formData, isActive: e.target.checked})}
                   />
                   <span>Locație activă</span>
                 </label>
