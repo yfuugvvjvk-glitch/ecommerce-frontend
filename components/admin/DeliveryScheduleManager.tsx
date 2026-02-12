@@ -216,14 +216,14 @@ export default function DeliveryScheduleManager() {
       ]);
       setBlockRules([]);
       setPaymentMethods([
-        { id: '1', name: 'Numerar', type: 'CASH', isActive: true },
-        { id: '2', name: 'Card', type: 'CARD', isActive: true },
-        { id: '3', name: 'Transfer Bancar', type: 'BANK_TRANSFER', isActive: true },
-        { id: '4', name: 'Online', type: 'ONLINE', isActive: true }
+        { id: 'mock-1', name: 'Numerar', type: 'CASH', isActive: true },
+        { id: 'mock-2', name: 'Card', type: 'CARD', isActive: true },
+        { id: 'mock-3', name: 'Transfer Bancar', type: 'BANK_TRANSFER', isActive: true },
+        { id: 'mock-4', name: 'Online', type: 'ONLINE', isActive: true }
       ]);
       setDeliveryMethods([
-        { id: '1', name: 'Curier', type: 'courier', isActive: true },
-        { id: '2', name: 'Ridicare Personală', type: 'pickup', isActive: true }
+        { id: 'mock-d1', name: 'Curier', type: 'courier', isActive: true },
+        { id: 'mock-d2', name: 'Ridicare Personală', type: 'pickup', isActive: true }
       ]);
     } finally {
       setLoading(false);
@@ -390,6 +390,20 @@ export default function DeliveryScheduleManager() {
   const getDayName = (dayIndex: number) => {
     const days = ['Duminică', 'Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă'];
     return days[dayIndex];
+  };
+
+  const getPaymentMethodNames = (methodIds: string[]) => {
+    return methodIds
+      .map(id => paymentMethods.find(m => m.id === id)?.name)
+      .filter(Boolean)
+      .join(', ');
+  };
+
+  const getDeliveryMethodNames = (methodIds: string[]) => {
+    return methodIds
+      .map(id => deliveryMethods.find(m => m.id === id)?.name)
+      .filter(Boolean)
+      .join(', ');
   };
   
   // Paginare
@@ -682,14 +696,14 @@ export default function DeliveryScheduleManager() {
                       {rule.blockedPaymentMethods && rule.blockedPaymentMethods.length > 0 && (
                         <div className="bg-yellow-50 p-2 rounded">
                           <p className="text-yellow-800 font-medium">💳 Metode plată blocate:</p>
-                          <p className="text-yellow-700 text-xs">{rule.blockedPaymentMethods.join(', ')}</p>
+                          <p className="text-yellow-700 text-xs">{getPaymentMethodNames(rule.blockedPaymentMethods)}</p>
                         </div>
                       )}
 
                       {rule.blockedDeliveryMethods && rule.blockedDeliveryMethods.length > 0 && (
                         <div className="bg-orange-50 p-2 rounded">
                           <p className="text-orange-800 font-medium">🚚 Metode livrare blocate:</p>
-                          <p className="text-orange-700 text-xs">{rule.blockedDeliveryMethods.join(', ')}</p>
+                          <p className="text-orange-700 text-xs">{getDeliveryMethodNames(rule.blockedDeliveryMethods)}</p>
                         </div>
                       )}
 
@@ -1117,18 +1131,18 @@ export default function DeliveryScheduleManager() {
                     <label key={method.id} className="flex items-center space-x-2">
                       <input
                         type="checkbox"
-                        checked={blockRuleForm.blockedPaymentMethods?.includes(method.type) || false}
+                        checked={blockRuleForm.blockedPaymentMethods?.includes(method.id) || false}
                         onChange={(e) => {
                           const blocked = blockRuleForm.blockedPaymentMethods || [];
                           if (e.target.checked) {
                             setBlockRuleForm({
                               ...blockRuleForm,
-                              blockedPaymentMethods: [...blocked, method.type]
+                              blockedPaymentMethods: [...blocked, method.id]
                             });
                           } else {
                             setBlockRuleForm({
                               ...blockRuleForm,
-                              blockedPaymentMethods: blocked.filter(m => m !== method.type)
+                              blockedPaymentMethods: blocked.filter(m => m !== method.id)
                             });
                           }
                         }}
@@ -1146,18 +1160,18 @@ export default function DeliveryScheduleManager() {
                     <label key={method.id} className="flex items-center space-x-2">
                       <input
                         type="checkbox"
-                        checked={blockRuleForm.blockedDeliveryMethods?.includes(method.type) || false}
+                        checked={blockRuleForm.blockedDeliveryMethods?.includes(method.id) || false}
                         onChange={(e) => {
                           const blocked = blockRuleForm.blockedDeliveryMethods || [];
                           if (e.target.checked) {
                             setBlockRuleForm({
                               ...blockRuleForm,
-                              blockedDeliveryMethods: [...blocked, method.type]
+                              blockedDeliveryMethods: [...blocked, method.id]
                             });
                           } else {
                             setBlockRuleForm({
                               ...blockRuleForm,
-                              blockedDeliveryMethods: blocked.filter(m => m !== method.type)
+                              blockedDeliveryMethods: blocked.filter(m => m !== method.id)
                             });
                           }
                         }}
