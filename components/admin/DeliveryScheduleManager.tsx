@@ -43,6 +43,20 @@ interface OrderBlockSettings {
   }>;
 }
 
+interface BlockRule {
+  id: string;
+  name: string;
+  isActive: boolean;
+  blockNewOrders: boolean;
+  blockReason: string;
+  blockUntil?: string;
+  blockedPaymentMethods: string[];
+  blockedDeliveryMethods: string[];
+  minimumOrderValue: number;
+  maximumOrderValue?: number;
+  createdAt: string;
+}
+
 interface PaymentMethod {
   id: string;
   name: string;
@@ -60,13 +74,16 @@ interface DeliveryMethod {
 export default function DeliveryScheduleManager() {
   const [schedules, setSchedules] = useState<DeliverySchedule[]>([]);
   const [filteredSchedules, setFilteredSchedules] = useState<DeliverySchedule[]>([]);
+  const [blockRules, setBlockRules] = useState<BlockRule[]>([]);
   const [blockSettings, setBlockSettings] = useState<OrderBlockSettings | null>(null);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [deliveryMethods, setDeliveryMethods] = useState<DeliveryMethod[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'schedule' | 'blocking' | 'special-dates'>('schedule');
   const [showModal, setShowModal] = useState(false);
+  const [showBlockRuleModal, setShowBlockRuleModal] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState<DeliverySchedule | null>(null);
+  const [editingBlockRule, setEditingBlockRule] = useState<BlockRule | null>(null);
   
   // Filtre
   const [searchTerm, setSearchTerm] = useState('');
@@ -89,6 +106,16 @@ export default function DeliveryScheduleManager() {
     date: '',
     isBlocked: true,
     reason: ''
+  });
+
+  const [blockRuleForm, setBlockRuleForm] = useState<Partial<BlockRule>>({
+    name: '',
+    isActive: true,
+    blockNewOrders: false,
+    blockReason: '',
+    blockedPaymentMethods: [],
+    blockedDeliveryMethods: [],
+    minimumOrderValue: 0
   });
 
   // Real-time updates
@@ -142,28 +169,18 @@ export default function DeliveryScheduleManager() {
 
   const fetchData = async () => {
     try {
-      const [schedulesRes, blockSettingsRes, paymentMethodsRes, deliveryMethodsRes] = await Promise.all([
+      const [schedulesRes, blockRulesRes, paymentMethodsRes, deliveryMethodsRes] = await Promise.all([
         apiClient.get('/api/admin/delivery-schedules'),
-        apiClient.get('/api/admin/order-block-settings'),
+        apiClient.get('/api/admin/block-rules'),
         apiClient.get('/api/admin/payment-methods'),
         apiClient.get('/api/admin/delivery-settings')
       ]);
       
       setSchedules(schedulesRes.data || []);
       setFilteredSchedules(schedulesRes.data || []);
+      setBlockRules(blockRulesRes.data || []);
       setPaymentMethods(paymentMethodsRes.data || []);
       setDeliveryMethods(deliveryMethodsRes.data || []);
-      setBlockSettings(blockSettingsRes.data || {
-        blockNewOrders: false,
-        blockReason: '',
-        blockType: 'permanent',
-        allowedPaymentMethods: [],
-        blockedPaymentMethods: [],
-        allowedDeliveryMethods: [],
-        blockedDeliveryMethods: [],
-        minimumOrderValue: 0,
-        scheduledBlocks: []
-      });
     } catch (error) {
       console.error('Error fetching delivery data:', error);
       // Set mock data for now
@@ -197,12 +214,7 @@ export default function DeliveryScheduleManager() {
           specialDates: []
         }
       ]);
-      setBlockSettings({
-        blockNewOrders: false,
-        blockReason: '',
-        allowedPaymentMethods: ['cash', 'card'],
-        minimumOrderValue: 50
-      });
+      setBlockRules([]);
     } finally {
       setLoading(false);
     }
@@ -250,6 +262,65 @@ export default function DeliveryScheduleManager() {
       const errorMsg = error?.response?.data?.error || error?.message || 'Eroare necunoscută';
       alert(`Eroare la actualizarea setărilor: ${errorMsg}`);
     }
+  };
+
+  const handleSaveBlockRule = async () => {
+    try {
+      if (!blockRuleForm.name) {
+        alert('Numele regulii este obligatoriu');
+        return;
+      }
+
+      const ruleData = {
+        ...blockRuleForm,
+        createdAt: editingBlockRule?.createdAt || new Date().toISOString()
+      };
+
+      if (editingBlockRule) {
+        // UPDATE
+        await apiClient.put(`/api/admin/block-rules/${editingBlockRule.id}`, ruleData);
+        alert('Regula de blocare a fost actualizată!');
+      } else {
+        // CREATE
+        await apiClient.post('/api/admin/block-rules', ruleData);
+        alert('Regula de blocare a fost creată!');
+      }
+
+      setShowBlockRuleModal(false);
+      resetBlockRuleForm();
+      fetchData();
+    } catch (error) {
+      console.error('Error saving block rule:', error);
+      alert('Eroare la salvarea regulii de blocare');
+    }
+  };
+
+  const handleDeleteBlockRule = async (ruleId: string) => {
+    try {
+      if (!confirm('Sigur vrei să ștergi această regulă de blocare?')) {
+        return;
+      }
+
+      await apiClient.delete(`/api/admin/block-rules/${ruleId}`);
+      alert('Regula de blocare a fost ștearsă!');
+      fetchData();
+    } catch (error) {
+      console.error('Error deleting block rule:', error);
+      alert('Eroare la ștergerea regulii');
+    }
+  };
+
+  const resetBlockRuleForm = () => {
+    setBlockRuleForm({
+      name: '',
+      isActive: true,
+      blockNewOrders: false,
+      blockReason: '',
+      blockedPaymentMethods: [],
+      blockedDeliveryMethods: [],
+      minimumOrderValue: 0
+    });
+    setEditingBlockRule(null);
   };
 
   const handleAddSpecialDate = async (scheduleId: string) => {
@@ -560,171 +631,109 @@ export default function DeliveryScheduleManager() {
       )}
 
       {/* Blocking Tab */}
-      {activeTab === 'blocking' && blockSettings && (
+      {activeTab === 'blocking' && (
         <div>
-          <h3 className="text-lg font-semibold mb-4">Setări Blocare Comenzi</h3>
-          
-          <div className="bg-white border rounded-lg p-6 space-y-6">
-            {/* Blocare generală */}
-            <div className="border-b pb-4">
-              <label className="flex items-center space-x-2 mb-3">
-                <input
-                  type="checkbox"
-                  checked={blockSettings.blockNewOrders}
-                  onChange={(e) => setBlockSettings({
-                    ...blockSettings,
-                    blockNewOrders: e.target.checked
-                  })}
-                />
-                <span className="font-medium text-lg">Blochează toate comenzile noi</span>
-              </label>
-              
-              {blockSettings.blockNewOrders && (
-                <div className="ml-6 space-y-3">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Motiv blocare
-                    </label>
-                    <input
-                      type="text"
-                      value={blockSettings.blockReason}
-                      onChange={(e) => setBlockSettings({
-                        ...blockSettings,
-                        blockReason: e.target.value
-                      })}
-                      className="w-full border rounded px-3 py-2"
-                      placeholder="Ex: Concediu, renovări, etc."
-                    />
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold">Reguli de Blocare Comenzi</h3>
+            <button
+              onClick={() => {
+                resetBlockRuleForm();
+                setShowBlockRuleModal(true);
+              }}
+              className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition"
+            >
+              ➕ Adaugă Regulă
+            </button>
+          </div>
+
+          {/* Lista reguli */}
+          <div className="space-y-4">
+            {blockRules.map(rule => (
+              <div key={rule.id} className="border rounded-lg p-4 bg-white hover:shadow-md transition">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <h4 className="font-semibold text-lg">{rule.name}</h4>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        rule.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {rule.isActive ? 'Activă' : 'Inactivă'}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
+                      {rule.blockNewOrders && (
+                        <div className="bg-red-50 p-2 rounded">
+                          <p className="text-red-800 font-medium">🚫 Blochează toate comenzile</p>
+                          <p className="text-red-600 text-xs">{rule.blockReason}</p>
+                        </div>
+                      )}
+
+                      {rule.blockedPaymentMethods && rule.blockedPaymentMethods.length > 0 && (
+                        <div className="bg-yellow-50 p-2 rounded">
+                          <p className="text-yellow-800 font-medium">💳 Metode plată blocate:</p>
+                          <p className="text-yellow-700 text-xs">{rule.blockedPaymentMethods.join(', ')}</p>
+                        </div>
+                      )}
+
+                      {rule.blockedDeliveryMethods && rule.blockedDeliveryMethods.length > 0 && (
+                        <div className="bg-orange-50 p-2 rounded">
+                          <p className="text-orange-800 font-medium">🚚 Metode livrare blocate:</p>
+                          <p className="text-orange-700 text-xs">{rule.blockedDeliveryMethods.join(', ')}</p>
+                        </div>
+                      )}
+
+                      {rule.minimumOrderValue > 0 && (
+                        <div className="bg-blue-50 p-2 rounded">
+                          <p className="text-blue-800 font-medium">💰 Valoare minimă:</p>
+                          <p className="text-blue-700 text-xs">{rule.minimumOrderValue} RON</p>
+                        </div>
+                      )}
+
+                      {rule.maximumOrderValue && (
+                        <div className="bg-purple-50 p-2 rounded">
+                          <p className="text-purple-800 font-medium">💰 Valoare maximă:</p>
+                          <p className="text-purple-700 text-xs">{rule.maximumOrderValue} RON</p>
+                        </div>
+                      )}
+
+                      {rule.blockUntil && (
+                        <div className="bg-pink-50 p-2 rounded">
+                          <p className="text-pink-800 font-medium">⏰ Blocat până la:</p>
+                          <p className="text-pink-700 text-xs">{new Date(rule.blockUntil).toLocaleString('ro-RO')}</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Blochează până la (opțional)
-                    </label>
-                    <input
-                      type="datetime-local"
-                      value={blockSettings.blockUntil || ''}
-                      onChange={(e) => setBlockSettings({
-                        ...blockSettings,
-                        blockUntil: e.target.value
-                      })}
-                      className="border rounded px-3 py-2"
-                    />
+
+                  <div className="flex gap-2 ml-4">
+                    <button
+                      onClick={() => {
+                        setEditingBlockRule(rule);
+                        setBlockRuleForm(rule);
+                        setShowBlockRuleModal(true);
+                      }}
+                      className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-sm"
+                    >
+                      ✏️ Editează
+                    </button>
+                    <button
+                      onClick={() => handleDeleteBlockRule(rule.id)}
+                      className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition text-sm"
+                    >
+                      🗑️ Șterge
+                    </button>
                   </div>
                 </div>
-              )}
-            </div>
-
-            {/* Blocare Metode de Plată */}
-            <div className="border-b pb-4">
-              <h4 className="font-medium mb-3 text-lg">🔒 Blocare Metode de Plată</h4>
-              <p className="text-sm text-gray-600 mb-3">Selectează metodele de plată care sunt BLOCATE (clienții nu le pot folosi)</p>
-              <div className="space-y-2">
-                {paymentMethods.filter(m => m.isActive).map(method => (
-                  <label key={method.id} className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      checked={blockSettings.blockedPaymentMethods?.includes(method.code) || false}
-                      onChange={(e) => {
-                        const blocked = blockSettings.blockedPaymentMethods || [];
-                        if (e.target.checked) {
-                          setBlockSettings({
-                            ...blockSettings,
-                            blockedPaymentMethods: [...blocked, method.code]
-                          });
-                        } else {
-                          setBlockSettings({
-                            ...blockSettings,
-                            blockedPaymentMethods: blocked.filter(m => m !== method.code)
-                          });
-                        }
-                      }}
-                    />
-                    <span>{method.name}</span>
-                  </label>
-                ))}
               </div>
-            </div>
+            ))}
 
-            {/* Blocare Metode de Livrare */}
-            <div className="border-b pb-4">
-              <h4 className="font-medium mb-3 text-lg">🚚 Blocare Metode de Livrare</h4>
-              <p className="text-sm text-gray-600 mb-3">Selectează metodele de livrare care sunt BLOCATE (clienții nu le pot folosi)</p>
-              <div className="space-y-2">
-                {deliveryMethods.filter(m => m.isActive).map(method => (
-                  <label key={method.id} className="flex items-center space-x-2">
-                    <input
-                      type="checkbox"
-                      checked={blockSettings.blockedDeliveryMethods?.includes(method.code) || false}
-                      onChange={(e) => {
-                        const blocked = blockSettings.blockedDeliveryMethods || [];
-                        if (e.target.checked) {
-                          setBlockSettings({
-                            ...blockSettings,
-                            blockedDeliveryMethods: [...blocked, method.code]
-                          });
-                        } else {
-                          setBlockSettings({
-                            ...blockSettings,
-                            blockedDeliveryMethods: blocked.filter(m => m !== method.code)
-                          });
-                        }
-                      }}
-                    />
-                    <span>{method.name}</span>
-                  </label>
-                ))}
+            {blockRules.length === 0 && (
+              <div className="text-center py-12 bg-gray-50 rounded-lg">
+                <p className="text-gray-500">Nu există reguli de blocare create.</p>
+                <p className="text-sm text-gray-400 mt-2">Apasă "Adaugă Regulă" pentru a crea prima regulă.</p>
               </div>
-            </div>
-
-            {/* Restricții Comenzi */}
-            <div>
-              <h4 className="font-medium mb-3 text-lg">💰 Restricții Valoare Comandă</h4>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Valoare minimă comandă (RON)
-                    </label>
-                    <input
-                      type="number"
-                      value={blockSettings.minimumOrderValue || 0}
-                      onChange={(e) => setBlockSettings({
-                        ...blockSettings,
-                        minimumOrderValue: parseFloat(e.target.value) || 0
-                      })}
-                      className="w-full border rounded px-3 py-2"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Valoare maximă comandă (RON) - opțional
-                    </label>
-                    <input
-                      type="number"
-                      value={blockSettings.maximumOrderValue || ''}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setBlockSettings({
-                          ...blockSettings,
-                          maximumOrderValue: val ? parseFloat(val) : undefined
-                        });
-                      }}
-                      className="w-full border rounded px-3 py-2"
-                    />
-                  </div>
-                </div>
-            </div>
-
-            <div className="flex justify-end pt-4">
-              <button
-                onClick={handleUpdateBlockSettings}
-                className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
-              >
-                💾 Salvează Setări
-              </button>
-            </div>
+            )}
           </div>
         </div>
       )}
@@ -1002,6 +1011,208 @@ export default function DeliveryScheduleManager() {
               >
                 💾 {editingSchedule ? 'Actualizează' : 'Creează'} Program
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal pentru creare/editare regulă de blocare */}
+      {showBlockRuleModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-semibold">
+                {editingBlockRule ? 'Editează Regulă' : 'Adaugă Regulă Nouă'}
+              </h3>
+              <button
+                onClick={() => {
+                  setShowBlockRuleModal(false);
+                  resetBlockRuleForm();
+                }}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nume Regulă *
+                </label>
+                <input
+                  type="text"
+                  value={blockRuleForm.name || ''}
+                  onChange={(e) => setBlockRuleForm({...blockRuleForm, name: e.target.value})}
+                  className="w-full border rounded px-3 py-2"
+                  placeholder="Ex: Blocare Weekend, Restricții Plată Cash"
+                />
+              </div>
+
+              <div>
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    checked={blockRuleForm.isActive || false}
+                    onChange={(e) => setBlockRuleForm({...blockRuleForm, isActive: e.target.checked})}
+                  />
+                  <span className="font-medium">Regulă activă</span>
+                </label>
+              </div>
+
+              <div className="border-t pt-4">
+                <label className="flex items-center space-x-2 mb-3">
+                  <input
+                    type="checkbox"
+                    checked={blockRuleForm.blockNewOrders || false}
+                    onChange={(e) => setBlockRuleForm({...blockRuleForm, blockNewOrders: e.target.checked})}
+                  />
+                  <span className="font-medium">Blochează toate comenzile noi</span>
+                </label>
+
+                {blockRuleForm.blockNewOrders && (
+                  <div className="ml-6 space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Motiv blocare
+                      </label>
+                      <input
+                        type="text"
+                        value={blockRuleForm.blockReason || ''}
+                        onChange={(e) => setBlockRuleForm({...blockRuleForm, blockReason: e.target.value})}
+                        className="w-full border rounded px-3 py-2"
+                        placeholder="Ex: Concediu, renovări"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Blochează până la (opțional)
+                      </label>
+                      <input
+                        type="datetime-local"
+                        value={blockRuleForm.blockUntil || ''}
+                        onChange={(e) => setBlockRuleForm({...blockRuleForm, blockUntil: e.target.value})}
+                        className="border rounded px-3 py-2"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="border-t pt-4">
+                <h4 className="font-medium mb-3">🔒 Metode de Plată Blocate</h4>
+                <div className="space-y-2">
+                  {paymentMethods.filter(m => m.isActive).map(method => (
+                    <label key={method.id} className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={blockRuleForm.blockedPaymentMethods?.includes(method.code) || false}
+                        onChange={(e) => {
+                          const blocked = blockRuleForm.blockedPaymentMethods || [];
+                          if (e.target.checked) {
+                            setBlockRuleForm({
+                              ...blockRuleForm,
+                              blockedPaymentMethods: [...blocked, method.code]
+                            });
+                          } else {
+                            setBlockRuleForm({
+                              ...blockRuleForm,
+                              blockedPaymentMethods: blocked.filter(m => m !== method.code)
+                            });
+                          }
+                        }}
+                      />
+                      <span>{method.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="border-t pt-4">
+                <h4 className="font-medium mb-3">🚚 Metode de Livrare Blocate</h4>
+                <div className="space-y-2">
+                  {deliveryMethods.filter(m => m.isActive).map(method => (
+                    <label key={method.id} className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={blockRuleForm.blockedDeliveryMethods?.includes(method.code) || false}
+                        onChange={(e) => {
+                          const blocked = blockRuleForm.blockedDeliveryMethods || [];
+                          if (e.target.checked) {
+                            setBlockRuleForm({
+                              ...blockRuleForm,
+                              blockedDeliveryMethods: [...blocked, method.code]
+                            });
+                          } else {
+                            setBlockRuleForm({
+                              ...blockRuleForm,
+                              blockedDeliveryMethods: blocked.filter(m => m !== method.code)
+                            });
+                          }
+                        }}
+                      />
+                      <span>{method.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              <div className="border-t pt-4">
+                <h4 className="font-medium mb-3">💰 Restricții Valoare</h4>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Valoare minimă (RON)
+                    </label>
+                    <input
+                      type="number"
+                      value={blockRuleForm.minimumOrderValue || 0}
+                      onChange={(e) => setBlockRuleForm({
+                        ...blockRuleForm,
+                        minimumOrderValue: parseFloat(e.target.value) || 0
+                      })}
+                      className="w-full border rounded px-3 py-2"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Valoare maximă (RON)
+                    </label>
+                    <input
+                      type="number"
+                      value={blockRuleForm.maximumOrderValue || ''}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setBlockRuleForm({
+                          ...blockRuleForm,
+                          maximumOrderValue: val ? parseFloat(val) : undefined
+                        });
+                      }}
+                      className="w-full border rounded px-3 py-2"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4">
+                <button
+                  onClick={() => {
+                    setShowBlockRuleModal(false);
+                    resetBlockRuleForm();
+                  }}
+                  className="px-4 py-2 border rounded hover:bg-gray-100 transition"
+                >
+                  Anulează
+                </button>
+                <button
+                  onClick={handleSaveBlockRule}
+                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
+                >
+                  💾 Salvează
+                </button>
+              </div>
             </div>
           </div>
         </div>
