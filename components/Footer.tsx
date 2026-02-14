@@ -108,7 +108,7 @@ export default function Footer() {
 
   const fetchAboutContent = async () => {
     try {
-      const response = await fetch('/api/public/pages/about');
+      const response = await fetch('/api/public/pages/despre');
       if (response.ok) {
         const page = await response.json();
         if (page?.content) {
@@ -119,8 +119,9 @@ export default function Footer() {
           setAboutContent(plainText.substring(0, 300) + (plainText.length > 300 ? '...' : ''));
         }
       }
+      // Silently ignore 404 errors - page doesn't exist yet
     } catch (error) {
-      console.error('Failed to fetch about content:', error);
+      // Silently ignore errors - use default content
     }
   };
 
