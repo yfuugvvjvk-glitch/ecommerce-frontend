@@ -364,6 +364,11 @@ export default function ShopPage() {
                     <span className="text-2xl font-bold text-blue-600">
                       {product.price.toFixed(2)} lei
                     </span>
+                    {product.priceType === 'per_unit' ? (
+                      <span className="text-sm font-normal text-gray-600">/{product.unitName || 'buc'}</span>
+                    ) : product.priceType === 'fixed' ? (
+                      <span className="text-sm font-normal text-gray-600">/bucată</span>
+                    ) : null}
                     {product.oldPrice && product.oldPrice > product.price && (
                       <span className="text-sm text-gray-400 line-through">
                         {product.oldPrice.toFixed(2)} lei

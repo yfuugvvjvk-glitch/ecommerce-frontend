@@ -480,6 +480,11 @@ export default function ProductsPage() {
                     <span className="text-2xl font-bold text-blue-600">
                       {product.price.toFixed(2)} lei
                     </span>
+                    {(product as any).priceType === 'per_unit' ? (
+                      <span className="text-sm font-normal text-gray-600">/{(product as any).unitName || 'buc'}</span>
+                    ) : (product as any).priceType === 'fixed' ? (
+                      <span className="text-sm font-normal text-gray-600">/bucată</span>
+                    ) : null}
                     {product.oldPrice && product.oldPrice > product.price && (
                       <span className="text-sm text-gray-400 line-through">
                         {product.oldPrice.toFixed(2)} lei

@@ -409,8 +409,8 @@ export default function DashboardPage() {
                   </h3>
                   <p className="text-lg font-bold text-blue-600 mt-1">
                     <CurrencyPrice amount={product.price} />
-                    {product.priceType === 'per_unit' && product.unitName && product.unitName !== 'bucată' ? (
-                      <span className="text-sm font-normal text-gray-600">/{product.unitName}</span>
+                    {product.priceType === 'per_unit' ? (
+                      <span className="text-sm font-normal text-gray-600">/{product.unitName || 'buc'}</span>
                     ) : product.priceType === 'fixed' ? (
                       <span className="text-sm font-normal text-gray-600">/bucată</span>
                     ) : null}
