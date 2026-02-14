@@ -33,13 +33,10 @@ export default function ProductDetailsPage() {
   useEffect(() => {
     // Set default quantity when product loads
     if (product) {
-      // Pentru priceType fixed, setăm numărul de produse (1, 2, 3...), nu cantitatea în unități
-      if (product.priceType === 'fixed') {
-        setSelectedQuantity(1); // Start cu 1 produs
-      } else if (product.availableQuantities && product.availableQuantities.length > 0) {
+      if (product.availableQuantities && product.availableQuantities.length > 0) {
         // Sortează cantitățile și ia cea mai mică
         const sortedQtys = [...product.availableQuantities].sort((a, b) => a - b);
-        setSelectedQuantity(sortedQtys[0]); // Cea mai mică cantitate disponibilă
+        setSelectedQuantity(sortedQtys[0]); // Cea mai mică cantitate disponibilă (ex: 0.5 kg)
       } else {
         setSelectedQuantity(product.minQuantity || 0.5); // Default la minQuantity sau 0.5
       }
@@ -307,16 +304,15 @@ export default function ProductDetailsPage() {
                   <button
                     onClick={() => {
                       // Calculează step-ul corect din cantitățile disponibile
-                      let step = 1;
-                      if (product.priceType === 'per_unit' && product.availableQuantities && product.availableQuantities.length > 1) {
-                        // Găsește diferența minimă între cantități consecutive
+                      let step = 0.5;
+                      if (product.availableQuantities && product.availableQuantities.length > 1) {
                         const sortedQtys = [...product.availableQuantities].sort((a, b) => a - b);
                         step = sortedQtys[1] - sortedQtys[0]; // Diferența între primele două cantități
-                      } else if (product.priceType === 'per_unit') {
-                        step = product.minQuantity || 0.5;
+                      } else if (product.minQuantity) {
+                        step = product.minQuantity;
                       }
                       
-                      const minQty = product.priceType === 'fixed' ? 1 : (product.availableQuantities?.[0] || step);
+                      const minQty = product.availableQuantities?.[0] || product.minQuantity || 0.5;
                       setSelectedQuantity(Math.max(minQty, selectedQuantity - step));
                     }}
                     className="w-12 h-12 bg-gray-200 hover:bg-gray-300 rounded-lg font-bold text-2xl flex items-center justify-center transition"
@@ -325,9 +321,8 @@ export default function ProductDetailsPage() {
                   </button>
                   <input
                     type="number"
-                    min={product.priceType === 'fixed' ? 1 : (product.availableQuantities?.[0] || product.minQuantity || 0.5)}
+                    min={product.availableQuantities?.[0] || product.minQuantity || 0.5}
                     step={(() => {
-                      if (product.priceType === 'fixed') return 1;
                       if (product.availableQuantities && product.availableQuantities.length > 1) {
                         const sortedQtys = [...product.availableQuantities].sort((a, b) => a - b);
                         return sortedQtys[1] - sortedQtys[0];
@@ -336,21 +331,8 @@ export default function ProductDetailsPage() {
                     })()}
                     value={selectedQuantity}
                     onChange={(e) => {
-                      let step = 1;
-                      if (product.priceType === 'per_unit' && product.availableQuantities && product.availableQuantities.length > 1) {
-                        const sortedQtys = [...product.availableQuantities].sort((a, b) => a - b);
-                        step = sortedQtys[1] - sortedQtys[0];
-                      } else if (product.priceType === 'per_unit') {
-                        step = product.minQuantity || 0.5;
-                      }
-                      
-                      const minQty = product.priceType === 'fixed' ? 1 : (product.availableQuantities?.[0] || step);
+                      const minQty = product.availableQuantities?.[0] || product.minQuantity || 0.5;
                       let val = parseFloat(e.target.value) || minQty;
-                      
-                      // Pentru priceType fixed, rotunjim la număr întreg de produse
-                      if (product.priceType === 'fixed') {
-                        val = Math.round(val);
-                      }
                       setSelectedQuantity(Math.max(minQty, val));
                     }}
                     className="flex-1 text-center text-2xl font-bold border-2 border-gray-300 rounded-lg py-3"
@@ -358,13 +340,12 @@ export default function ProductDetailsPage() {
                   <button
                     onClick={() => {
                       // Calculează step-ul corect din cantitățile disponibile
-                      let step = 1;
-                      if (product.priceType === 'per_unit' && product.availableQuantities && product.availableQuantities.length > 1) {
-                        // Găsește diferența minimă între cantități consecutive
+                      let step = 0.5;
+                      if (product.availableQuantities && product.availableQuantities.length > 1) {
                         const sortedQtys = [...product.availableQuantities].sort((a, b) => a - b);
                         step = sortedQtys[1] - sortedQtys[0]; // Diferența între primele două cantități
-                      } else if (product.priceType === 'per_unit') {
-                        step = product.minQuantity || 0.5;
+                      } else if (product.minQuantity) {
+                        step = product.minQuantity;
                       }
                       
                       setSelectedQuantity(selectedQuantity + step);
@@ -380,16 +361,18 @@ export default function ProductDetailsPage() {
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-700">
                       Cantitate: <strong className="text-gray-900">
-                        {product.priceType === 'fixed' 
-                          ? `${(selectedQuantity * ((product.availableQuantities && product.availableQuantities[0]) || 1)).toFixed(2)} ${product.unitName || 'buc'} (${selectedQuantity} ${selectedQuantity === 1 ? 'produs' : 'produse'})`
-                          : `${selectedQuantity.toFixed(2)} ${product.unitName || 'buc'}`
-                        }
+                        {selectedQuantity.toFixed(2)} {product.unitName || 'buc'}
+                        {product.priceType === 'fixed' && product.availableQuantities && product.availableQuantities[0] && (
+                          <span className="text-gray-600 ml-1">
+                            ({(selectedQuantity / product.availableQuantities[0]).toFixed(0)} {(selectedQuantity / product.availableQuantities[0]) === 1 ? 'produs' : 'produse'})
+                          </span>
+                        )}
                       </strong>
                     </span>
                     <span className="text-2xl font-bold text-blue-600">
                       <CurrencyPrice amount={
-                        product.priceType === 'fixed'
-                          ? selectedQuantity * product.price  // Pentru fixed: număr produse × preț per produs
+                        product.priceType === 'fixed' && product.availableQuantities && product.availableQuantities[0]
+                          ? (selectedQuantity / product.availableQuantities[0]) * product.price  // Cantitate în kg / kg per produs × preț per produs
                           : selectedQuantity * product.price  // Pentru per_unit: cantitate × preț per unitate
                       } />
                     </span>
@@ -404,22 +387,9 @@ export default function ProductDetailsPage() {
                       {product.availableQuantities.slice(0, 6).map((quantity: number) => (
                         <button
                           key={quantity}
-                          onClick={() => {
-                            // Pentru priceType fixed, cantitatea din buton reprezintă cantitatea per produs
-                            // Deci trebuie să calculăm câte produse sunt necesare
-                            if (product.priceType === 'fixed') {
-                              const qtyPerProduct = product.availableQuantities[0]; // Prima cantitate = cantitatea per produs
-                              const numProducts = quantity / qtyPerProduct; // Câte produse sunt necesare
-                              setSelectedQuantity(numProducts);
-                            } else {
-                              // Pentru per_unit, setăm direct cantitatea
-                              setSelectedQuantity(quantity);
-                            }
-                          }}
+                          onClick={() => setSelectedQuantity(quantity)}
                           className={`p-2 border-2 rounded-lg transition-all text-center ${
-                            (product.priceType === 'fixed' 
-                              ? selectedQuantity * ((product.availableQuantities && product.availableQuantities[0]) || 1) === quantity
-                              : selectedQuantity === quantity)
+                            selectedQuantity === quantity
                               ? 'bg-blue-600 text-white border-blue-600'
                               : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400'
                           }`}
