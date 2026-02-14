@@ -381,13 +381,17 @@ export default function ProductDetailsPage() {
                     <span className="text-sm text-gray-700">
                       Cantitate: <strong className="text-gray-900">
                         {product.priceType === 'fixed' 
-                          ? `${selectedQuantity * ((product.availableQuantities && product.availableQuantities[0]) || 1)} ${product.unitName || 'buc'} (${selectedQuantity} ${selectedQuantity === 1 ? 'produs' : 'produse'})`
-                          : `${selectedQuantity} ${product.unitName || 'buc'}`
+                          ? `${(selectedQuantity * ((product.availableQuantities && product.availableQuantities[0]) || 1)).toFixed(2)} ${product.unitName || 'buc'} (${selectedQuantity} ${selectedQuantity === 1 ? 'produs' : 'produse'})`
+                          : `${selectedQuantity.toFixed(2)} ${product.unitName || 'buc'}`
                         }
                       </strong>
                     </span>
                     <span className="text-2xl font-bold text-blue-600">
-                      <CurrencyPrice amount={selectedQuantity * product.price} />
+                      <CurrencyPrice amount={
+                        product.priceType === 'fixed'
+                          ? selectedQuantity * product.price  // Pentru fixed: număr produse × preț per produs
+                          : selectedQuantity * product.price  // Pentru per_unit: cantitate × preț per unitate
+                      } />
                     </span>
                   </div>
                 </div>
@@ -400,9 +404,22 @@ export default function ProductDetailsPage() {
                       {product.availableQuantities.slice(0, 6).map((quantity: number) => (
                         <button
                           key={quantity}
-                          onClick={() => setSelectedQuantity(quantity)}
+                          onClick={() => {
+                            // Pentru priceType fixed, cantitatea din buton reprezintă cantitatea per produs
+                            // Deci trebuie să calculăm câte produse sunt necesare
+                            if (product.priceType === 'fixed') {
+                              const qtyPerProduct = product.availableQuantities[0]; // Prima cantitate = cantitatea per produs
+                              const numProducts = quantity / qtyPerProduct; // Câte produse sunt necesare
+                              setSelectedQuantity(numProducts);
+                            } else {
+                              // Pentru per_unit, setăm direct cantitatea
+                              setSelectedQuantity(quantity);
+                            }
+                          }}
                           className={`p-2 border-2 rounded-lg transition-all text-center ${
-                            selectedQuantity === quantity
+                            (product.priceType === 'fixed' 
+                              ? selectedQuantity * ((product.availableQuantities && product.availableQuantities[0]) || 1) === quantity
+                              : selectedQuantity === quantity)
                               ? 'bg-blue-600 text-white border-blue-600'
                               : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400'
                           }`}
