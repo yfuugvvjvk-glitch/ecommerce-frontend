@@ -52,7 +52,7 @@ interface BlockRule {
   blockFrom?: string; // Data de la care începe blocarea
   blockUntil?: string; // Data până la care durează blocarea
   blockedPaymentMethods: string[];
-  blockedDeliveryMethods: string[];
+  blockedDeliveryLocations: string[]; // Schimbat din blockedDeliveryMethods
   minimumOrderValue: number;
   maximumOrderValue?: number;
   createdAt: string;
@@ -78,7 +78,7 @@ export default function DeliveryScheduleManager() {
   const [blockRules, setBlockRules] = useState<BlockRule[]>([]);
   const [blockSettings, setBlockSettings] = useState<OrderBlockSettings | null>(null);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
-  const [deliveryMethods, setDeliveryMethods] = useState<DeliveryMethod[]>([]);
+  const [deliveryLocations, setDeliveryLocations] = useState<any[]>([]); // Adăugat pentru locații
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'schedule' | 'blocking'>('schedule');
   const [showModal, setShowModal] = useState(false);
@@ -117,7 +117,7 @@ export default function DeliveryScheduleManager() {
     blockFrom: '',
     blockUntil: '',
     blockedPaymentMethods: [],
-    blockedDeliveryMethods: [],
+    blockedDeliveryLocations: [], // Schimbat din blockedDeliveryMethods
     minimumOrderValue: 0
   });
 
@@ -172,18 +172,18 @@ export default function DeliveryScheduleManager() {
 
   const fetchData = async () => {
     try {
-      const [schedulesRes, blockRulesRes, paymentMethodsRes, deliveryMethodsRes] = await Promise.all([
+      const [schedulesRes, blockRulesRes, paymentMethodsRes, deliveryLocationsRes] = await Promise.all([
         apiClient.get('/api/admin/delivery-schedules'),
         apiClient.get('/api/admin/block-rules'),
         apiClient.get('/api/admin/payment-methods'),
-        apiClient.get('/api/admin/delivery-settings')
+        apiClient.get('/api/delivery-locations') // Schimbat pentru a încărca locațiile
       ]);
       
       setSchedules(schedulesRes.data || []);
       setFilteredSchedules(schedulesRes.data || []);
       setBlockRules(blockRulesRes.data || []);
       setPaymentMethods(paymentMethodsRes.data || []);
-      setDeliveryMethods(deliveryMethodsRes.data || []);
+      setDeliveryLocations(deliveryLocationsRes.data || []); // Setează locațiile
     } catch (error) {
       console.error('Error fetching delivery data:', error);
       // Set mock data for now
@@ -224,10 +224,7 @@ export default function DeliveryScheduleManager() {
         { id: 'mock-3', name: 'Transfer Bancar', type: 'BANK_TRANSFER', isActive: true },
         { id: 'mock-4', name: 'Online', type: 'ONLINE', isActive: true }
       ]);
-      setDeliveryMethods([
-        { id: 'mock-d1', name: 'Curier', type: 'courier', isActive: true },
-        { id: 'mock-d2', name: 'Ridicare Personală', type: 'pickup', isActive: true }
-      ]);
+      setDeliveryLocations([]); // Mock locații goale
     } finally {
       setLoading(false);
     }
@@ -332,7 +329,7 @@ export default function DeliveryScheduleManager() {
       blockFrom: '',
       blockUntil: '',
       blockedPaymentMethods: [],
-      blockedDeliveryMethods: [],
+      blockedDeliveryLocations: [], // Schimbat
       minimumOrderValue: 0
     });
     setEditingBlockRule(null);
@@ -404,9 +401,9 @@ export default function DeliveryScheduleManager() {
       .join(', ');
   };
 
-  const getDeliveryMethodNames = (methodIds: string[]) => {
-    return methodIds
-      .map(id => deliveryMethods.find(m => m.id === id)?.name)
+  const getDeliveryLocationNames = (locationIds: string[]) => {
+    return locationIds
+      .map(id => deliveryLocations.find(l => l.id === id)?.name)
       .filter(Boolean)
       .join(', ');
   };
@@ -712,10 +709,10 @@ export default function DeliveryScheduleManager() {
                         </div>
                       )}
 
-                      {rule.blockedDeliveryMethods && rule.blockedDeliveryMethods.length > 0 && (
+                      {rule.blockedDeliveryLocations && rule.blockedDeliveryLocations.length > 0 && (
                         <div className="bg-orange-50 p-2 rounded">
-                          <p className="text-orange-800 font-medium">🚚 Metode livrare blocate:</p>
-                          <p className="text-orange-700 text-xs">{getDeliveryMethodNames(rule.blockedDeliveryMethods)}</p>
+                          <p className="text-orange-800 font-medium">📍 Locații de livrare blocate:</p>
+                          <p className="text-orange-700 text-xs">{getDeliveryLocationNames(rule.blockedDeliveryLocations)}</p>
                         </div>
                       )}
 
@@ -758,7 +755,7 @@ export default function DeliveryScheduleManager() {
                           blockFrom: rule.blockFrom || '',
                           blockUntil: rule.blockUntil || '',
                           blockedPaymentMethods: rule.blockedPaymentMethods || [],
-                          blockedDeliveryMethods: rule.blockedDeliveryMethods || [],
+                          blockedDeliveryLocations: rule.blockedDeliveryLocations || [], // Schimbat
                           minimumOrderValue: rule.minimumOrderValue || 0,
                           maximumOrderValue: rule.maximumOrderValue || undefined
                         });
@@ -1194,29 +1191,29 @@ export default function DeliveryScheduleManager() {
               </div>
 
               <div className="border-t pt-4">
-                <h4 className="font-medium mb-3">🚚 Metode de Livrare Blocate</h4>
+                <h4 className="font-medium mb-3">📍 Locații de Livrare Blocate</h4>
                 <div className="space-y-2">
-                  {deliveryMethods.filter(m => m.isActive).map(method => (
-                    <label key={method.id} className="flex items-center space-x-2">
+                  {deliveryLocations.map(location => (
+                    <label key={location.id} className="flex items-center space-x-2">
                       <input
                         type="checkbox"
-                        checked={blockRuleForm.blockedDeliveryMethods?.includes(method.id) || false}
+                        checked={blockRuleForm.blockedDeliveryLocations?.includes(location.id) || false}
                         onChange={(e) => {
-                          const blocked = blockRuleForm.blockedDeliveryMethods || [];
+                          const blocked = blockRuleForm.blockedDeliveryLocations || [];
                           if (e.target.checked) {
                             setBlockRuleForm({
                               ...blockRuleForm,
-                              blockedDeliveryMethods: [...blocked, method.id]
+                              blockedDeliveryLocations: [...blocked, location.id]
                             });
                           } else {
                             setBlockRuleForm({
                               ...blockRuleForm,
-                              blockedDeliveryMethods: blocked.filter(m => m !== method.id)
+                              blockedDeliveryLocations: blocked.filter(l => l !== location.id)
                             });
                           }
                         }}
                       />
-                      <span>{method.name}</span>
+                      <span>{location.name}</span>
                     </label>
                   ))}
                 </div>
