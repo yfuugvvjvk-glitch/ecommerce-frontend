@@ -62,6 +62,7 @@ export default function CheckoutPage() {
   const [isDeliveryBlocked, setIsDeliveryBlocked] = useState(false);
   const [blockReason, setBlockReason] = useState('');
   const [blockedPaymentMethods, setBlockedPaymentMethods] = useState<string[]>([]);
+  const [blockedDeliveryLocations, setBlockedDeliveryLocations] = useState<string[]>([]);
   const [addressValidationMessage, setAddressValidationMessage] = useState<string>('');
   const [isAddressValid, setIsAddressValid] = useState<boolean | null>(null);
   const [validatingAddress, setValidatingAddress] = useState(false);
@@ -349,10 +350,10 @@ export default function CheckoutPage() {
           console.log('🔒 Blocked payment methods:', rule.blockedPaymentMethods);
         }
         
-        // Adaugă metodele de livrare blocate
-        if (rule.blockedDeliveryMethods && rule.blockedDeliveryMethods.length > 0) {
-          blockedDeliveries.push(...rule.blockedDeliveryMethods);
-          console.log('🚚 Blocked delivery methods:', rule.blockedDeliveryMethods);
+        // Adaugă locațiile de livrare blocate
+        if (rule.blockedDeliveryLocations && rule.blockedDeliveryLocations.length > 0) {
+          blockedDeliveries.push(...rule.blockedDeliveryLocations);
+          console.log('📍 Blocked delivery locations:', rule.blockedDeliveryLocations);
         }
       });
       
@@ -361,9 +362,10 @@ export default function CheckoutPage() {
       const uniqueBlockedDeliveries = [...new Set(blockedDeliveries)];
       
       console.log('🔒 Final blocked payment methods:', uniqueBlockedPayments);
+      console.log('📍 Final blocked delivery locations:', uniqueBlockedDeliveries);
       
       setBlockedPaymentMethods(uniqueBlockedPayments);
-      // Delivery methods eliminat - nu mai folosim
+      setBlockedDeliveryLocations(uniqueBlockedDeliveries);
     } catch (error) {
       console.error('❌ Failed to fetch block rules:', error);
     }
@@ -1027,7 +1029,11 @@ export default function CheckoutPage() {
               </button>
             </div>
             <div className="space-y-3">
-              {cart.items.map((item: any) => (
+              {cart.items.map((item: any) => {
+                // Verifică dacă este produs cadou
+                const isGiftProduct = item.isGift === true || item.giftRuleId != null;
+                
+                return (
                 <div key={item.id} className="flex gap-4 items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200">
                   <img
                     src={item.dataItem.image}
@@ -1035,7 +1041,14 @@ export default function CheckoutPage() {
                     className="w-20 h-20 object-cover rounded-lg shadow-sm"
                   />
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-gray-800 mb-1">{stripHtml(item.dataItem.title)}</h3>
+                    <div className="flex items-center gap-2 mb-1">
+                      <h3 className="font-semibold text-gray-800">{stripHtml(item.dataItem.title)}</h3>
+                      {isGiftProduct && (
+                        <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded-full text-xs font-medium">
+                          🎁 CADOU
+                        </span>
+                      )}
+                    </div>
                     <StockIndicator 
                       productId={item.dataItemId || item.dataItem?.id} 
                       quantity={item.quantity}
@@ -1043,45 +1056,67 @@ export default function CheckoutPage() {
                       className="mb-2"
                     />
                     <div className="flex items-center gap-4 mt-2 flex-wrap">
-                      <div className="flex items-center gap-2 bg-white rounded-lg border border-gray-300 shadow-sm">
-                        <button
-                          onClick={async () => {
-                            try {
-                              await cartAPI.updateQuantity(item.id, Math.max(1, item.quantity - 1));
-                              fetchCart();
-                            } catch (error) {
-                              console.error('Failed to update quantity:', error);
-                            }
-                          }}
-                          className="w-8 h-8 hover:bg-gray-100 flex items-center justify-center rounded-l-lg transition-colors disabled:opacity-50"
-                          disabled={item.quantity <= 1}
-                        >
-                          <span className="text-lg font-bold">−</span>
-                        </button>
-                        <span className="w-12 text-center font-bold text-gray-800">{item.quantity}</span>
-                        <button
-                          onClick={async () => {
-                            try {
-                              await cartAPI.updateQuantity(item.id, item.quantity + 1);
-                              fetchCart();
-                            } catch (error) {
-                              console.error('Failed to update quantity:', error);
-                            }
-                          }}
-                          className="w-8 h-8 hover:bg-gray-100 flex items-center justify-center rounded-r-lg transition-colors disabled:opacity-50"
-                          disabled={item.quantity >= (item.dataItem.availableStock || item.dataItem.stock)}
-                        >
-                          <span className="text-lg font-bold">+</span>
-                        </button>
-                      </div>
+                      {!isGiftProduct ? (
+                        // Butoane normale pentru produse obișnuite
+                        <div className="flex items-center gap-2 bg-white rounded-lg border border-gray-300 shadow-sm">
+                          <button
+                            onClick={async () => {
+                              try {
+                                // Calculează step-ul corect bazat pe priceType
+                                const step = item.dataItem.priceType === 'fixed' 
+                                  ? 1 
+                                  : (item.dataItem.availableQuantities?.[0] || item.dataItem.minQuantity || 0.5);
+                                const minQty = step;
+                                const newQuantity = Math.max(minQty, item.quantity - step);
+                                await cartAPI.updateQuantity(item.id, newQuantity);
+                                fetchCart();
+                              } catch (error) {
+                                console.error('Failed to update quantity:', error);
+                              }
+                            }}
+                            className="w-8 h-8 hover:bg-gray-100 flex items-center justify-center rounded-l-lg transition-colors disabled:opacity-50"
+                            disabled={item.quantity <= (item.dataItem.priceType === 'fixed' ? 1 : (item.dataItem.availableQuantities?.[0] || item.dataItem.minQuantity || 0.5))}
+                          >
+                            <span className="text-lg font-bold">−</span>
+                          </button>
+                          <span className="w-12 text-center font-bold text-gray-800">{item.quantity}</span>
+                          <button
+                            onClick={async () => {
+                              try {
+                                // Calculează step-ul corect bazat pe priceType
+                                const step = item.dataItem.priceType === 'fixed' 
+                                  ? 1 
+                                  : (item.dataItem.availableQuantities?.[0] || item.dataItem.minQuantity || 0.5);
+                                const newQuantity = item.quantity + step;
+                                await cartAPI.updateQuantity(item.id, newQuantity);
+                                fetchCart();
+                              } catch (error) {
+                                console.error('Failed to update quantity:', error);
+                              }
+                            }}
+                            className="w-8 h-8 hover:bg-gray-100 flex items-center justify-center rounded-r-lg transition-colors disabled:opacity-50"
+                            disabled={item.quantity >= (item.dataItem.availableStock || item.dataItem.stock)}
+                          >
+                            <span className="text-lg font-bold">+</span>
+                          </button>
+                        </div>
+                      ) : (
+                        // Afișare cantitate fixă pentru produse cadou
+                        <div className="flex items-center gap-2 bg-green-50 rounded-lg border border-green-300 px-3 py-2">
+                          <span className="text-sm font-semibold text-green-800">Cantitate: {item.quantity}</span>
+                          <span className="text-xs text-green-600">(cadou - cantitate fixă)</span>
+                        </div>
+                      )}
                       <span className="text-sm text-gray-600 bg-white px-3 py-1 rounded-full border border-gray-300">
-                        💰 {item.dataItem.price.toFixed(2)} RON / buc
+                        💰 {isGiftProduct ? '0.00' : item.dataItem.price.toFixed(2)} RON / buc
                       </span>
                     </div>
                   </div>
                   <div className="text-right flex flex-col items-end gap-2">
-                    <div className="font-bold text-lg text-blue-600 bg-blue-50 px-3 py-1 rounded-lg">
-                      {(item.quantity * item.dataItem.price).toFixed(2)} RON
+                    <div className={`font-bold text-lg px-3 py-1 rounded-lg ${
+                      isGiftProduct ? 'text-green-600 bg-green-50' : 'text-blue-600 bg-blue-50'
+                    }`}>
+                      {isGiftProduct ? 'GRATUIT' : `${(item.quantity * item.dataItem.price).toFixed(2)} RON`}
                     </div>
                     <button
                       onClick={async () => {
@@ -1100,7 +1135,7 @@ export default function CheckoutPage() {
                     </button>
                   </div>
                 </div>
-              ))}
+              )})}
             </div>
           </div>
 
@@ -1182,10 +1217,17 @@ export default function CheckoutPage() {
                                             locationNameLower.includes('alta') ||
                                             location.name === 'Localități limitrofe';
                     
-                    console.log('📍 Location:', location.name, '| isCustomLocation:', isCustomLocation, '| useCustomAddress:', useCustomAddress);
+                    // Verifică dacă locația este blocată
+                    const isBlocked = blockedDeliveryLocations.includes(location.id);
+                    
+                    console.log('📍 Location:', location.name, '| isCustomLocation:', isCustomLocation, '| useCustomAddress:', useCustomAddress, '| isBlocked:', isBlocked);
                     
                     return (
-                      <label key={location.id} className="flex items-start gap-3 p-4 border-2 rounded-lg cursor-pointer hover:bg-blue-50 hover:border-blue-400 transition-all duration-200 bg-white shadow-sm">
+                      <label key={location.id} className={`flex items-start gap-3 p-4 border-2 rounded-lg transition-all duration-200 ${
+                        isBlocked 
+                          ? 'bg-gray-100 opacity-60 cursor-not-allowed border-gray-300' 
+                          : 'cursor-pointer hover:bg-blue-50 hover:border-blue-400 bg-white shadow-sm'
+                      }`}>
                         <input
                           type="radio"
                           name="deliveryLocation"
@@ -1203,6 +1245,7 @@ export default function CheckoutPage() {
                               setUseCustomAddress(false);
                             }
                           }}
+                          disabled={isBlocked}
                           className="w-5 h-5 mt-1 text-blue-600"
                         />
                         <div className="flex-1">
@@ -1211,6 +1254,11 @@ export default function CheckoutPage() {
                             {location.isMainLocation && (
                               <span className="bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full text-xs font-medium">
                                 ⭐ Principală
+                              </span>
+                            )}
+                            {isBlocked && (
+                              <span className="bg-red-100 text-red-800 px-2 py-0.5 rounded-full text-xs font-medium">
+                                🚫 Temporar indisponibilă
                               </span>
                             )}
                           </div>
@@ -1224,7 +1272,12 @@ export default function CheckoutPage() {
                               <span>{location.phone}</span>
                             </div>
                           )}
-                          {location.deliveryFee !== undefined && (
+                          {isBlocked && (
+                            <div className="text-xs text-red-600 mt-2 bg-red-50 p-2 rounded">
+                              Această locație de livrare este temporar blocată
+                            </div>
+                          )}
+                          {!isBlocked && location.deliveryFee !== undefined && (
                             <div className="text-sm font-medium text-green-700 mt-2 bg-green-50 px-3 py-1 rounded-lg inline-block">
                               💰 Cost livrare: {location.deliveryFee === 0 ? 'GRATUIT' : `${location.deliveryFee} RON`}
                               {location.freeDeliveryThreshold && location.deliveryFee > 0 && (
@@ -1234,13 +1287,13 @@ export default function CheckoutPage() {
                               )}
                             </div>
                           )}
-                          {location.specialInstructions && (
+                          {!isBlocked && location.specialInstructions && (
                             <div className="text-sm text-blue-700 mt-2 bg-blue-50 p-2 rounded-lg flex items-start gap-1">
                               <span>ℹ️</span>
                               <span>{location.specialInstructions}</span>
                             </div>
                           )}
-                          {location.workingHours && (
+                          {!isBlocked && location.workingHours && (
                             <div className="text-xs text-gray-500 mt-2 flex items-center gap-1">
                               <span>🕒</span>
                               <span>Program: {(() => {
