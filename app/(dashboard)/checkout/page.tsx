@@ -87,6 +87,9 @@ export default function CheckoutPage() {
       setCustomCity(user.city || '');
       setCustomCounty(user.county || '');
       setCustomStreet(user.street || '');
+      setCustomStreetNumber(user.streetNumber || '');
+      setCustomAddressDetails(user.addressDetails || '');
+    }
   }, [user]);
 
   // Calculează subtotal când se schimbă cart-ul
