@@ -415,21 +415,6 @@ export default function DashboardPage() {
                       <span className="text-sm font-normal text-gray-600">/produs</span>
                     ) : null}
                   </p>
-                  {/* Afișare cantitate - MEREU */}
-                  {product.priceType === 'per_unit' && product.availableQuantities && product.availableQuantities.length > 0 && (
-                    <p className="text-xs text-gray-500">
-                      (cantități: {product.availableQuantities.join(', ')} {product.unitName})
-                    </p>
-                  )}
-                  {product.priceType === 'fixed' && (
-                    <p className="text-xs text-gray-500">
-                      (fiecare = {
-                        product.availableQuantities && product.availableQuantities.length > 0 
-                          ? product.availableQuantities[0] 
-                          : (product.minQuantity || 1)
-                      } {product.unitName || 'buc'})
-                    </p>
-                  )}
                 </div>
               </Link>
             ))}

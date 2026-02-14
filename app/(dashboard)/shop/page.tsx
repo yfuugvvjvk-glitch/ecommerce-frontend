@@ -370,15 +370,6 @@ export default function ShopPage() {
                       </span>
                     )}
                   </div>
-                  
-                  {/* Afișare specificație produs - UNIFORM pentru toate */}
-                  <p className="text-sm text-gray-600 mt-1">
-                    /produs (fiecare = {
-                      product.availableQuantities && product.availableQuantities.length > 0 
-                        ? product.availableQuantities[0] 
-                        : (product.minQuantity || 1)
-                    } {product.unitName || 'bucată'})
-                  </p>
                 </div>
 
                 <div className="flex items-center justify-between text-sm">
