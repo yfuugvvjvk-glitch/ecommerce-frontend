@@ -12,6 +12,9 @@ interface Product {
   title: string;
   price: number;
   image: string;
+  priceType?: string;
+  unitName?: string;
+  description?: string;
 }
 
 interface NavigationHistoryProps {
@@ -96,12 +99,22 @@ export default function NavigationHistory({ products }: NavigationHistoryProps) 
                   className="group-hover:scale-105 transition-transform"
                 />
               </div>
-              <div className="p-2">
-                <h3 className="text-sm font-medium text-gray-800 group-hover:text-blue-600 break-words whitespace-normal overflow-visible">
+              <div className="p-3">
+                <h3 className="text-sm font-medium text-gray-800 group-hover:text-blue-600 break-words whitespace-normal overflow-visible mb-1">
                   {stripHtml(product.title)}
                 </h3>
-                <p className="text-sm font-bold text-blue-600 mt-1">
+                {product.description && (
+                  <p className="text-xs text-gray-600 line-clamp-2 mb-2">
+                    {stripHtml(product.description)}
+                  </p>
+                )}
+                <p className="text-sm font-bold text-blue-600">
                   <CurrencyPrice amount={product.price} />
+                  {product.priceType === 'per_unit' ? (
+                    <span className="text-xs font-normal text-gray-600">/{product.unitName || 'buc'}</span>
+                  ) : product.priceType === 'fixed' ? (
+                    <span className="text-xs font-normal text-gray-600">/bucată</span>
+                  ) : null}
                 </p>
               </div>
             </div>
