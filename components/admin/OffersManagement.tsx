@@ -5,6 +5,7 @@ import { apiClient } from '@/lib/api-client';
 import { usePagination } from '@/lib/usePagination';
 import Pagination from '@/components/Pagination';
 import FilterBar from './FilterBar';
+import { stripHtml } from '@/utils/stripHtml';
 
 export default function OffersManagement() {
   const [offers, setOffers] = useState<any[]>([]);
@@ -401,7 +402,7 @@ export default function OffersManagement() {
                       }}
                       className="w-4 h-4"
                     />
-                    <span className="text-sm">{product.title}</span>
+                    <span className="text-sm">{stripHtml(product.title)}</span>
                   </label>
                 ))}
               </div>
