@@ -199,11 +199,26 @@ export default function ProductsManagement() {
       console.log('🔎 După căutare:', filtered.length);
     }
 
-    // Filtrare după categorie
+    // Filtrare după categorie (include și subcategoriile)
     if (filterCategory) {
       console.log('📁 Filtrare după categorie:', filterCategory);
+      
+      // Găsește categoria selectată
+      const selectedCategory = categories.find(c => c.id === filterCategory);
+      console.log('📁 Categorie selectată:', selectedCategory);
+      
+      // Găsește toate subcategoriile categoriei selectate
+      const subcategoryIds = categories
+        .filter(c => c.parentId === filterCategory)
+        .map(c => c.id);
+      console.log('📁 Subcategorii găsite:', subcategoryIds);
+      
+      // Filtrează produsele care aparțin categoriei selectate SAU subcategoriilor ei
+      const allCategoryIds = [filterCategory, ...subcategoryIds];
+      console.log('📁 Toate ID-urile de categorii (principal + subcategorii):', allCategoryIds);
+      
       console.log('📁 Produse înainte:', filtered.map(p => ({ id: p.id, title: p.title, categoryId: p.categoryId })));
-      filtered = filtered.filter(p => p.categoryId === filterCategory);
+      filtered = filtered.filter(p => allCategoryIds.includes(p.categoryId));
       console.log('📁 După filtrare categorie:', filtered.length);
       console.log('📁 Produse după:', filtered.map(p => ({ id: p.id, title: p.title, categoryId: p.categoryId })));
     }
@@ -242,7 +257,7 @@ export default function ProductsManagement() {
 
     console.log('✅ Produse finale după filtrare și sortare:', filtered.length);
     setFilteredProducts(filtered);
-  }, [products, searchTerm, filterCategory, filterStatus, sortBy]);
+  }, [products, searchTerm, filterCategory, filterStatus, sortBy, categories]);
 
   const handleProductUpdate = async (productId: string) => {
     try {
