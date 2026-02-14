@@ -412,7 +412,7 @@ export default function DashboardPage() {
                     {product.priceType === 'per_unit' && product.unitName && product.unitName !== 'bucată' ? (
                       <span className="text-sm font-normal text-gray-600">/{product.unitName}</span>
                     ) : product.priceType === 'fixed' ? (
-                      <span className="text-sm font-normal text-gray-600">/produs</span>
+                      <span className="text-sm font-normal text-gray-600">/bucată</span>
                     ) : null}
                   </p>
                 </div>

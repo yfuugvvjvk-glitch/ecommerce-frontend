@@ -157,7 +157,7 @@ export default function ShoppingCart({ onClose }: { onClose?: () => void }) {
               </div>
               {item.dataItem.priceType === 'fixed' && item.dataItem.availableQuantities && item.dataItem.availableQuantities[0] > 1 && (
                 <p className="text-xs text-gray-500">
-                  {item.dataItem.availableQuantities[0]} {item.dataItem.unitName}/produs
+                  {item.dataItem.availableQuantities[0]} {item.dataItem.unitName}/bucată
                 </p>
               )}
               

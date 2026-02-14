@@ -238,7 +238,7 @@ export default function ProductDetailsPage() {
                   </div>
                 ) : (
                   <span className="text-lg text-gray-600">
-                    / produs
+                    / bucată
                     <span className="block text-sm text-gray-500 mt-1">
                       (fiecare = {
                         product.availableQuantities && product.availableQuantities.length > 0 
@@ -303,16 +303,9 @@ export default function ProductDetailsPage() {
                 <div className="flex items-center gap-4 mb-4">
                   <button
                     onClick={() => {
-                      // Calculează step-ul corect din cantitățile disponibile
-                      let step = 0.5;
-                      if (product.availableQuantities && product.availableQuantities.length > 1) {
-                        const sortedQtys = [...product.availableQuantities].sort((a, b) => a - b);
-                        step = sortedQtys[1] - sortedQtys[0]; // Diferența între primele două cantități
-                      } else if (product.minQuantity) {
-                        step = product.minQuantity;
-                      }
-                      
-                      const minQty = product.availableQuantities?.[0] || product.minQuantity || 0.5;
+                      // Step-ul este întotdeauna cea mai mică cantitate disponibilă
+                      const step = product.availableQuantities?.[0] || product.minQuantity || 0.5;
+                      const minQty = step;
                       setSelectedQuantity(Math.max(minQty, selectedQuantity - step));
                     }}
                     className="w-12 h-12 bg-gray-200 hover:bg-gray-300 rounded-lg font-bold text-2xl flex items-center justify-center transition"
@@ -322,13 +315,7 @@ export default function ProductDetailsPage() {
                   <input
                     type="number"
                     min={product.availableQuantities?.[0] || product.minQuantity || 0.5}
-                    step={(() => {
-                      if (product.availableQuantities && product.availableQuantities.length > 1) {
-                        const sortedQtys = [...product.availableQuantities].sort((a, b) => a - b);
-                        return sortedQtys[1] - sortedQtys[0];
-                      }
-                      return product.minQuantity || 0.5;
-                    })()}
+                    step={product.availableQuantities?.[0] || product.minQuantity || 0.5}
                     value={selectedQuantity}
                     onChange={(e) => {
                       const minQty = product.availableQuantities?.[0] || product.minQuantity || 0.5;
@@ -339,15 +326,8 @@ export default function ProductDetailsPage() {
                   />
                   <button
                     onClick={() => {
-                      // Calculează step-ul corect din cantitățile disponibile
-                      let step = 0.5;
-                      if (product.availableQuantities && product.availableQuantities.length > 1) {
-                        const sortedQtys = [...product.availableQuantities].sort((a, b) => a - b);
-                        step = sortedQtys[1] - sortedQtys[0]; // Diferența între primele două cantități
-                      } else if (product.minQuantity) {
-                        step = product.minQuantity;
-                      }
-                      
+                      // Step-ul este întotdeauna cea mai mică cantitate disponibilă
+                      const step = product.availableQuantities?.[0] || product.minQuantity || 0.5;
                       setSelectedQuantity(selectedQuantity + step);
                     }}
                     className="w-12 h-12 bg-gray-200 hover:bg-gray-300 rounded-lg font-bold text-2xl flex items-center justify-center transition"
@@ -364,7 +344,7 @@ export default function ProductDetailsPage() {
                         {selectedQuantity.toFixed(2)} {product.unitName || 'buc'}
                         {product.priceType === 'fixed' && product.availableQuantities && product.availableQuantities[0] && (
                           <span className="text-gray-600 ml-1">
-                            ({(selectedQuantity / product.availableQuantities[0]).toFixed(0)} {(selectedQuantity / product.availableQuantities[0]) === 1 ? 'produs' : 'produse'})
+                            ({(selectedQuantity / product.availableQuantities[0]).toFixed(0)} {(selectedQuantity / product.availableQuantities[0]) === 1 ? 'bucată' : 'bucăți'})
                           </span>
                         )}
                       </strong>
