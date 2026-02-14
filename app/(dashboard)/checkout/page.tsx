@@ -315,44 +315,44 @@ export default function CheckoutPage() {
       rules.forEach((rule: any) => {
         if (!rule.isActive) return;
         
+        // Verifică dacă regula este în intervalul de timp specificat
+        const isInTimeRange = rule.blockFrom && rule.blockUntil 
+          ? now >= new Date(rule.blockFrom) && now <= new Date(rule.blockUntil)
+          : true; // Dacă nu există interval, regula este mereu activă
+        
+        if (!isInTimeRange) {
+          console.log(`❌ Rule "${rule.name}" is NOT in time range`);
+          return;
+        }
+        
+        console.log(`✅ Rule "${rule.name}" is ACTIVE in time range`);
+        
+        // Verifică dacă blochează toate comenzile noi
+        if (rule.blockNewOrders) {
+          setIsDeliveryBlocked(true);
+          setBlockReason(rule.blockReason || 'Comenzile sunt blocate temporar');
+          console.log(`🚫 BLOCAT - Toate comenzile noi sunt blocate: ${rule.blockReason}`);
+          return;
+        }
+        
         // Verifică valoarea minimă a comenzii
-        if (rule.minimumOrderValue && subtotal < rule.minimumOrderValue) {
+        if (rule.minimumOrderValue && rule.minimumOrderValue > 0 && subtotal < rule.minimumOrderValue) {
           setIsDeliveryBlocked(true);
           setBlockReason(rule.blockReason || `Valoarea minimă a comenzii este ${rule.minimumOrderValue.toFixed(2)} RON`);
           console.log(`🚫 BLOCAT - Valoarea comenzii (${subtotal.toFixed(2)} RON) este sub minimul de ${rule.minimumOrderValue.toFixed(2)} RON`);
           return;
         }
         
-        // Verifică dacă regula este în intervalul de timp specificat
-        if (rule.blockFrom && rule.blockUntil) {
-          const blockFrom = new Date(rule.blockFrom);
-          const blockUntil = new Date(rule.blockUntil);
-          
-          console.log(`📅 Checking rule "${rule.name}":`, {
-            now: now.toISOString(),
-            blockFrom: blockFrom.toISOString(),
-            blockUntil: blockUntil.toISOString(),
-            isInRange: now >= blockFrom && now <= blockUntil
-          });
-          
-          // Dacă suntem în intervalul de blocare
-          if (now >= blockFrom && now <= blockUntil) {
-            console.log(`✅ Rule "${rule.name}" is ACTIVE`);
-            
-            // Adaugă metodele de plată blocate
-            if (rule.blockedPaymentMethods && rule.blockedPaymentMethods.length > 0) {
-              blockedPayments.push(...rule.blockedPaymentMethods);
-              console.log('🔒 Blocked payment methods:', rule.blockedPaymentMethods);
-            }
-            
-            // Adaugă metodele de livrare blocate
-            if (rule.blockedDeliveryMethods && rule.blockedDeliveryMethods.length > 0) {
-              blockedDeliveries.push(...rule.blockedDeliveryMethods);
-              console.log('🚚 Blocked delivery methods:', rule.blockedDeliveryMethods);
-            }
-          } else {
-            console.log(`❌ Rule "${rule.name}" is NOT in time range`);
-          }
+        // Adaugă metodele de plată blocate
+        if (rule.blockedPaymentMethods && rule.blockedPaymentMethods.length > 0) {
+          blockedPayments.push(...rule.blockedPaymentMethods);
+          console.log('🔒 Blocked payment methods:', rule.blockedPaymentMethods);
+        }
+        
+        // Adaugă metodele de livrare blocate
+        if (rule.blockedDeliveryMethods && rule.blockedDeliveryMethods.length > 0) {
+          blockedDeliveries.push(...rule.blockedDeliveryMethods);
+          console.log('🚚 Blocked delivery methods:', rule.blockedDeliveryMethods);
         }
       });
       
