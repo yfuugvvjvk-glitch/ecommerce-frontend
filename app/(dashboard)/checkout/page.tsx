@@ -65,6 +65,7 @@ export default function CheckoutPage() {
   const [addressValidationMessage, setAddressValidationMessage] = useState<string>('');
   const [isAddressValid, setIsAddressValid] = useState<boolean | null>(null);
   const [validatingAddress, setValidatingAddress] = useState(false);
+  const [subtotal, setSubtotal] = useState(0);
   
   // Stock check hook
   const { stockErrors, checking, checkAllStock } = useStockCheck(
@@ -80,13 +81,30 @@ export default function CheckoutPage() {
     fetchPaymentMethods();
     fetchContactInfo();
     fetchDeliverySchedule();
-    fetchBlockRules(); // Verifică regulile de blocare active
     
     // Inițializează câmpurile de adresă cu valorile din profil
     if (user) {
       setCustomCity(user.city || '');
       setCustomCounty(user.county || '');
       setCustomStreet(user.street || '');
+  }, [user]);
+
+  // Calculează subtotal când se schimbă cart-ul
+  useEffect(() => {
+    if (cart && cart.items) {
+      const calculatedSubtotal = cart.items.reduce((sum: number, item: any) => {
+        return sum + (item.dataItem?.price || 0) * item.quantity;
+      }, 0);
+      setSubtotal(calculatedSubtotal);
+    }
+  }, [cart]);
+
+  // Verifică regulile de blocare când se schimbă subtotal
+  useEffect(() => {
+    if (subtotal > 0) {
+      fetchBlockRules();
+    }
+  }, [subtotal]);
       setCustomStreetNumber(user.streetNumber || '');
       setCustomAddressDetails(user.addressDetails || '');
       
@@ -310,6 +328,14 @@ export default function CheckoutPage() {
       // Verifică fiecare regulă activă
       rules.forEach((rule: any) => {
         if (!rule.isActive) return;
+        
+        // Verifică valoarea minimă a comenzii
+        if (rule.minimumOrderValue && subtotal < rule.minimumOrderValue) {
+          setIsDeliveryBlocked(true);
+          setBlockReason(rule.blockReason || `Valoarea minimă a comenzii este ${rule.minimumOrderValue.toFixed(2)} RON`);
+          console.log(`🚫 BLOCAT - Valoarea comenzii (${subtotal.toFixed(2)} RON) este sub minimul de ${rule.minimumOrderValue.toFixed(2)} RON`);
+          return;
+        }
         
         // Verifică dacă regula este în intervalul de timp specificat
         if (rule.blockFrom && rule.blockUntil) {
