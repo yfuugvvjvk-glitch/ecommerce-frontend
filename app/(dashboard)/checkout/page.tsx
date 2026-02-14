@@ -108,23 +108,6 @@ export default function CheckoutPage() {
       fetchBlockRules();
     }
   }, [subtotal]);
-      setCustomStreetNumber(user.streetNumber || '');
-      setCustomAddressDetails(user.addressDetails || '');
-      
-      // Construiește adresa completă pentru backwards compatibility
-      const addressParts = [];
-      if (user.street) addressParts.push(user.street);
-      if (user.streetNumber) addressParts.push(`nr. ${user.streetNumber}`);
-      if (user.addressDetails) addressParts.push(user.addressDetails);
-      if (user.city) addressParts.push(user.city);
-      if (user.county) addressParts.push(`Județul ${user.county}`);
-      
-      const fullAddress = addressParts.length > 0 ? addressParts.join(', ') : (user.address || '');
-      setShippingAddress(fullAddress);
-      
-      console.log('🏠 User address initialized:', { city: user.city, county: user.county, street: user.street, streetNumber: user.streetNumber, addressDetails: user.addressDetails });
-    }
-  }, [user]);
 
   // Refresh cart when returning to page
   useEffect(() => {
