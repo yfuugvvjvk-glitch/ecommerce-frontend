@@ -5,8 +5,10 @@ import { useParams, useRouter } from 'next/navigation';
 import { apiClient, favoritesAPI, cartAPI } from '@/lib/api-client';
 import { useTranslation } from '@/components/LanguageSwitcher';
 import { useCart } from '@/lib/cart-context';
+import { useAuth } from '@/lib/auth-context';
 import { Heart, ShoppingCart } from 'lucide-react';
 import CurrencyPrice from '@/components/CurrencyPrice';
+import { stripHtml } from '@/utils/stripHtml';
 
 export default function ProductDetailsPage() {
   const params = useParams();
@@ -30,8 +32,17 @@ export default function ProductDetailsPage() {
 
   useEffect(() => {
     // Set default quantity when product loads
-    if (product?.availableQuantities && product.availableQuantities.length > 0) {
-      setSelectedQuantity(product.availableQuantities[0]);
+    if (product) {
+      // Pentru priceType fixed, setăm numărul de produse (1, 2, 3...), nu cantitatea în unități
+      if (product.priceType === 'fixed') {
+        setSelectedQuantity(1); // Start cu 1 produs
+      } else if (product.availableQuantities && product.availableQuantities.length > 0) {
+        // Sortează cantitățile și ia cea mai mică
+        const sortedQtys = [...product.availableQuantities].sort((a, b) => a - b);
+        setSelectedQuantity(sortedQtys[0]); // Cea mai mică cantitate disponibilă
+      } else {
+        setSelectedQuantity(product.minQuantity || 0.5); // Default la minQuantity sau 0.5
+      }
     }
   }, [product]);
 
@@ -144,11 +155,11 @@ export default function ProductDetailsPage() {
           {/* COLOANA STÂNGA - Imagine + Descrieri */}
           <div className="space-y-6">
             {/* Imagine produs */}
-            <div className="relative bg-gray-100 rounded-lg overflow-hidden flex items-center justify-center" style={{minHeight: '400px', maxHeight: '500px'}}>
+            <div className="relative flex items-center justify-center" style={{height: '350px'}}>
               <img
                 src={product.image || '/placeholder.jpg'}
-                alt={product.title}
-                className="max-w-full max-h-full object-contain"
+                alt={stripHtml(product.title)}
+                style={{ maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto', display: 'block' }}
               />
             </div>
 
@@ -156,13 +167,14 @@ export default function ProductDetailsPage() {
             <div className="space-y-4">
               {product.description && (
                 <div>
-                  <p className="text-gray-600 leading-relaxed">{product.description}</p>
+                  <div className="text-gray-600 leading-relaxed" dangerouslySetInnerHTML={{ __html: product.description }} />
                 </div>
               )}
 
-              {product.content && (
+              {/* Afișează content doar dacă este diferit de description */}
+              {product.content && product.content !== product.description && (
                 <div>
-                  <p className="text-gray-600 leading-relaxed whitespace-pre-wrap">{product.content}</p>
+                  <div className="text-gray-600 leading-relaxed whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: product.content }} />
                 </div>
               )}
 
@@ -199,7 +211,7 @@ export default function ProductDetailsPage() {
             
             {/* Header cu titlu și favorite */}
             <div className="flex items-start justify-between gap-4">
-              <h1 className="text-3xl font-bold text-gray-900 flex-1">{product.title}</h1>
+              <h1 className="text-3xl font-bold text-gray-900 flex-1">{stripHtml(product.title)}</h1>
               <button
                 onClick={toggleFavorite}
                 className="flex-shrink-0 p-3 border-2 border-gray-300 rounded-full hover:border-red-500 hover:bg-red-50 transition"
@@ -216,24 +228,34 @@ export default function ProductDetailsPage() {
                   <CurrencyPrice amount={product.price} />
                 </span>
                 {product.priceType === 'per_unit' && product.unitName && product.unitName !== 'bucată' ? (
-                  <span className="text-lg text-gray-600">
-                    / {product.unitName}
-                  </span>
+                  <div>
+                    <span className="text-lg text-gray-600">
+                      / {product.unitName}
+                    </span>
+                    {/* Afișare cantități disponibile pentru per_unit */}
+                    {product.availableQuantities && product.availableQuantities.length > 0 && (
+                      <span className="block text-sm text-gray-500 mt-1">
+                        (cantități disponibile: {product.availableQuantities.join(', ')} {product.unitName})
+                      </span>
+                    )}
+                  </div>
                 ) : (
                   <span className="text-lg text-gray-600">
                     / produs
-                    {product.availableQuantities && product.availableQuantities.length > 0 && product.availableQuantities[0] > 1 && (
-                      <span className="block text-sm text-gray-500 mt-1">
-                        (fiecare = {product.availableQuantities[0]} {product.unitName || 'buc'})
-                      </span>
-                    )}
+                    <span className="block text-sm text-gray-500 mt-1">
+                      (fiecare = {
+                        product.availableQuantities && product.availableQuantities.length > 0 
+                          ? product.availableQuantities[0] 
+                          : (product.minQuantity || 1)
+                      } {product.unitName || 'buc'})
+                    </span>
                   </span>
                 )}
               </div>
               {product.oldPrice && (
                 <div className="flex items-center gap-2 mt-2">
                   <span className="text-xl text-gray-400 line-through">
-                    {product.oldPrice} RON
+                    {product.oldPrice} lei
                   </span>
                   <span className="px-2 py-1 bg-red-500 text-white text-sm font-bold rounded">
                     -{Math.round(((product.oldPrice - product.price) / product.oldPrice) * 100)}%
@@ -264,7 +286,7 @@ export default function ProductDetailsPage() {
                   <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-800 rounded-full">
                     <span className="text-lg">✓</span>
                     <span className="font-semibold">
-                      În stoc: {product.availableStock || product.stock} {product.priceType === 'fixed' ? 'produse' : product.unitName || 'buc'}
+                      În stoc: {((product.availableStock || product.stock) as number).toFixed(2)} {product.unitName || 'produse'}
                     </span>
                   </div>
                 ) : (
@@ -276,32 +298,77 @@ export default function ProductDetailsPage() {
               ) : null}
             </div>
 
-            {/* Calculator cantitate */}
-            {product.availableQuantities && product.availableQuantities.length > 0 && (
-              <div className="bg-white border-2 border-gray-300 rounded-xl p-5 shadow-sm">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">Selectează cantitatea</h3>
+            {/* Calculator cantitate - afișat întotdeauna */}
+            <div className="bg-white border-2 border-gray-300 rounded-xl p-5 shadow-sm">
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">Selectează cantitatea</h3>
                 
                 {/* Butoane +/- */}
                 <div className="flex items-center gap-4 mb-4">
                   <button
-                    onClick={() => setSelectedQuantity(Math.max(product.availableQuantities[0] || 1, selectedQuantity - (product.quantityStep || 1)))}
+                    onClick={() => {
+                      // Calculează step-ul corect din cantitățile disponibile
+                      let step = 1;
+                      if (product.priceType === 'per_unit' && product.availableQuantities && product.availableQuantities.length > 1) {
+                        // Găsește diferența minimă între cantități consecutive
+                        const sortedQtys = [...product.availableQuantities].sort((a, b) => a - b);
+                        step = sortedQtys[1] - sortedQtys[0]; // Diferența între primele două cantități
+                      } else if (product.priceType === 'per_unit') {
+                        step = product.minQuantity || 0.5;
+                      }
+                      
+                      const minQty = product.priceType === 'fixed' ? 1 : (product.availableQuantities?.[0] || step);
+                      setSelectedQuantity(Math.max(minQty, selectedQuantity - step));
+                    }}
                     className="w-12 h-12 bg-gray-200 hover:bg-gray-300 rounded-lg font-bold text-2xl flex items-center justify-center transition"
                   >
                     −
                   </button>
                   <input
                     type="number"
-                    min={product.availableQuantities[0] || 1}
-                    step={product.quantityStep || 1}
+                    min={product.priceType === 'fixed' ? 1 : (product.availableQuantities?.[0] || product.minQuantity || 0.5)}
+                    step={(() => {
+                      if (product.priceType === 'fixed') return 1;
+                      if (product.availableQuantities && product.availableQuantities.length > 1) {
+                        const sortedQtys = [...product.availableQuantities].sort((a, b) => a - b);
+                        return sortedQtys[1] - sortedQtys[0];
+                      }
+                      return product.minQuantity || 0.5;
+                    })()}
                     value={selectedQuantity}
                     onChange={(e) => {
-                      const val = parseFloat(e.target.value) || product.availableQuantities[0] || 1;
-                      setSelectedQuantity(Math.max(product.availableQuantities[0] || 1, val));
+                      let step = 1;
+                      if (product.priceType === 'per_unit' && product.availableQuantities && product.availableQuantities.length > 1) {
+                        const sortedQtys = [...product.availableQuantities].sort((a, b) => a - b);
+                        step = sortedQtys[1] - sortedQtys[0];
+                      } else if (product.priceType === 'per_unit') {
+                        step = product.minQuantity || 0.5;
+                      }
+                      
+                      const minQty = product.priceType === 'fixed' ? 1 : (product.availableQuantities?.[0] || step);
+                      let val = parseFloat(e.target.value) || minQty;
+                      
+                      // Pentru priceType fixed, rotunjim la număr întreg de produse
+                      if (product.priceType === 'fixed') {
+                        val = Math.round(val);
+                      }
+                      setSelectedQuantity(Math.max(minQty, val));
                     }}
                     className="flex-1 text-center text-2xl font-bold border-2 border-gray-300 rounded-lg py-3"
                   />
                   <button
-                    onClick={() => setSelectedQuantity(selectedQuantity + (product.quantityStep || 1))}
+                    onClick={() => {
+                      // Calculează step-ul corect din cantitățile disponibile
+                      let step = 1;
+                      if (product.priceType === 'per_unit' && product.availableQuantities && product.availableQuantities.length > 1) {
+                        // Găsește diferența minimă între cantități consecutive
+                        const sortedQtys = [...product.availableQuantities].sort((a, b) => a - b);
+                        step = sortedQtys[1] - sortedQtys[0]; // Diferența între primele două cantități
+                      } else if (product.priceType === 'per_unit') {
+                        step = product.minQuantity || 0.5;
+                      }
+                      
+                      setSelectedQuantity(selectedQuantity + step);
+                    }}
                     className="w-12 h-12 bg-gray-200 hover:bg-gray-300 rounded-lg font-bold text-2xl flex items-center justify-center transition"
                   >
                     +
@@ -312,7 +379,12 @@ export default function ProductDetailsPage() {
                 <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg mb-4">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-700">
-                      Cantitate: <strong className="text-gray-900">{selectedQuantity} {product.unitName}</strong>
+                      Cantitate: <strong className="text-gray-900">
+                        {product.priceType === 'fixed' 
+                          ? `${selectedQuantity * ((product.availableQuantities && product.availableQuantities[0]) || 1)} ${product.unitName || 'buc'} (${selectedQuantity} ${selectedQuantity === 1 ? 'produs' : 'produse'})`
+                          : `${selectedQuantity} ${product.unitName || 'buc'}`
+                        }
+                      </strong>
                     </span>
                     <span className="text-2xl font-bold text-blue-600">
                       <CurrencyPrice amount={selectedQuantity * product.price} />
@@ -320,8 +392,8 @@ export default function ProductDetailsPage() {
                   </div>
                 </div>
 
-                {/* Cantități rapide */}
-                {product.availableQuantities.length > 1 && (
+                {/* Cantități rapide - doar dacă există availableQuantities */}
+                {product.availableQuantities && product.availableQuantities.length > 1 && (
                   <div>
                     <p className="text-sm text-gray-600 mb-2">Cantități rapide:</p>
                     <div className="grid grid-cols-3 gap-2">
@@ -343,7 +415,6 @@ export default function ProductDetailsPage() {
                   </div>
                 )}
               </div>
-            )}
 
             {/* Buton Adaugă în coș */}
             <button
@@ -368,6 +439,7 @@ export default function ProductDetailsPage() {
 
 // Reviews Component  
 function ReviewsSection({ productId }: { productId: string }) {
+  const { user } = useAuth();
   const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -375,6 +447,8 @@ function ReviewsSection({ productId }: { productId: string }) {
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [editingReview, setEditingReview] = useState<any>(null);
+  
+  const isGuest = user?.role === 'guest';
 
   useEffect(() => {
     fetchReviews();
@@ -474,17 +548,30 @@ function ReviewsSection({ productId }: { productId: string }) {
             </div>
           </div>
         </div>
-        <button
-          onClick={() => {
-            setShowForm(!showForm);
-            setEditingReview(null);
-            setRating(5);
-            setComment('');
-          }}
-          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-        >
-          {showForm ? 'Anulează' : '✍️ Scrie recenzie'}
-        </button>
+        {isGuest ? (
+          <div className="text-center">
+            <button
+              disabled
+              className="px-6 py-3 bg-gray-300 text-gray-500 rounded-lg cursor-not-allowed"
+              title="Contul de vizitator nu poate lăsa recenzii"
+            >
+              🔒 Blocat pentru vizitatori
+            </button>
+            <p className="text-xs text-gray-500 mt-1">Creează un cont pentru a lăsa recenzii</p>
+          </div>
+        ) : (
+          <button
+            onClick={() => {
+              setShowForm(!showForm);
+              setEditingReview(null);
+              setRating(5);
+              setComment('');
+            }}
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            {showForm ? 'Anulează' : '✍️ Scrie recenzie'}
+          </button>
+        )}
       </div>
 
       {/* Review Form */}

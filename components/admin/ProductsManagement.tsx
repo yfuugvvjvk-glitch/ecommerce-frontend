@@ -6,6 +6,7 @@ import { useWebSocket } from '@/lib/useWebSocket';
 import { usePagination } from '@/lib/usePagination';
 import Pagination from '@/components/Pagination';
 import RichTextEditor from '@/components/RichTextEditor';
+import { stripHtml } from '@/utils/stripHtml';
 
 interface Category {
   id: string;
@@ -150,8 +151,9 @@ export default function ProductsManagement() {
 
   const fetchData = async () => {
     try {
+      const timestamp = Date.now(); // Cache busting
       const [productsRes, categoriesRes, deliveryRes, paymentRes] = await Promise.all([
-        apiClient.get('/api/data?showAll=true'), // Admin vede toate produsele
+        apiClient.get(`/api/data?showAll=true&_t=${timestamp}`), // Admin vede toate produsele
         apiClient.get('/api/categories'),
         apiClient.get('/api/admin/delivery-settings'),
         apiClient.get('/api/admin/payment-methods')
@@ -287,6 +289,51 @@ export default function ProductsManagement() {
       console.error('❌ Error updating product:', error);
       console.error('Error response:', error.response?.data);
       alert(`Eroare la actualizarea produsului: ${error.response?.data?.error || error.message}`);
+    }
+  };
+
+  const handleDuplicateProduct = async (product: Product) => {
+    try {
+      // Create duplicate with modified title
+      const duplicateData = {
+        title: `${product.title} (Copie)`,
+        description: product.description,
+        content: product.description,
+        importantInfo: (product as any).importantInfo || '',
+        price: product.price,
+        oldPrice: (product as any).oldPrice || null,
+        stock: 0, // Start with 0 stock
+        categoryId: product.categoryId,
+        image: product.image,
+        status: product.status || 'published',
+        stockDisplayMode: product.stockDisplayMode || 'visible',
+        isPerishable: (product as any).isPerishable,
+        expirationDate: (product as any).expirationDate || null,
+        productionDate: (product as any).productionDate || null,
+        requiresAdvanceOrder: (product as any).requiresAdvanceOrder,
+        advanceOrderDays: (product as any).advanceOrderDays,
+        deliveryTimeHours: (product as any).deliveryTimeHours,
+        deliveryTimeDays: (product as any).deliveryTimeDays,
+        isActive: (product as any).isActive,
+        showInCarousel: false, // Don't show duplicate in carousel by default
+        unitType: (product as any).unitType,
+        unitName: (product as any).unitName,
+        priceType: (product as any).priceType || 'per_unit',
+        availableQuantities: (product as any).availableQuantities || [],
+        allowFractional: false,
+        minQuantity: (product as any).minQuantity || 1,
+        quantityStep: (product as any).quantityStep || 1
+      };
+
+      const response = await apiClient.post('/api/data', duplicateData);
+      
+      if (response.status === 201) {
+        alert('✅ Produs dublat cu succes!');
+        fetchData();
+      }
+    } catch (error: any) {
+      console.error('❌ Error duplicating product:', error);
+      alert(`Eroare la dublarea produsului: ${error.response?.data?.error || error.message}`);
     }
   };
 
@@ -455,9 +502,9 @@ export default function ProductsManagement() {
       id: product.id, // NOU: Salvăm ID-ul în form
       title: product.title,
       description: product.description || '',
-      importantInfo: product.importantInfo || '', // NOU
+      importantInfo: (product as any).importantInfo || '', // NOU
       price: product.price,
-      oldPrice: product.oldPrice || undefined,
+      oldPrice: (product as any).oldPrice || undefined,
       stock: product.stock,
       categoryId: product.categoryId,
       image: product.image,
@@ -757,7 +804,7 @@ export default function ProductsManagement() {
                 <div className="flex justify-between items-start">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
-                      <h4 className="font-semibold text-lg">{product.title}</h4>
+                      <h4 className="font-semibold text-lg">{stripHtml(product.title)}</h4>
                       
                       {/* Status Badge */}
                       {product.status === 'draft' ? (
@@ -787,7 +834,7 @@ export default function ProductsManagement() {
                         </span>
                       )}
                     </div>
-                    <p className="text-gray-600 mb-2">{product.category.name}</p>
+                    {/* Category hidden as requested */}
                     
                     {/* Informații despre vânzare și preț */}
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
@@ -819,10 +866,10 @@ export default function ProductsManagement() {
                       <div className="bg-orange-50 p-2 rounded">
                         <p className="text-xs text-orange-600 font-medium">Stoc Disponibil</p>
                         <p className="font-bold text-orange-800">
-                          {product.availableStock !== undefined ? product.availableStock : product.stock} {product.unitName}
+                          {(product.availableStock !== undefined ? product.availableStock : product.stock).toFixed(2)} {product.unitName}
                           {product.availableStock !== undefined && product.stock !== product.availableStock && (
                             <span className="text-xs text-gray-600 block">
-                              (Total: {product.stock})
+                              (Total: {product.stock.toFixed(2)})
                             </span>
                           )}
                         </p>
@@ -866,6 +913,13 @@ export default function ProductsManagement() {
                       className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition"
                     >
                       ⚙️ Configurează
+                    </button>
+                    <button
+                      onClick={() => handleDuplicateProduct(product)}
+                      className="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition"
+                      title="Dublează produs"
+                    >
+                      📋 Dublează
                     </button>
                     <button
                       onClick={() => handleDeleteProduct(product.id)}
@@ -1028,7 +1082,7 @@ export default function ProductsManagement() {
           <div className="bg-white rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-semibold">
-                {selectedProduct ? `Configurare: ${selectedProduct.title}` : 'Adaugă Produs Nou'}
+                {selectedProduct ? `Configurare: ${stripHtml(selectedProduct.title)}` : 'Adaugă Produs Nou'}
               </h3>
               <button
                 onClick={() => setShowModal(false)}

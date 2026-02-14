@@ -4,6 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Heart } from 'lucide-react';
 import CurrencyPrice from './CurrencyPrice';
+import { stripHtml } from '@/utils/stripHtml';
 
 interface Product {
   id: string;
@@ -60,17 +61,19 @@ export default function ProductGrid({
             </button>
 
             <Link href={`/products/${product.id}`}>
-              <div className="relative h-48 bg-gray-200">
-                <Image
+              <div className="relative h-56 bg-gray-200">
+                <img
                   src={product.image || '/placeholder.jpg'}
                   alt={product.title}
-                  fill
-                  className="object-cover group-hover:scale-105 transition-transform"
+                  width="100%"
+                  height="100%"
+                  style={{ width: '100%', height: '100%', display: 'block' }}
+                  className="group-hover:scale-105 transition-transform"
                 />
               </div>
               <div className="p-4">
-                <h3 className="font-medium text-gray-800 truncate group-hover:text-blue-600 mb-2">
-                  {product.title}
+                <h3 className="font-medium text-gray-800 break-words whitespace-normal overflow-visible group-hover:text-blue-600 mb-2">
+                  {stripHtml(product.title)}
                 </h3>
                 {product.rating && (
                   <div className="flex items-center gap-1 mb-2">

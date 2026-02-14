@@ -9,6 +9,7 @@ interface Category {
   id: string;
   name: string;
   slug: string;
+  icon?: string; // Add icon field
   _count?: {
     dataItems: number;
   };
@@ -100,7 +101,10 @@ export default function Sidebar({ categories, activeCategory, onCategorySelect }
                           activeCategory === category.id ? 'bg-blue-50 text-blue-600 font-medium' : 'text-gray-600 hover:bg-gray-100'
                         } ${!hasSubcategories ? 'ml-5' : ''}`}
                       >
-                        <span className="truncate">{category.name}</span>
+                        <span className="truncate">
+                          {category.icon && <span className="mr-1">{category.icon}</span>}
+                          {category.name}
+                        </span>
                         {productCount > 0 && (
                           <span className="ml-1 text-[10px] bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-full flex-shrink-0">
                             {productCount}
@@ -122,7 +126,10 @@ export default function Sidebar({ categories, activeCategory, onCategorySelect }
                                 activeCategory === subcat.id ? 'bg-blue-50 text-blue-600 font-medium' : 'text-gray-500 hover:bg-gray-100'
                               }`}
                             >
-                              <span className="truncate">• {subcat.name}</span>
+                              <span className="truncate">
+                                • {subcat.icon && <span className="mr-1">{subcat.icon}</span>}
+                                {subcat.name}
+                              </span>
                               {subProductCount > 0 && (
                                 <span className="ml-1 text-[10px] bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-full flex-shrink-0">
                                   {subProductCount}

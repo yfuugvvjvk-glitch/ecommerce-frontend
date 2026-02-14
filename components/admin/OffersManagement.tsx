@@ -91,7 +91,12 @@ export default function OffersManagement() {
   const fetchOffers = async () => {
     try {
       const response = await apiClient.get('/api/admin/offers');
-      setOffers(response.data);
+      // Transform products array to productIds array
+      const offersWithProductIds = response.data.map((offer: any) => ({
+        ...offer,
+        productIds: offer.products?.map((p: any) => p.dataItemId) || []
+      }));
+      setOffers(offersWithProductIds);
     } catch (error) {
       console.error('Failed to fetch offers:', error);
     } finally {
@@ -102,12 +107,12 @@ export default function OffersManagement() {
   const handleEdit = (offer: any) => {
     setEditingId(offer.id);
     setFormData({
-      title: offer.title,
+      title: offer.title || '',
       description: offer.description || '',
       image: offer.image || '',
       discount: offer.discount || 0,
       validUntil: offer.validUntil ? new Date(offer.validUntil).toISOString().slice(0, 16) : '',
-      active: offer.active,
+      active: offer.active ?? true,
       productIds: offer.productIds || [],
     });
     setShowForm(true);
@@ -168,7 +173,7 @@ export default function OffersManagement() {
         description: formData.description,
         image: formData.image,
         discount: Number(formData.discount) || 0,
-        validUntil: formData.validUntil,
+        validUntil: new Date(formData.validUntil).toISOString(),
         active: formData.active,
         productIds: formData.productIds,
       };
@@ -275,7 +280,7 @@ export default function OffersManagement() {
             <label className="block text-sm font-medium mb-1">Titlu *</label>
             <input
               type="text"
-              value={formData.title}
+              value={formData.title || ''}
               onChange={(e) => setFormData({ ...formData, title: e.target.value })}
               className="w-full px-3 py-2 border rounded"
               required
@@ -285,7 +290,7 @@ export default function OffersManagement() {
           <div>
             <label className="block text-sm font-medium mb-1">Descriere *</label>
             <textarea
-              value={formData.description}
+              value={formData.description || ''}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               className="w-full px-3 py-2 border rounded"
               rows={3}
@@ -300,7 +305,7 @@ export default function OffersManagement() {
                 <div className="flex-1">
                   <input
                     type="text"
-                    value={formData.image}
+                    value={formData.image || ''}
                     onChange={(e) => setFormData({ ...formData, image: e.target.value })}
                     className="w-full px-3 py-2 border rounded"
                     placeholder="https://... sau /images/offer.jpg"
@@ -333,7 +338,7 @@ export default function OffersManagement() {
               <label className="block text-sm font-medium mb-1">Discount (%)</label>
               <input
                 type="number"
-                value={formData.discount}
+                value={formData.discount || 0}
                 onChange={(e) => setFormData({ ...formData, discount: parseInt(e.target.value) || 0 })}
                 className="w-full px-3 py-2 border rounded"
                 min="0"
@@ -347,7 +352,7 @@ export default function OffersManagement() {
             <label className="block text-sm font-medium mb-1">Valabil până la *</label>
             <input
               type="datetime-local"
-              value={formData.validUntil}
+              value={formData.validUntil || ''}
               required
               onChange={(e) => setFormData({ ...formData, validUntil: e.target.value })}
               className="w-full px-3 py-2 border rounded"

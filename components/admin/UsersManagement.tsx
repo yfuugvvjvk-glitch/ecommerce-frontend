@@ -32,6 +32,8 @@ export default function UsersManagement() {
   const [showPassword, setShowPassword] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5; // MODIFICAT: 5 utilizatori per pagină
+  const [generatingPassword, setGeneratingPassword] = useState(false);
+  const [temporaryPassword, setTemporaryPassword] = useState<string | null>(null);
 
   // Filtre și căutare
   const [searchTerm, setSearchTerm] = useState('');
@@ -105,8 +107,32 @@ export default function UsersManagement() {
       setSelectedUser(response.data);
       setShowUserDetails(true);
       setShowPassword(false);
+      setTemporaryPassword(null); // Reset temporary password when opening new user
     } catch (error: any) {
       setToast({ message: error.response?.data?.error || 'Eroare la încărcarea detaliilor', type: 'error' });
+    }
+  };
+
+  const handleGenerateTemporaryPassword = async () => {
+    if (!selectedUser) return;
+    
+    if (!confirm(`Sigur vrei să generezi o parolă temporară pentru ${selectedUser.name}? Parola actuală va fi înlocuită.`)) {
+      return;
+    }
+
+    try {
+      setGeneratingPassword(true);
+      const response = await apiClient.post(`/api/admin/users/${selectedUser.id}/generate-temp-password`);
+      setTemporaryPassword(response.data.temporaryPassword);
+      setShowPassword(true);
+      setToast({ 
+        message: 'Parolă temporară generată! Copiază-o și trimite-o utilizatorului.', 
+        type: 'success' 
+      });
+    } catch (error: any) {
+      setToast({ message: error.response?.data?.error || 'Eroare la generarea parolei', type: 'error' });
+    } finally {
+      setGeneratingPassword(false);
     }
   };
 
@@ -304,7 +330,7 @@ export default function UsersManagement() {
 
               {/* Password Section */}
               <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center justify-between mb-3">
                   <p className="text-sm text-yellow-800 font-medium">
                     🔐 Parolă (pentru asistență recuperare)
                   </p>
@@ -316,20 +342,68 @@ export default function UsersManagement() {
                     <span className="text-sm">{showPassword ? 'Ascunde' : 'Arată'}</span>
                   </button>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <code className="bg-white px-3 py-2 rounded border flex-1 font-mono text-sm">
-                    {showPassword ? selectedUser.password : '••••••••••••'}
-                  </code>
-                  {showPassword && (
-                    <button
-                      onClick={() => copyToClipboard(selectedUser.password)}
-                      className="px-3 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 text-sm"
-                    >
-                      📋 Copiază
-                    </button>
+
+                {/* Temporary Password Display */}
+                {temporaryPassword ? (
+                  <div className="mb-3">
+                    <p className="text-sm text-green-700 font-medium mb-2">✅ Parolă temporară generată:</p>
+                    <div className="flex items-center space-x-2">
+                      <code className="bg-green-100 border border-green-300 px-3 py-2 rounded flex-1 font-mono text-lg font-bold text-green-900">
+                        {temporaryPassword}
+                      </code>
+                      <button
+                        onClick={() => copyToClipboard(temporaryPassword)}
+                        className="px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm whitespace-nowrap"
+                      >
+                        📋 Copiază
+                      </button>
+                    </div>
+                    <p className="text-xs text-green-700 mt-2">
+                      ✅ Această parolă a fost setată pentru utilizator. Copiază-o și trimite-o utilizatorului telefonic sau prin email.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Password Hash Display */}
+                    <div className="flex items-center space-x-2 mb-3">
+                      <code className="bg-white px-3 py-2 rounded border flex-1 font-mono text-xs overflow-hidden text-ellipsis">
+                        {showPassword ? selectedUser.password : '••••••••••••••••••••••••••••••••••••••••••••••••••••••••'}
+                      </code>
+                      {showPassword && (
+                        <button
+                          onClick={() => copyToClipboard(selectedUser.password)}
+                          className="px-3 py-2 bg-yellow-600 text-white rounded hover:bg-yellow-700 text-sm"
+                        >
+                          📋 Copiază
+                        </button>
+                      )}
+                    </div>
+                    <p className="text-xs text-yellow-700 mb-3">
+                      ℹ️ Aceasta este parola criptată (hash). Nu poate fi decriptată. Pentru a ajuta utilizatorul, generează o parolă temporară nouă.
+                    </p>
+                  </>
+                )}
+
+                {/* Generate Temporary Password Button */}
+                <button
+                  onClick={handleGenerateTemporaryPassword}
+                  disabled={generatingPassword}
+                  className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+                >
+                  {generatingPassword ? (
+                    <>
+                      <span className="animate-spin">⏳</span>
+                      <span>Generare...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>🔑</span>
+                      <span>Generează Parolă Temporară Nouă</span>
+                    </>
                   )}
-                </div>
-                <p className="text-xs text-yellow-700 mt-2">
+                </button>
+
+                <p className="text-xs text-yellow-700 mt-3">
                   ⚠️ Această informație este disponibilă doar pentru administratori în scopul asistenței utilizatorilor care și-au uitat parola.
                 </p>
               </div>

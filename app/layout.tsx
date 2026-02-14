@@ -3,14 +3,16 @@ import { Inter } from 'next/font/google';
 import './tailwind.css';
 import './globals.css';
 import { AuthProvider } from '@/lib/auth-context';
+import { GiftProvider } from '@/lib/gift-context';
 import AIChatbot from '@/components/AIChatbot';
 import ChatSystem from '@/components/chat/ChatSystem';
+import { SITE_CONFIG } from '@/lib/site-config';
 
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-  title: 'Full-Stack E-Commerce App',
-  description: 'Modern full-stack e-commerce application with AI features',
+  title: SITE_CONFIG.name,
+  description: SITE_CONFIG.description,
 };
 
 export default function RootLayout({
@@ -19,12 +21,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="ro">
+    <html lang="ro" dir="ltr">
       <body className={inter.className}>
         <AuthProvider>
-          {children}
-          <AIChatbot />
-          <ChatSystem />
+          <GiftProvider>
+            {children}
+            <AIChatbot />
+            <ChatSystem />
+          </GiftProvider>
         </AuthProvider>
       </body>
     </html>

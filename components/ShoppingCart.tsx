@@ -4,7 +4,9 @@ import { useEffect, useState } from 'react';
 import { cartAPI } from '@/lib/api-client';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/lib/cart-context';
+import { useAuth } from '@/lib/auth-context';
 import CurrencyPrice from './CurrencyPrice';
+import { stripHtml } from '@/utils/stripHtml';
 
 interface CartItem {
   id: string;
@@ -32,6 +34,9 @@ export default function ShoppingCart({ onClose }: { onClose?: () => void }) {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
   const { refreshCartCount } = useCart();
+  const { user } = useAuth();
+  
+  const isGuest = user?.role === 'guest';
 
   useEffect(() => {
     fetchCart();
@@ -140,7 +145,7 @@ export default function ShoppingCart({ onClose }: { onClose?: () => void }) {
               }}
             />
             <div className="flex-1">
-              <h3 className="font-semibold mb-1">{item.dataItem.title}</h3>
+              <h3 className="font-semibold mb-1">{stripHtml(item.dataItem.title)}</h3>
               <div className="text-blue-600 font-bold">
                 <CurrencyPrice amount={item.dataItem.price} />
                 {item.dataItem.priceType === 'per_unit' && item.dataItem.unitName && item.dataItem.unitName !== 'bucată' && (
@@ -155,19 +160,67 @@ export default function ShoppingCart({ onClose }: { onClose?: () => void }) {
                   {item.dataItem.availableQuantities[0]} {item.dataItem.unitName}/produs
                 </p>
               )}
+              
+              {/* Afișare cantități disponibile */}
+              {item.dataItem.availableQuantities && Array.isArray(item.dataItem.availableQuantities) && item.dataItem.availableQuantities.length > 0 && (
+                <div className="mt-2 p-2 bg-blue-50 rounded">
+                  <p className="text-xs font-medium text-blue-900 mb-1">
+                    📦 Cantități disponibile:
+                  </p>
+                  <div className="flex flex-wrap gap-1">
+                    {item.dataItem.availableQuantities.map((qty: number) => (
+                      <button
+                        key={qty}
+                        onClick={() => updateQuantity(item.id, qty)}
+                        className={`px-2 py-1 text-xs rounded transition ${
+                          item.quantity === qty
+                            ? 'bg-blue-600 text-white font-semibold'
+                            : 'bg-white text-blue-700 border border-blue-300 hover:bg-blue-100'
+                        }`}
+                      >
+                        {qty} {item.dataItem.unitName || 'buc'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
               <div className="flex items-center gap-2 mt-2">
                 <button
-                  onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                  onClick={() => {
+                    // Calculează step-ul corect
+                    let step = 1;
+                    console.log('Decrement - availableQuantities:', item.dataItem.availableQuantities);
+                    if (item.dataItem.availableQuantities && Array.isArray(item.dataItem.availableQuantities) && item.dataItem.availableQuantities.length > 1) {
+                      const sortedQtys = [...item.dataItem.availableQuantities].sort((a, b) => a - b);
+                      step = sortedQtys[1] - sortedQtys[0];
+                      console.log('Calculated step:', step, 'from quantities:', sortedQtys);
+                    }
+                    const minQty = (item.dataItem.availableQuantities && item.dataItem.availableQuantities[0]) || step;
+                    console.log('Min quantity:', minQty, 'Current:', item.quantity, 'Step:', step);
+                    updateQuantity(item.id, Math.max(minQty, item.quantity - step));
+                  }}
                   className="w-8 h-8 bg-gray-200 rounded hover:bg-gray-300"
-                  disabled={item.quantity <= 1}
+                  disabled={item.quantity <= (item.dataItem.availableQuantities?.[0] || 1)}
                 >
                   -
                 </button>
                 <span className="w-12 text-center font-semibold">{item.quantity}</span>
                 <button
-                  onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                  onClick={() => {
+                    // Calculează step-ul corect
+                    let step = 1;
+                    console.log('Increment - availableQuantities:', item.dataItem.availableQuantities);
+                    if (item.dataItem.availableQuantities && Array.isArray(item.dataItem.availableQuantities) && item.dataItem.availableQuantities.length > 1) {
+                      const sortedQtys = [...item.dataItem.availableQuantities].sort((a, b) => a - b);
+                      step = sortedQtys[1] - sortedQtys[0];
+                      console.log('Calculated step:', step, 'from quantities:', sortedQtys);
+                    }
+                    console.log('Current quantity:', item.quantity, 'Step:', step, 'New quantity:', item.quantity + step);
+                    updateQuantity(item.id, item.quantity + step);
+                  }}
                   className="w-8 h-8 bg-gray-200 rounded hover:bg-gray-300"
-                  disabled={item.quantity >= item.dataItem.stock}
+                  disabled={item.quantity >= ((item.dataItem as any).availableStock || item.dataItem.stock)}
                 >
                   +
                 </button>
@@ -196,6 +249,7 @@ export default function ShoppingCart({ onClose }: { onClose?: () => void }) {
             {cart.total.toFixed(2)} RON
           </span>
         </div>
+        
         <div className="flex gap-2">
           <button
             onClick={clearCart}

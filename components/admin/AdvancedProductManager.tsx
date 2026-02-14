@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { API_URL } from '@/lib/config';
+import { stripHtml } from '@/utils/stripHtml';
 import { 
   Package, 
   Clock, 
@@ -15,7 +16,8 @@ import {
   Edit,
   Trash2,
   Save,
-  X
+  X,
+  Copy
 } from 'lucide-react';
 
 interface Product {
@@ -151,6 +153,58 @@ export default function AdvancedProductManager() {
     }
   };
 
+  const duplicateProduct = async (product: Product) => {
+    try {
+      // Fetch full product details
+      const response = await fetch(`${API_URL}/api/data/${product.id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      if (!response.ok) {
+        alert('Eroare la încărcarea produsului');
+        return;
+      }
+
+      const fullProduct = await response.json();
+
+      // Create duplicate with modified title
+      const duplicateData = {
+        ...fullProduct,
+        title: `${fullProduct.title} (Copie)`,
+        stock: 0, // Start with 0 stock
+        reservedStock: 0,
+        totalSold: 0
+      };
+
+      // Remove id and other auto-generated fields
+      delete duplicateData.id;
+      delete duplicateData.createdAt;
+      delete duplicateData.updatedAt;
+      delete duplicateData.availableStock;
+
+      // Create new product
+      const createResponse = await fetch(`${API_URL}/api/data`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(duplicateData)
+      });
+
+      if (createResponse.ok) {
+        alert('Produs dublat cu succes!');
+        await loadProducts();
+      } else {
+        const error = await createResponse.json();
+        alert(`Eroare: ${error.error || 'Nu s-a putut dubla produsul'}`);
+      }
+    } catch (error) {
+      console.error('Error duplicating product:', error);
+      alert('Eroare la dublarea produsului');
+    }
+  };
+
   if (user?.role !== 'admin') {
     return (
       <div className="p-6 text-center">
@@ -226,11 +280,11 @@ export default function AdvancedProductManager() {
                   {products.map((product) => (
                     <tr key={product.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="text-sm font-medium text-gray-900">{product.title}</div>
+                        <div className="text-sm font-medium text-gray-900">{stripHtml(product.title)}</div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="text-sm text-gray-900">
-                          {product.availableStock} / {product.stock}
+                          {product.availableStock.toFixed(2)} / {product.stock.toFixed(2)}
                         </div>
                         <div className="text-xs text-gray-500">
                           Rezervat: {product.reservedStock}
@@ -273,8 +327,16 @@ export default function AdvancedProductManager() {
                             setIsEditing(true);
                           }}
                           className="text-blue-600 hover:text-blue-900 mr-3"
+                          title="Editează"
                         >
                           <Edit className="h-4 w-4" />
+                        </button>
+                        <button
+                          onClick={() => duplicateProduct(product)}
+                          className="text-purple-600 hover:text-purple-900 mr-3"
+                          title="Dublează produs"
+                        >
+                          <Copy className="h-4 w-4" />
                         </button>
                         <button
                           onClick={() => {
@@ -285,6 +347,7 @@ export default function AdvancedProductManager() {
                             }
                           }}
                           className="text-green-600 hover:text-green-900"
+                          title="Adaugă stoc"
                         >
                           <Plus className="h-4 w-4" />
                         </button>
@@ -457,7 +520,7 @@ export default function AdvancedProductManager() {
           <div className="relative top-20 mx-auto p-5 border w-11/12 max-w-2xl shadow-lg rounded-md bg-white">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-medium text-gray-900">
-                Editează Produs: {selectedProduct.title}
+                Editează Produs: {stripHtml(selectedProduct.title)}
               </h3>
               <button
                 onClick={() => {

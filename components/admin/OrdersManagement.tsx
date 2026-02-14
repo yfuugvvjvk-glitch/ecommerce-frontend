@@ -168,14 +168,18 @@ export default function OrdersManagement() {
   };
 
   const handleStatusChange = async (orderId: string, newStatus: string) => {
-    console.log('Changing status:', { orderId, newStatus });
+    console.log('🔄 Changing status:', { orderId, newStatus });
+    console.log('🔄 API endpoint:', `/api/orders/admin/${orderId}/status`);
+    console.log('🔄 Request body:', { status: newStatus });
     try {
-      const response = await apiClient.put(`/api/admin/orders/${orderId}/status`, { status: newStatus });
-      console.log('Status changed successfully:', response.data);
+      const response = await apiClient.put(`/api/orders/admin/${orderId}/status`, { status: newStatus });
+      console.log('✅ Status changed successfully:', response.data);
       setToast({ message: 'Status actualizat!', type: 'success' });
       await fetchOrders();
     } catch (error: any) {
-      console.error('Status change error:', error);
+      console.error('❌ Status change error:', error);
+      console.error('❌ Error response:', error.response?.data);
+      console.error('❌ Error status:', error.response?.status);
       setToast({ message: error.response?.data?.error || 'Eroare la actualizare status', type: 'error' });
     }
   };

@@ -455,10 +455,10 @@ export default function InventoryDashboard() {
                         <div className="bg-orange-50 p-2 rounded">
                           <p className="text-xs text-orange-600 font-medium">Stoc Disponibil</p>
                           <p className="font-bold text-orange-800">
-                            {product.availableStock} {product.unitInfo.unitName}
+                            {product.availableStock.toFixed(2)} {product.unitInfo.unitName}
                             {product.reservedStock > 0 && (
                               <span className="text-xs text-red-600 block">
-                                (Rezervat: {product.reservedStock})
+                                (Rezervat: {product.reservedStock.toFixed(2)})
                               </span>
                             )}
                           </p>
@@ -472,22 +472,22 @@ export default function InventoryDashboard() {
                         {/* Informații suplimentare */}
                         <div>
                           <p className="text-gray-500">Categorie</p>
-                          <p className="font-medium">{product.category.name}</p>
+                          {/* Category hidden as requested */}
                         </div>
                         
                         <div>
                           <p className="text-gray-500">Stoc Total</p>
-                          <p className="font-medium">{product.stock} {product.unitInfo.unitName}</p>
+                          <p className="font-medium">{product.stock.toFixed(2)} {product.unitInfo.unitName}</p>
                         </div>
                         
                         <div>
                           <p className="text-gray-500">Vândut Total</p>
-                          <p className="font-medium">{product.totalSold} {product.unitInfo.unitName}</p>
+                          <p className="font-medium">{product.totalSold.toFixed(2)} {product.unitInfo.unitName}</p>
                         </div>
                         
                         <div>
                           <p className="text-gray-500">Alertă la</p>
-                          <p className="font-medium">{product.lowStockAlert} {product.unitInfo.unitName}</p>
+                          <p className="font-medium">{product.lowStockAlert.toFixed(2)} {product.unitInfo.unitName}</p>
                         </div>
                       </div>
                       
@@ -600,7 +600,7 @@ export default function InventoryDashboard() {
                                   movement.type === 'IN' ? 'text-green-600' : 
                                   movement.type === 'OUT' ? 'text-red-600' : 'text-orange-600'
                                 }`}>
-                                  {movement.type === 'IN' ? '+' : movement.type === 'OUT' ? '-' : '~'}{Math.abs(movement.quantity)}
+                                  {movement.type === 'IN' ? '+' : movement.type === 'OUT' ? '-' : '~'}{Math.abs(movement.quantity).toFixed(2)}
                                 </span>
                                 <span className="text-gray-500">
                                   {new Date(movement.createdAt).toLocaleDateString('ro-RO')}

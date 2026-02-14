@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { DataItem } from '@/types';
 import TableSkeleton from './TableSkeleton';
+import { stripHtml } from '@/utils/stripHtml';
 
 interface DataTableProps {
   data: DataItem[];
@@ -147,9 +148,7 @@ export default function DataTable({ data, loading, onEdit, onDelete }: DataTable
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className="text-sm text-gray-600 capitalize">
-                    {typeof item.category === 'string' ? item.category : item.category?.name || 'N/A'}
-                  </span>
+                  {/* Category hidden as requested */}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   <button
@@ -208,9 +207,7 @@ export default function DataTable({ data, loading, onEdit, onDelete }: DataTable
                   >
                     {item.stock > 0 ? `${item.stock} buc` : 'Epuizat'}
                   </span>
-                  <span className="text-gray-500 capitalize">
-                    {typeof item.category === 'string' ? item.category : item.category?.name || 'N/A'}
-                  </span>
+                  {/* Category hidden as requested */}
                 </div>
               </div>
             </div>

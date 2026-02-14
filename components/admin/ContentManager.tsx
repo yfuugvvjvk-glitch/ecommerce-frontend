@@ -131,7 +131,25 @@ export default function ContentManager() {
   const fetchSiteConfigs = async () => {
     try {
       const response = await apiClient.get('/api/admin/site-config');
-      setSiteConfigs(response.data || []);
+      const configs = response.data || [];
+      
+      // Parse JSON strings to objects for easier editing
+      const parsedConfigs = configs.map((config: any) => {
+        if (config.type === 'json' && typeof config.value === 'string') {
+          try {
+            const parsed = JSON.parse(config.value);
+            return {
+              ...config,
+              value: parsed // Keep as object, not string
+            };
+          } catch (e) {
+            return config;
+          }
+        }
+        return config;
+      });
+      
+      setSiteConfigs(parsedConfigs);
     } catch (error) {
       console.error('Error fetching site configs:', error);
       setToast({ message: 'Eroare la încărcarea configurațiilor', type: 'error' });
@@ -475,7 +493,11 @@ export default function ContentManager() {
           <h3 className="text-lg font-semibold mb-4">Configurare Site</h3>
           
           <div className="space-y-6">
-            {siteConfigs.map(config => (
+            {siteConfigs.filter(config => 
+              config.key !== 'block_rules' && 
+              config.key !== 'order_block_settings' && 
+              config.key !== 'delivery_schedules'
+            ).map(config => (
               <div key={config.key} className="border-b pb-4">
                 <div className="flex justify-between items-start mb-2">
                   <div>
@@ -492,19 +514,206 @@ export default function ContentManager() {
                 </div>
                 
                 {config.type === 'json' ? (
-                  <textarea
-                    value={typeof config.value === 'string' ? config.value : JSON.stringify(config.value, null, 2)}
-                    onChange={(e) => {
+                  <div className="space-y-4">
+                    {/* Debug: arată cheia */}
+                    <div className="text-xs text-gray-400 mb-2">Key: {config.key}</div>
+                    
+                    {/* Editor vizual pentru ANNOUNCEMENT_BANNER */}
+                    {config.key === 'announcement_banner' && (() => {
+                      let bannerData;
                       try {
-                        const parsed = JSON.parse(e.target.value);
-                        handleUpdateConfig(config.key, parsed, 'json');
-                      } catch (error) {
-                        // Invalid JSON, don't update yet
+                        bannerData = typeof config.value === 'string' ? JSON.parse(config.value) : config.value;
+                      } catch {
+                        bannerData = { isActive: false, title: '', description: '', titleStyle: {}, descriptionStyle: {} };
                       }
-                    }}
-                    className="w-full border rounded px-3 py-2 font-mono text-sm"
-                    rows={4}
-                  />
+                      
+                      return (
+                        <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+                          <label className="flex items-center space-x-2">
+                            <input
+                              type="checkbox"
+                              checked={bannerData.isActive || false}
+                              onChange={(e) => {
+                                const updated = { ...bannerData, isActive: e.target.checked };
+                                handleUpdateConfig(config.key, updated, 'json');
+                              }}
+                              className="rounded"
+                            />
+                            <span className="font-medium">Activează banner-ul</span>
+                          </label>
+                          
+                          <div>
+                            <label className="block text-sm font-medium mb-1">Titlu</label>
+                            <input
+                              type="text"
+                              value={bannerData.title || ''}
+                              onChange={(e) => {
+                                const updated = { ...bannerData, title: e.target.value };
+                                handleUpdateConfig(config.key, updated, 'json');
+                              }}
+                              className="w-full border rounded px-3 py-2"
+                              placeholder="Ex: Blocare plasare comanda"
+                            />
+                          </div>
+                          
+                          <div>
+                            <label className="block text-sm font-medium mb-1">Descriere</label>
+                            <textarea
+                              value={bannerData.description || ''}
+                              onChange={(e) => {
+                                const updated = { ...bannerData, description: e.target.value };
+                                handleUpdateConfig(config.key, updated, 'json');
+                              }}
+                              className="w-full border rounded px-3 py-2"
+                              rows={3}
+                              placeholder="Ex: Plasarea de comenzi este blocată"
+                            />
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-sm font-medium mb-1">Culoare titlu</label>
+                              <input
+                                type="color"
+                                value={bannerData.titleStyle?.color || '#000000'}
+                                onChange={(e) => {
+                                  const updated = { 
+                                    ...bannerData, 
+                                    titleStyle: { ...bannerData.titleStyle, color: e.target.value }
+                                  };
+                                  handleUpdateConfig(config.key, updated, 'json');
+                                }}
+                                className="w-full h-10 border rounded"
+                              />
+                            </div>
+                            
+                            <div>
+                              <label className="block text-sm font-medium mb-1">Culoare fundal</label>
+                              <input
+                                type="color"
+                                value={bannerData.titleStyle?.backgroundColor || '#ffffff'}
+                                onChange={(e) => {
+                                  const updated = { 
+                                    ...bannerData, 
+                                    titleStyle: { ...bannerData.titleStyle, backgroundColor: e.target.value }
+                                  };
+                                  handleUpdateConfig(config.key, updated, 'json');
+                                }}
+                                className="w-full h-10 border rounded"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                    
+                    {config.key === 'business_hours' && (() => {
+                      let hoursData;
+                      try {
+                        hoursData = typeof config.value === 'string' ? JSON.parse(config.value) : config.value;
+                      } catch {
+                        hoursData = {};
+                      }
+                      
+                      const days = ['luni', 'marti', 'miercuri', 'joi', 'vineri', 'sambata', 'duminica'];
+                      const dayLabels: any = {
+                        luni: 'Luni',
+                        marti: 'Marți',
+                        miercuri: 'Miercuri',
+                        joi: 'Joi',
+                        vineri: 'Vineri',
+                        sambata: 'Sâmbătă',
+                        duminica: 'Duminică'
+                      };
+                      
+                      return (
+                        <div className="bg-gray-50 p-4 rounded-lg space-y-3">
+                          {days.map(day => (
+                            <div key={day} className="flex items-center gap-3">
+                              <span className="w-24 font-medium">{dayLabels[day]}:</span>
+                              <input
+                                type="text"
+                                value={hoursData[day] || ''}
+                                onChange={(e) => {
+                                  const updated = { ...hoursData, [day]: e.target.value };
+                                  handleUpdateConfig(config.key, updated, 'json');
+                                }}
+                                className="flex-1 border rounded px-3 py-2"
+                                placeholder="Ex: 09:00 - 18:00"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    })()}
+                    
+                    {/* Editor vizual pentru BLOCK_RULES */}
+                    {config.key === 'block_rules' && (() => {
+                      let rulesData;
+                      try {
+                        rulesData = typeof config.value === 'string' ? JSON.parse(config.value) : config.value;
+                        if (!Array.isArray(rulesData)) rulesData = [];
+                      } catch {
+                        rulesData = [];
+                      }
+                      
+                      return (
+                        <div className="bg-gray-50 p-4 rounded-lg">
+                          <p className="text-sm text-gray-600 mb-3">
+                            Regulile de blocare se gestionează în secțiunea "🚫 Blocare Comenzi" din meniul principal.
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            Această configurație este generată automat și nu trebuie editată manual.
+                          </p>
+                        </div>
+                      );
+                    })()}
+                    
+                    {/* Editor vizual pentru ORDER_BLOCK_SETTINGS */}
+                    {config.key === 'order_block_settings' && (() => {
+                      let blockData;
+                      try {
+                        blockData = typeof config.value === 'string' ? JSON.parse(config.value) : config.value;
+                      } catch {
+                        blockData = { blockNewOrders: false, blockReason: '', allowedPaymentMethods: [], minimumOrderValue: 0 };
+                      }
+                      
+                      return (
+                        <div className="bg-gray-50 p-4 rounded-lg">
+                          <p className="text-sm text-gray-600 mb-3">
+                            Setările de blocare comenzi se gestionează în secțiunea "🚫 Blocare Comenzi" din meniul principal.
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            Această configurație este generată automat și nu trebuie editată manual.
+                          </p>
+                        </div>
+                      );
+                    })()}
+                    
+                    {/* Pentru alte JSON-uri, arată textarea */}
+                    {config.key !== 'announcement_banner' && config.key !== 'business_hours' && config.key !== 'block_rules' && config.key !== 'order_block_settings' && (
+                      <textarea
+                        value={typeof config.value === 'string' ? config.value : JSON.stringify(config.value, null, 2)}
+                        onChange={(e) => {
+                          const newValue = e.target.value;
+                          setSiteConfigs(prev => prev.map(c => 
+                            c.key === config.key ? { ...c, value: newValue } : c
+                          ));
+                        }}
+                        onBlur={(e) => {
+                          try {
+                            const parsed = JSON.parse(e.target.value);
+                            handleUpdateConfig(config.key, parsed, 'json');
+                          } catch (error) {
+                            setToast({ message: 'JSON invalid! Verifică sintaxa.', type: 'error' });
+                          }
+                        }}
+                        className="w-full border rounded px-3 py-2 font-mono text-sm whitespace-pre"
+                        rows={8}
+                        style={{ resize: 'vertical' }}
+                      />
+                    )}
+                  </div>
                 ) : config.type === 'boolean' ? (
                   <label className="flex items-center space-x-2">
                     <input

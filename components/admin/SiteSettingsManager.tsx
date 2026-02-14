@@ -153,6 +153,30 @@ export default function SiteSettingsManager() {
                 rows={3}
               />
             </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                CUI Companie
+              </label>
+              <input
+                type="text"
+                defaultValue={getSettingValue('company_cui')}
+                onBlur={(e) => updateSetting('company_cui', e.target.value)}
+                className="w-full border rounded px-3 py-2"
+                placeholder="CUI: RO12345678"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Reg. Com.
+              </label>
+              <input
+                type="text"
+                defaultValue={getSettingValue('company_reg_com')}
+                onBlur={(e) => updateSetting('company_reg_com', e.target.value)}
+                className="w-full border rounded px-3 py-2"
+                placeholder="Reg. Com.: J40/1234/2024"
+              />
+            </div>
           </div>
         </div>
       )}

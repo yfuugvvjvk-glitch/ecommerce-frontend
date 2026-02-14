@@ -5,6 +5,7 @@ import { apiClient } from '@/lib/api-client';
 import { useWebSocket } from '@/lib/useWebSocket';
 import { usePagination } from '@/lib/usePagination';
 import Pagination from '@/components/Pagination';
+import DeliveryLocationMap from './DeliveryLocationMap';
 
 interface DeliveryLocation {
   id: string;
@@ -29,8 +30,11 @@ interface DeliveryLocation {
 
 interface FormData {
   name: string;
-  address: string;
+  address: string; // Computed field
+  street: string;
+  streetNumber: string;
   city: string;
+  county: string;
   postalCode: string;
   phone: string;
   email: string;
@@ -51,6 +55,7 @@ interface FormData {
   specialInstructions: string;
   isMainLocation: boolean;
   coordinates: { lat: number; lng: number };
+  showRadiusOnMap: boolean;
 }
 
 export default function DeliveryLocationsManager() {
@@ -69,14 +74,17 @@ export default function DeliveryLocationsManager() {
   const [formData, setFormData] = useState<FormData>({
     name: '',
     address: '',
+    street: '',
+    streetNumber: '',
     city: '',
+    county: '',
     postalCode: '',
     phone: '',
     email: '',
     isActive: true,
-    deliveryRadius: 10,
-    deliveryFee: 15,
-    freeDeliveryThreshold: 100,
+    deliveryRadius: 0, // 0 pentru sediu fix (fără livrare)
+    deliveryFee: 0, // 0 pentru ridicare personală (fără taxă)
+    freeDeliveryThreshold: 0, // 0 = nu se aplică
     workingHours: {
       monday: { start: '09:00', end: '18:00', isOpen: true },
       tuesday: { start: '09:00', end: '18:00', isOpen: true },
@@ -89,7 +97,8 @@ export default function DeliveryLocationsManager() {
     contactPerson: '',
     specialInstructions: '',
     isMainLocation: false,
-    coordinates: { lat: 44.4268, lng: 26.1025 }
+    coordinates: { lat: 45.4268, lng: 28.0425 }, // Galați coordinates
+    showRadiusOnMap: true
   });
 
   // Real-time updates
@@ -129,12 +138,45 @@ export default function DeliveryLocationsManager() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Construiește adresa completă din câmpurile separate
+    const addressParts = [];
+    if (formData.street) addressParts.push(`Str. ${formData.street}`);
+    if (formData.streetNumber) addressParts.push(`nr. ${formData.streetNumber}`);
+    if (formData.city) addressParts.push(formData.city);
+    if (formData.county) addressParts.push(`Județul ${formData.county}`);
+    const fullAddress = addressParts.join(', ');
+    
+    // Pregătește datele pentru backend
+    const dataToSend = {
+      name: formData.name,
+      address: fullAddress,
+      street: formData.street || '', // ADĂUGAT
+      streetNumber: formData.streetNumber || '', // ADĂUGAT
+      city: formData.city,
+      county: formData.county || '', // ADĂUGAT
+      postalCode: formData.postalCode || '',
+      phone: formData.phone || '',
+      email: formData.email || '',
+      isActive: formData.isActive,
+      deliveryRadius: formData.deliveryRadius || 0,
+      deliveryFee: formData.deliveryFee || 0,
+      freeDeliveryThreshold: formData.freeDeliveryThreshold || 0,
+      workingHours: formData.workingHours,
+      contactPerson: formData.contactPerson || '',
+      specialInstructions: formData.specialInstructions || '',
+      isMainLocation: formData.isMainLocation,
+      coordinates: formData.coordinates, // Obiect { lat, lng }
+      country: 'România'
+    };
+    
+    console.log('📤 Sending data to backend:', dataToSend);
+    
     try {
       if (editingLocation) {
-        await apiClient.put(`/api/admin/delivery-locations/${editingLocation.id}`, formData);
+        await apiClient.put(`/api/admin/delivery-locations/${editingLocation.id}`, dataToSend);
         setToast({ message: 'Locația a fost actualizată!', type: 'success' });
       } else {
-        await apiClient.post('/api/admin/delivery-locations', formData);
+        await apiClient.post('/api/admin/delivery-locations', dataToSend);
         setToast({ message: 'Locația a fost creată!', type: 'success' });
       }
       
@@ -144,6 +186,7 @@ export default function DeliveryLocationsManager() {
       fetchLocations();
     } catch (error: any) {
       console.error('Error saving location:', error);
+      console.error('Error response:', error.response?.data);
       setToast({ 
         message: error.response?.data?.error || 'Eroare la salvarea locației', 
         type: 'error' 
@@ -187,14 +230,17 @@ export default function DeliveryLocationsManager() {
     setFormData({
       name: '',
       address: '',
+      street: '',
+      streetNumber: '',
       city: '',
+      county: '',
       postalCode: '',
       phone: '',
       email: '',
       isActive: true,
-      deliveryRadius: 10,
-      deliveryFee: 15,
-      freeDeliveryThreshold: 100,
+      deliveryRadius: 0, // 0 pentru sediu fix (fără livrare)
+      deliveryFee: 0, // 0 pentru ridicare personală (fără taxă)
+      freeDeliveryThreshold: 0, // 0 = nu se aplică
       workingHours: {
         monday: { start: '09:00', end: '18:00', isOpen: true },
         tuesday: { start: '09:00', end: '18:00', isOpen: true },
@@ -207,7 +253,8 @@ export default function DeliveryLocationsManager() {
       contactPerson: '',
       specialInstructions: '',
       isMainLocation: false,
-      coordinates: { lat: 44.4268, lng: 26.1025 }
+      coordinates: { lat: 45.4268, lng: 28.0425 },
+      showRadiusOnMap: true
     });
   };
 
@@ -241,22 +288,70 @@ export default function DeliveryLocationsManager() {
       }
     }
 
+    // Parse separate address fields from the location data
+    // If the location has separate fields, use them; otherwise try to parse from address string
+    let street = '';
+    let streetNumber = '';
+    let county = '';
+    
+    console.log('🔍 Opening edit modal for location:', location);
+    console.log('🔍 Location street:', (location as any).street);
+    console.log('🔍 Location streetNumber:', (location as any).streetNumber);
+    console.log('🔍 Location county:', (location as any).county);
+    console.log('🔍 Location deliveryRadius:', location.deliveryRadius);
+    
+    // Check if location has separate address fields (from database)
+    if ((location as any).street) {
+      street = (location as any).street;
+    }
+    if ((location as any).streetNumber) {
+      streetNumber = (location as any).streetNumber;
+    }
+    if ((location as any).county) {
+      county = (location as any).county;
+    }
+    
+    // If separate fields are not available, try to parse from address string
+    if (!street && !streetNumber && location.address) {
+      // Simple parsing logic - can be improved
+      const addressParts = location.address.split(',').map(p => p.trim());
+      
+      // Try to extract street and number from first part (e.g., "Str. Garii nr. 69")
+      if (addressParts[0]) {
+        const streetMatch = addressParts[0].match(/(?:Str\.\s*)?([^n]+?)(?:\s+nr\.\s*(\d+[A-Za-z]*))?$/i);
+        if (streetMatch) {
+          street = streetMatch[1]?.trim().replace(/^Str\.\s*/i, '') || '';
+          streetNumber = streetMatch[2]?.trim() || '';
+        }
+      }
+      
+      // Try to extract county from last parts (e.g., "Județul Galați")
+      const countyPart = addressParts.find(p => p.toLowerCase().includes('județ'));
+      if (countyPart) {
+        county = countyPart.replace(/județ(ul)?\s*/i, '').trim();
+      }
+    }
+
     setFormData({
       name: location.name,
       address: location.address,
+      street,
+      streetNumber,
       city: location.city,
+      county,
       postalCode: location.postalCode || '',
       phone: location.phone || '',
       email: location.email || '',
       isActive: location.isActive,
-      deliveryRadius: location.deliveryRadius || 10,
-      deliveryFee: location.deliveryFee,
-      freeDeliveryThreshold: location.freeDeliveryThreshold || 100,
+      deliveryRadius: location.deliveryRadius ?? 0, // Folosește ?? pentru a păstra 0
+      deliveryFee: location.deliveryFee ?? 0, // Folosește ?? pentru a păstra 0
+      freeDeliveryThreshold: location.freeDeliveryThreshold ?? 0, // Folosește ?? pentru a păstra 0
       workingHours,
       contactPerson: location.contactPerson || '',
       specialInstructions: location.specialInstructions || '',
       isMainLocation: location.isMainLocation,
-      coordinates
+      coordinates,
+      showRadiusOnMap: true
     });
     setShowModal(true);
   };
@@ -474,47 +569,83 @@ export default function DeliveryLocationsManager() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <input
                     type="text"
-                    placeholder="Nume locație (ex: Depozit Central)"
+                    placeholder="Nume locație (ex: Sediu Principal - Galați)"
                     value={formData.name}
                     onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    className="border rounded px-3 py-2"
-                    required
-                  />
-                  
-                  <input
-                    type="text"
-                    placeholder="Oraș"
-                    value={formData.city}
-                    onChange={(e) => setFormData({...formData, city: e.target.value})}
-                    className="border rounded px-3 py-2"
-                    required
-                  />
-                  
-                  <input
-                    type="text"
-                    placeholder="Adresa completă"
-                    value={formData.address}
-                    onChange={(e) => setFormData({...formData, address: e.target.value})}
                     className="border rounded px-3 py-2 col-span-2"
                     required
                   />
                   
-                  <input
-                    type="text"
-                    placeholder="Cod poștal (opțional)"
-                    value={formData.postalCode}
-                    onChange={(e) => setFormData({...formData, postalCode: e.target.value})}
-                    className="border rounded px-3 py-2"
-                  />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      🏙️ Oraș/Localitate *
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Ex: Galați"
+                      value={formData.city}
+                      onChange={(e) => setFormData({...formData, city: e.target.value})}
+                      className="w-full border rounded px-3 py-2"
+                      required
+                    />
+                  </div>
                   
-                  <input
-                    type="text"
-                    placeholder="Persoana de contact (opțional)"
-                    value={formData.contactPerson}
-                    onChange={(e) => setFormData({...formData, contactPerson: e.target.value})}
-                    className="border rounded px-3 py-2"
-                  />
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      🗺️ Județ
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Ex: Galați"
+                      value={formData.county}
+                      onChange={(e) => setFormData({...formData, county: e.target.value})}
+                      className="w-full border rounded px-3 py-2"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      🛣️ Stradă *
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Ex: Garii"
+                      value={formData.street}
+                      onChange={(e) => setFormData({...formData, street: e.target.value})}
+                      className="w-full border rounded px-3 py-2"
+                      required
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      🔢 Număr *
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Ex: 69"
+                      value={formData.streetNumber}
+                      onChange={(e) => setFormData({...formData, streetNumber: e.target.value})}
+                      className="w-full border rounded px-3 py-2"
+                      required
+                    />
+                  </div>
                 </div>
+                
+                {/* Adresa completă (preview) */}
+                {(formData.street || formData.streetNumber || formData.city) && (
+                  <div className="mt-3 p-3 bg-gray-50 rounded border">
+                    <p className="text-sm font-medium text-gray-700 mb-1">📍 Adresa completă (preview):</p>
+                    <p className="text-sm text-gray-600">
+                      {[
+                        formData.street && `Str. ${formData.street}`,
+                        formData.streetNumber && `nr. ${formData.streetNumber}`,
+                        formData.city,
+                        formData.county && `Județul ${formData.county}`
+                      ].filter(Boolean).join(', ')}
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Contact */}
@@ -542,46 +673,92 @@ export default function DeliveryLocationsManager() {
               {/* Costuri și livrare */}
               <div className="border rounded-lg p-4">
                 <h4 className="font-semibold mb-3">💰 Costuri de Livrare</h4>
+                <p className="text-sm text-gray-600 mb-3">
+                  💡 Pentru sediul central (ridicare personală), setează toate valorile la 0
+                </p>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Cost livrare (RON)
+                      Cost livrare (RON) - opțional
                     </label>
                     <input
                       type="number"
                       step="0.01"
+                      min="0"
                       value={formData.deliveryFee}
                       onChange={(e) => setFormData({...formData, deliveryFee: parseFloat(e.target.value) || 0})}
                       className="w-full border rounded px-3 py-2"
-                      required
+                      placeholder="0 pentru ridicare personală"
                     />
+                    <p className="text-xs text-gray-500 mt-1">0 = fără taxă de transport</p>
                   </div>
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Livrare gratuită peste (RON)
+                      Livrare gratuită peste (RON) - opțional
                     </label>
                     <input
                       type="number"
                       step="0.01"
+                      min="0"
                       value={formData.freeDeliveryThreshold}
                       onChange={(e) => setFormData({...formData, freeDeliveryThreshold: parseFloat(e.target.value) || 0})}
                       className="w-full border rounded px-3 py-2"
+                      placeholder="0 pentru a dezactiva"
                     />
+                    <p className="text-xs text-gray-500 mt-1">0 = nu se aplică</p>
                   </div>
                   
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Raza de livrare (km)
+                      Raza de livrare (km) - opțional
                     </label>
                     <input
                       type="number"
+                      step="0.1"
+                      min="0"
                       value={formData.deliveryRadius}
-                      onChange={(e) => setFormData({...formData, deliveryRadius: parseInt(e.target.value) || 0})}
+                      onChange={(e) => setFormData({...formData, deliveryRadius: parseFloat(e.target.value) || 0})}
                       className="w-full border rounded px-3 py-2"
+                      placeholder="0 pentru sediu fix"
                     />
+                    <p className="text-xs text-gray-500 mt-1">0 = sediu fix (fără livrare)</p>
                   </div>
                 </div>
+              </div>
+
+              {/* Hartă interactivă pentru coordonate GPS */}
+              <div className="border rounded-lg p-4">
+                <div className="flex justify-between items-center mb-3">
+                  <h4 className="font-semibold">🗺️ Locație pe Hartă & Coordonate GPS</h4>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={formData.showRadiusOnMap !== false}
+                      onChange={(e) => setFormData({...formData, showRadiusOnMap: e.target.checked})}
+                      className="w-4 h-4"
+                    />
+                    <span>Afișează raza pe hartă</span>
+                  </label>
+                </div>
+                <DeliveryLocationMap
+                  latitude={formData.coordinates.lat}
+                  longitude={formData.coordinates.lng}
+                  deliveryRadius={formData.deliveryRadius}
+                  showRadius={formData.showRadiusOnMap !== false}
+                  onLocationChange={(lat, lng) => {
+                    setFormData({...formData, coordinates: { lat, lng }});
+                  }}
+                  onRadiusChange={(radius) => {
+                    setFormData({...formData, deliveryRadius: radius});
+                  }}
+                  address={[
+                    formData.street && `Str. ${formData.street}`,
+                    formData.streetNumber && `nr. ${formData.streetNumber}`,
+                    formData.city,
+                    formData.county && `Județul ${formData.county}`
+                  ].filter(Boolean).join(', ')}
+                />
               </div>
 
               {/* Program de lucru */}

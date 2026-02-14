@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation';
 import { apiClient } from '@/lib/api-client';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import CurrencyPrice from '@/components/CurrencyPrice';
+import { stripHtml } from '@/utils/stripHtml';
 
 export default function OrderDetailPage() {
   const params = useParams();
@@ -185,12 +186,12 @@ export default function OrderDetailPage() {
                 {item.dataItem?.image && (
                   <img
                     src={item.dataItem.image}
-                    alt={item.dataItem.title}
+                    alt={stripHtml(item.dataItem.title)}
                     className="w-20 h-20 object-cover rounded"
                   />
                 )}
                 <div className="flex-1">
-                  <h4 className="font-semibold">{item.dataItem?.title || 'Produs'}</h4>
+                  <h4 className="font-semibold">{stripHtml(item.dataItem?.title || 'Produs')}</h4>
                   <p className="text-sm text-gray-600">Cantitate: {item.quantity}</p>
                   <p className="text-sm text-gray-600">Preț unitar: <CurrencyPrice amount={item.price} /></p>
                 </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { 
   Bold, Italic, Underline, AlignLeft, AlignCenter, AlignRight,
   Type, Palette
@@ -16,12 +16,28 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
   const editorRef = useRef<HTMLDivElement>(null);
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showFontSize, setShowFontSize] = useState(false);
+  const isUpdatingRef = useRef(false);
+
+  // Sincronizează conținutul când value se schimbă din exterior
+  useEffect(() => {
+    if (editorRef.current && !isUpdatingRef.current && editorRef.current.innerHTML !== value) {
+      editorRef.current.innerHTML = value || '';
+    }
+  }, [value]);
 
   const execCommand = (command: string, value?: string) => {
     document.execCommand(command, false, value);
     if (editorRef.current) {
       onChange(editorRef.current.innerHTML);
     }
+  };
+
+  const handleInput = (e: React.FormEvent<HTMLDivElement>) => {
+    isUpdatingRef.current = true;
+    onChange(e.currentTarget.innerHTML);
+    setTimeout(() => {
+      isUpdatingRef.current = false;
+    }, 0);
   };
 
   const colors = [
@@ -183,11 +199,18 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
       <div
         ref={editorRef}
         contentEditable
-        onInput={(e) => onChange(e.currentTarget.innerHTML)}
-        dangerouslySetInnerHTML={{ __html: value }}
+        onInput={handleInput}
         className="min-h-[200px] p-4 focus:outline-none"
-        style={{ whiteSpace: 'pre-wrap', wordWrap: 'break-word' }}
+        style={{ 
+          whiteSpace: 'pre-wrap', 
+          wordWrap: 'break-word',
+          direction: 'ltr',
+          unicodeBidi: 'normal',
+          textAlign: 'left'
+        }}
         data-placeholder={placeholder}
+        dir="ltr"
+        suppressContentEditableWarning
       />
 
       <style jsx>{`
@@ -198,6 +221,9 @@ export default function RichTextEditor({ value, onChange, placeholder }: RichTex
         [contenteditable] {
           white-space: pre-wrap !important;
           word-wrap: break-word !important;
+          direction: ltr !important;
+          unicode-bidi: normal !important;
+          text-align: left !important;
         }
       `}</style>
     </div>

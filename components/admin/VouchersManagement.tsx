@@ -452,6 +452,22 @@ export default function VouchersManagement() {
               className="w-full px-3 py-2 border rounded"
             />
           </div>
+          <div className="flex items-center gap-3 p-3 bg-gray-50 rounded">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.isActive}
+                onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
+                className="w-5 h-5 text-blue-600 rounded focus:ring-2 focus:ring-blue-500"
+              />
+              <span className="text-sm font-medium">
+                {formData.isActive ? '✅ Voucher Activ' : '❌ Voucher Inactiv'}
+              </span>
+            </label>
+            <span className="text-xs text-gray-600">
+              {formData.isActive ? 'Voucherul poate fi folosit de clienți' : 'Voucherul este dezactivat'}
+            </span>
+          </div>
           <button
             type="submit"
             className="w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"

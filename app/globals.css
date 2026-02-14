@@ -1,5 +1,16 @@
 @import "tailwindcss";
 
+/* Forțează direcția textului de la stânga la dreapta (LTR) PESTE TOT */
+* {
+  direction: ltr !important;
+  unicode-bidi: normal !important;
+}
+
+html, body {
+  direction: ltr !important;
+  unicode-bidi: normal !important;
+}
+
 body {
   margin: 0;
   padding: 0;
@@ -24,8 +35,23 @@ p, h1, h2, h3, h4, h5, h6, span, div, a, li, td, th {
   hyphens: auto;
 }
 
-/* Pentru input-uri și textarea */
-input, textarea {
+/* Pentru input-uri și textarea - forțează LTR */
+input, textarea, select, button, div, span, p, h1, h2, h3, h4, h5, h6, a, label, li, td, th {
+  direction: ltr !important;
+  unicode-bidi: normal !important;
   word-wrap: break-word;
   overflow-wrap: break-word;
+}
+
+/* Forțează LTR pentru toate elementele editabile */
+[contenteditable] {
+  direction: ltr !important;
+  unicode-bidi: normal !important;
+  text-align: left !important;
+}
+
+/* Forțează LTR pentru formulare */
+form, fieldset, legend {
+  direction: ltr !important;
+  unicode-bidi: normal !important;
 }

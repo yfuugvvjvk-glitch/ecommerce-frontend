@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { dataAPI, categoryAPI } from '@/lib/api-client';
 import { useTranslation } from '@/components/LanguageSwitcher';
 import Link from 'next/link';
+import { stripHtml } from '@/utils/stripHtml';
 
 export default function ShopPage() {
   const { t } = useTranslation();
@@ -322,11 +323,13 @@ export default function ShopPage() {
               href={`/products/${product.id}`}
               className="bg-white rounded-lg shadow hover:shadow-xl transition-all overflow-hidden"
             >
-              <div className="relative h-48 bg-gray-200 flex items-center justify-center">
+              <div className="relative h-64 bg-gray-200 flex items-center justify-center">
                 <img
                   src={product.image}
-                  alt={product.title}
-                  className="max-w-full max-h-full object-contain"
+                  alt={stripHtml(product.title)}
+                  width="100%"
+                  height="100%"
+                  style={{ width: '100%', height: '100%', display: 'block' }}
                   onError={(e) => {
                     e.currentTarget.src = 'https://via.placeholder.com/300x200?text=No+Image';
                   }}
@@ -339,8 +342,8 @@ export default function ShopPage() {
               </div>
 
               <div className="p-4">
-                <h3 className="font-semibold text-lg mb-2 line-clamp-2 min-h-[3.5rem]">
-                  {product.title}
+                <h3 className="font-semibold text-lg mb-2 break-words whitespace-normal overflow-visible min-h-[3.5rem]">
+                  {stripHtml(product.title)}
                 </h3>
 
                 {/* Rating */}
@@ -353,46 +356,48 @@ export default function ShopPage() {
                 )}
 
                 {product.description && (
-                  <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                    {product.description}
-                  </p>
+                  <div className="text-sm text-gray-600 mb-3 line-clamp-2" dangerouslySetInnerHTML={{ __html: product.description }} />
                 )}
 
-                <div className="flex items-baseline gap-2 mb-2">
-                  <span className="text-2xl font-bold text-blue-600">
-                    {product.price.toFixed(2)} RON
-                    {product.unitName && product.unitName !== 'bucată' && (
-                      <span className="text-sm font-normal text-gray-600">/{product.unitName}</span>
-                    )}
-                  </span>
-                  {product.oldPrice && product.oldPrice > product.price && (
-                    <span className="text-sm text-gray-400 line-through">
-                      {product.oldPrice.toFixed(2)} RON
-                      {product.unitName && product.unitName !== 'bucată' && (
-                        <span className="text-xs">/{product.unitName}</span>
-                      )}
+                <div className="mb-2">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-2xl font-bold text-blue-600">
+                      {product.price.toFixed(2)} lei
                     </span>
-                  )}
-                </div>
-                
-                {/* Informații despre unitatea de măsură */}
-                {product.unitName && product.unitName !== 'bucată' && (
-                  <p className="text-xs text-gray-500 mb-2">
-                    Vândut per {product.unitName}
+                    {product.oldPrice && product.oldPrice > product.price && (
+                      <span className="text-sm text-gray-400 line-through">
+                        {product.oldPrice.toFixed(2)} lei
+                      </span>
+                    )}
+                  </div>
+                  
+                  {/* Afișare specificație produs - UNIFORM pentru toate */}
+                  <p className="text-sm text-gray-600 mt-1">
+                    /produs (fiecare = {
+                      product.availableQuantities && product.availableQuantities.length > 0 
+                        ? product.availableQuantities[0] 
+                        : (product.minQuantity || 1)
+                    } {product.unitName || 'bucată'})
                   </p>
-                )}
+                </div>
 
                 <div className="flex items-center justify-between text-sm">
-                  <span
-                    className={`font-medium ${
-                      product.stock > 0 ? 'text-green-600' : 'text-red-600'
-                    }`}
-                  >
-                    {product.stock > 0 ? `${t('inStockCount')}: ${product.stock}` : t('outOfStock')}
-                  </span>
-                  <span className="text-gray-500 capitalize text-xs bg-gray-100 px-2 py-1 rounded">
-                    {typeof product.category === 'string' ? product.category : product.category?.name || 'N/A'}
-                  </span>
+                  {/* Afișare stoc bazată pe stockDisplayMode */}
+                  {product.stockDisplayMode === 'hidden' ? (
+                    // Nu afișa nimic despre stoc
+                    <span></span>
+                  ) : product.stockDisplayMode === 'status_only' ? (
+                    // Afișează doar disponibil/indisponibil
+                    <span className={`font-medium ${product.stock > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {product.stock > 0 ? 'Disponibil' : 'Indisponibil'}
+                    </span>
+                  ) : (
+                    // Afișează cantitatea exactă (visible mode)
+                    <span className={`font-medium ${product.stock > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      {product.stock > 0 ? `${t('inStockCount')}: ${product.stock.toFixed(2)}` : t('outOfStock')}
+                    </span>
+                  )}
+                  {/* Category badge hidden as requested */}
                 </div>
               </div>
             </Link>

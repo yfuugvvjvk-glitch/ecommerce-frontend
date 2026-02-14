@@ -10,11 +10,30 @@ import Carousel from '@/components/Carousel';
 import NavigationHistory from '@/components/NavigationHistory';
 import AIChatbot from '@/components/AIChatbot';
 import CurrencyPrice from '@/components/CurrencyPrice';
+import AnnouncementBanner from '@/components/AnnouncementBanner';
+import { stripHtml } from '@/utils/stripHtml';
 
 interface Category {
   id: string;
   name: string;
   slug: string;
+}
+
+interface TextStyle {
+  color: string;
+  backgroundColor: string;
+  fontSize: number;
+  fontFamily: string;
+  fontWeight: 'normal' | 'bold' | 'light';
+  textAlign: 'left' | 'center' | 'right';
+}
+
+interface AnnouncementBannerConfig {
+  isActive: boolean;
+  title: string;
+  description: string;
+  titleStyle: TextStyle;
+  descriptionStyle: TextStyle;
 }
 
 export default function DashboardPage() {
@@ -25,6 +44,8 @@ export default function DashboardPage() {
   const [products, setProducts] = useState<any[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<any[]>([]);
   const [historyProducts, setHistoryProducts] = useState<any[]>([]);
+  const [bannerConfig, setBannerConfig] = useState<AnnouncementBannerConfig | null>(null);
+  const [showBanner, setShowBanner] = useState(true);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<string>('newest');
@@ -34,15 +55,99 @@ export default function DashboardPage() {
   useEffect(() => {
     fetchData();
     loadViewedProducts();
+    fetchBannerConfig();
+  }, []);
+
+  // Subscribe to real-time banner updates via WebSocket
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    let socket: any = null;
+    let mounted = true;
+
+    const connectWebSocket = async () => {
+      try {
+        const { io } = await import('socket.io-client');
+        
+        if (!mounted) return;
+
+        // Get auth token from localStorage
+        const token = localStorage.getItem('token');
+        if (!token) {
+          console.log('⚠️ No auth token found, skipping WebSocket connection');
+          return;
+        }
+
+        // Connect to WebSocket with authentication
+        socket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001', {
+          auth: {
+            token: token
+          },
+          transports: ['websocket', 'polling'],
+          timeout: 5000,
+          reconnection: true,
+          reconnectionAttempts: 3,
+          reconnectionDelay: 1000
+        });
+
+        // Listen for config updates
+        socket.on('content_update', (data: any) => {
+          if (data.type === 'config_updated' && data.key === 'announcement_banner') {
+            console.log('📢 Banner config updated via WebSocket:', data);
+            if (mounted) {
+              setBannerConfig(data.value);
+              setShowBanner(true); // Show banner again when updated
+            }
+          }
+        });
+
+        socket.on('connect', () => {
+          console.log('🔌 Connected to WebSocket for banner updates');
+        });
+
+        socket.on('disconnect', () => {
+          console.log('🔌 Disconnected from WebSocket');
+        });
+
+        socket.on('connect_error', (error: any) => {
+          console.error('🔌 WebSocket connection error:', error.message);
+        });
+      } catch (error) {
+        console.error('Failed to load socket.io-client:', error);
+      }
+    };
+
+    // Delay connection to ensure component is mounted
+    const timer = setTimeout(connectWebSocket, 100);
+
+    return () => {
+      mounted = false;
+      clearTimeout(timer);
+      if (socket) {
+        socket.disconnect();
+      }
+    };
   }, []);
 
   // Filter and sort products
   useEffect(() => {
     let filtered = products;
 
-    // Filter by category
+    // Filter by category (include subcategories)
     if (selectedCategory) {
-      filtered = filtered.filter((p: any) => p.category?.id === selectedCategory);
+      // Find selected category and its subcategories
+      const selectedCat = categories.find((c: any) => c.id === selectedCategory);
+      const categoryIds = [selectedCategory];
+      
+      // Add subcategory IDs if they exist
+      if (selectedCat && (selectedCat as any).subcategories) {
+        (selectedCat as any).subcategories.forEach((sub: any) => {
+          categoryIds.push(sub.id);
+        });
+      }
+      
+      // Filter products by category ID or any subcategory ID
+      filtered = filtered.filter((p: any) => categoryIds.includes(p.category?.id));
     }
 
     // Filter by search query
@@ -76,7 +181,7 @@ export default function DashboardPage() {
 
     setFilteredProducts(filtered);
     setCurrentPage(1); // Reset to first page when filters change
-  }, [products, selectedCategory, searchQuery, sortBy]);
+  }, [products, selectedCategory, searchQuery, sortBy, categories]);
 
   const loadViewedProducts = async () => {
     try {
@@ -94,6 +199,19 @@ export default function DashboardPage() {
       setHistoryProducts(viewed);
     } catch (error) {
       console.error('Failed to load viewed products:', error);
+    }
+  };
+
+  const fetchBannerConfig = async () => {
+    try {
+      const response = await apiClient.get('/api/announcement-banner');
+      if (response.data.data) {
+        setBannerConfig(response.data.data);
+      }
+    } catch (error) {
+      // Fail silently - banner is optional
+      console.error('Failed to fetch banner config:', error);
+      setBannerConfig(null);
     }
   };
 
@@ -164,6 +282,14 @@ export default function DashboardPage() {
 
       {/* Main Content */}
       <div className="flex-1 space-y-6">
+        {/* Announcement Banner - arată doar când nu e selectată nicio categorie */}
+        {!selectedCategory && bannerConfig && showBanner && (
+          <AnnouncementBanner
+            config={bannerConfig}
+            onClose={() => setShowBanner(false)}
+          />
+        )}
+
         {/* Carousel - arată doar când nu e selectată nicio categorie */}
         {!selectedCategory && carouselItems.length > 0 && <Carousel items={carouselItems} />}
 
@@ -268,26 +394,40 @@ export default function DashboardPage() {
                 href={`/products/${product.id}`}
                 className="group bg-gray-50 rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
               >
-                <div className="relative h-48 bg-gray-200 flex items-center justify-center">
+                <div className="relative h-56 bg-gray-200 flex items-center justify-center">
                   <img
                     src={product.image || '/placeholder.jpg'}
-                    alt={product.title}
-                    className="max-w-full max-h-full object-contain group-hover:scale-105 transition-transform"
+                    alt={stripHtml(product.title)}
+                    width="100%"
+                    height="100%"
+                    style={{ width: '100%', height: '100%', display: 'block' }}
                   />
                 </div>
                 <div className="p-3">
-                  <h3 className="font-medium text-gray-800 truncate group-hover:text-blue-600">
-                    {product.title}
+                  <h3 className="font-medium text-gray-800 break-words whitespace-normal overflow-visible group-hover:text-blue-600">
+                    {stripHtml(product.title)}
                   </h3>
                   <p className="text-lg font-bold text-blue-600 mt-1">
                     <CurrencyPrice amount={product.price} />
-                    {product.priceType === 'per_unit' && product.unitName && product.unitName !== 'bucată' && (
+                    {product.priceType === 'per_unit' && product.unitName && product.unitName !== 'bucată' ? (
                       <span className="text-sm font-normal text-gray-600">/{product.unitName}</span>
-                    )}
+                    ) : product.priceType === 'fixed' ? (
+                      <span className="text-sm font-normal text-gray-600">/produs</span>
+                    ) : null}
                   </p>
-                  {product.priceType === 'fixed' && product.availableQuantities && product.availableQuantities[0] > 1 && (
+                  {/* Afișare cantitate - MEREU */}
+                  {product.priceType === 'per_unit' && product.availableQuantities && product.availableQuantities.length > 0 && (
                     <p className="text-xs text-gray-500">
-                      {product.availableQuantities[0]} {product.unitName}/buc
+                      (cantități: {product.availableQuantities.join(', ')} {product.unitName})
+                    </p>
+                  )}
+                  {product.priceType === 'fixed' && (
+                    <p className="text-xs text-gray-500">
+                      (fiecare = {
+                        product.availableQuantities && product.availableQuantities.length > 0 
+                          ? product.availableQuantities[0] 
+                          : (product.minQuantity || 1)
+                      } {product.unitName || 'buc'})
                     </p>
                   )}
                 </div>

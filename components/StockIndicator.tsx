@@ -13,6 +13,8 @@ interface StockIndicatorProps {
 interface StockInfo {
   available: boolean;
   currentStock: number;
+  stockDisplayMode?: string;
+  unitName?: string;
 }
 
 export default function StockIndicator({ 
@@ -33,7 +35,12 @@ export default function StockIndicator({
       const response = await fetch(`/api/inventory/check/${productId}?quantity=${quantity}`);
       if (response.ok) {
         const data = await response.json();
-        setStockInfo(data);
+        setStockInfo({
+          available: data.available,
+          currentStock: data.availableStock,
+          stockDisplayMode: data.stockDisplayMode || 'visible',
+          unitName: data.unitName || 'produse'
+        });
       }
     } catch (error) {
       console.error('Eroare verificare stoc:', error);
@@ -55,6 +62,11 @@ export default function StockIndicator({
     return null;
   }
 
+  // Respectă stockDisplayMode
+  if (stockInfo.stockDisplayMode === 'hidden') {
+    return null; // Nu afișa nimic despre stoc
+  }
+
   const getStockStatus = () => {
     if (!stockInfo.available) {
       return {
@@ -66,6 +78,18 @@ export default function StockIndicator({
       };
     }
 
+    // Dacă stockDisplayMode este 'status_only', afișează doar disponibil/indisponibil
+    if (stockInfo.stockDisplayMode === 'status_only') {
+      return {
+        icon: CheckCircle,
+        text: 'Disponibil',
+        color: 'text-green-600',
+        bgColor: 'bg-green-50',
+        borderColor: 'border-green-200'
+      };
+    }
+
+    // Dacă stockDisplayMode este 'visible', afișează cantitatea exactă
     if (stockInfo.currentStock === -1) {
       return {
         icon: CheckCircle,
@@ -79,7 +103,7 @@ export default function StockIndicator({
     if (stockInfo.currentStock <= 5) {
       return {
         icon: AlertTriangle,
-        text: showDetails ? `Doar ${stockInfo.currentStock} bucăți` : 'Stoc limitat',
+        text: showDetails ? `Doar ${stockInfo.currentStock} ${stockInfo.unitName || 'produse'}` : 'Stoc limitat',
         color: 'text-yellow-600',
         bgColor: 'bg-yellow-50',
         borderColor: 'border-yellow-200'
@@ -88,7 +112,7 @@ export default function StockIndicator({
 
     return {
       icon: CheckCircle,
-      text: showDetails ? `${stockInfo.currentStock} bucăți` : 'În stoc',
+      text: showDetails ? `${stockInfo.currentStock} ${stockInfo.unitName || 'produse'}` : 'În stoc',
       color: 'text-green-600',
       bgColor: 'bg-green-50',
       borderColor: 'border-green-200'

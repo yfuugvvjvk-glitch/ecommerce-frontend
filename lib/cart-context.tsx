@@ -16,9 +16,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const refreshCartCount = async () => {
     try {
       const response = await apiClient.get('/api/cart');
-      const items = response.data.items || [];
-      const totalCount = items.reduce((sum: number, item: any) => sum + item.quantity, 0);
-      setCartItemCount(totalCount);
+      const itemCount = response.data.itemCount || 0; // Folosește itemCount de la backend
+      setCartItemCount(itemCount);
     } catch (error) {
       console.error('Failed to fetch cart count:', error);
       setCartItemCount(0);

@@ -18,7 +18,7 @@ import DeliveryScheduleManager from '@/components/admin/DeliveryScheduleManager'
 import FinancialReports from '@/components/admin/FinancialReports';
 import DeliveryPaymentSettings from '@/components/admin/DeliveryPaymentSettings';
 import DeliveryLocationsManager from '@/components/admin/DeliveryLocationsManager';
-import UIElementsManager from '@/components/admin/UIElementsManager';
+import AdminBannerEditor from '@/components/admin/AdminBannerEditor';
 
 interface AdminStats {
   totalUsers?: number;
@@ -39,7 +39,7 @@ export default function AdminPage() {
   const router = useRouter();
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'products' | 'orders' | 'vouchers' | 'offers' | 'categories' | 'invoices' | 'test-cards' | 'inventory' | 'financial' | 'content' | 'delivery-schedule' | 'delivery-locations' | 'payment-delivery' | 'ui-elements'>('dashboard');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'users' | 'products' | 'orders' | 'vouchers' | 'offers' | 'categories' | 'invoices' | 'test-cards' | 'inventory' | 'financial' | 'content' | 'delivery-schedule' | 'delivery-locations' | 'payment-delivery' | 'banner'>('dashboard');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   useEffect(() => {
@@ -262,14 +262,14 @@ export default function AdminPage() {
           💳 Plată & Livrare
         </button>
         <button
-          onClick={() => setActiveTab('ui-elements')}
+          onClick={() => setActiveTab('banner')}
           className={`px-4 py-2 font-medium transition whitespace-nowrap ${
-            activeTab === 'ui-elements'
+            activeTab === 'banner'
               ? 'border-b-2 border-blue-600 text-blue-600'
               : 'text-gray-600 hover:text-gray-900'
           }`}
         >
-          🎨 Elemente UI
+          📢 Banner Anunțuri
         </button>
       </div>
 
@@ -344,6 +344,17 @@ export default function AdminPage() {
                 </button>
                 <p className="text-sm text-gray-600 flex items-center">
                   Administrează monedele și cursurile de schimb
+                </p>
+              </div>
+              <div className="flex gap-4">
+                <button
+                  onClick={() => router.push('/admin/gift-rules')}
+                  className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold"
+                >
+                  🎁 Reguli Cadou
+                </button>
+                <p className="text-sm text-gray-600 flex items-center">
+                  Gestionează regulile pentru produse cadou
                 </p>
               </div>
             </div>
@@ -480,10 +491,11 @@ export default function AdminPage() {
         </div>
       )}
 
-      {/* UI Elements Tab */}
-      {activeTab === 'ui-elements' && (
+      {/* Banner Tab */}
+      {activeTab === 'banner' && (
         <div className="bg-white rounded-lg shadow p-6">
-          <UIElementsManager />
+          <h2 className="text-xl font-bold mb-4">Gestionare Banner Anunțuri</h2>
+          <AdminBannerEditor />
         </div>
       )}
     </div>

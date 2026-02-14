@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTranslation } from './LanguageSwitcher';
 import CurrencyPrice from './CurrencyPrice';
+import { stripHtml } from '@/utils/stripHtml';
 
 interface Product {
   id: string;
@@ -85,16 +86,19 @@ export default function NavigationHistory({ products }: NavigationHistoryProps) 
             className="group"
           >
             <div className="bg-gray-50 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
-              <div className="relative h-32 bg-gray-200">
+              <div className="relative h-40 bg-gray-200">
                 <img
                   src={product.image || '/placeholder.jpg'}
                   alt={product.title}
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                  width="100%"
+                  height="100%"
+                  style={{ width: '100%', height: '100%' }}
+                  className="group-hover:scale-105 transition-transform"
                 />
               </div>
               <div className="p-2">
-                <h3 className="text-sm font-medium text-gray-800 truncate group-hover:text-blue-600">
-                  {product.title}
+                <h3 className="text-sm font-medium text-gray-800 group-hover:text-blue-600 break-words whitespace-normal overflow-visible">
+                  {stripHtml(product.title)}
                 </h3>
                 <p className="text-sm font-bold text-blue-600 mt-1">
                   <CurrencyPrice amount={product.price} />

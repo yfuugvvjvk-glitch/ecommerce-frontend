@@ -126,73 +126,17 @@ export default function UIElementsManager() {
   const fetchElements = async () => {
     try {
       setLoading(true);
-      // TODO: Implementează endpoint-ul în backend
-      // const response = await apiClient.get('/api/admin/ui-elements');
-      // setElements(response.data);
-      
-      // Date demo pentru moment
-      setElements([
-        {
-          id: '1',
-          type: 'button',
-          label: 'Chat AI',
-          icon: '🤖',
-          position: 'floating',
-          page: ['all'],
-          order: 1,
-          size: 'large',
-          color: '#3B82F6',
-          isVisible: true,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        {
-          id: '2',
-          type: 'button',
-          label: 'Ajutor',
-          icon: '❓',
-          position: 'floating',
-          page: ['all'],
-          order: 2,
-          size: 'medium',
-          color: '#10B981',
-          isVisible: true,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-      ]);
-      setFilteredElements([
-        {
-          id: '1',
-          type: 'button',
-          label: 'Chat AI',
-          icon: '🤖',
-          position: 'floating',
-          page: ['all'],
-          order: 1,
-          size: 'large',
-          color: '#3B82F6',
-          isVisible: true,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-        {
-          id: '2',
-          type: 'button',
-          label: 'Ajutor',
-          icon: '❓',
-          position: 'floating',
-          page: ['all'],
-          order: 2,
-          size: 'medium',
-          color: '#10B981',
-          isVisible: true,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-        },
-      ]);
-    } catch (error) {
+      const response = await apiClient.get('/api/admin/ui-elements');
+      setElements(response.data || []);
+      setFilteredElements(response.data || []);
+    } catch (error: any) {
       console.error('Error fetching UI elements:', error);
+      if (error?.response?.status === 404) {
+        // Endpoint nu există încă în backend - nu afișăm eroare
+        console.warn('UI Elements endpoint not implemented in backend yet');
+      }
+      setElements([]);
+      setFilteredElements([]);
     } finally {
       setLoading(false);
     }
@@ -200,12 +144,20 @@ export default function UIElementsManager() {
 
   const handleSave = async () => {
     try {
+      console.log('💾 Saving UI Element...');
+      console.log('💾 Editing element:', editingElement);
+      console.log('💾 Form data:', formData);
+      
       if (editingElement) {
         // Update
-        await apiClient.put(`/api/admin/ui-elements/${editingElement.id}`, formData);
+        console.log('💾 Updating element:', editingElement.id);
+        const response = await apiClient.put(`/api/admin/ui-elements/${editingElement.id}`, formData);
+        console.log('💾 Update response:', response.data);
       } else {
         // Create
-        await apiClient.post('/api/admin/ui-elements', formData);
+        console.log('💾 Creating new element');
+        const response = await apiClient.post('/api/admin/ui-elements', formData);
+        console.log('💾 Create response:', response.data);
       }
       
       setShowAddModal(false);
@@ -219,9 +171,21 @@ export default function UIElementsManager() {
         size: 'medium',
         isVisible: true,
       });
-      fetchElements();
+      
+      // Reîncarcă elementele
+      await fetchElements();
+      
+      // Notifică alte tab-uri despre schimbare prin localStorage
+      localStorage.setItem('ui-elements-updated', Date.now().toString());
+      
+      // Notifică componenta din același tab prin Custom Event
+      window.dispatchEvent(new CustomEvent('ui-elements-changed', { 
+        detail: { timestamp: Date.now() } 
+      }));
+      
+      console.log('✅ UI Element saved and notifications sent');
     } catch (error) {
-      console.error('Error saving element:', error);
+      console.error('❌ Error saving element:', error);
       alert('Eroare la salvare');
     }
   };
@@ -246,10 +210,21 @@ export default function UIElementsManager() {
 
   const handleToggleVisibility = async (element: UIElement) => {
     try {
-      await apiClient.patch(`/api/admin/ui-elements/${element.id}/toggle-visibility`);
-      fetchElements();
+      console.log('🔄 Toggling visibility for:', element.label, 'Current:', element.isVisible);
+      const response = await apiClient.patch(`/api/admin/ui-elements/${element.id}/toggle-visibility`);
+      console.log('✅ Toggle response:', response.data);
+      await fetchElements();
+      console.log('📋 Elements refetched');
+      
+      // Notifică alte tab-uri despre schimbare prin localStorage
+      localStorage.setItem('ui-elements-updated', Date.now().toString());
+      
+      // Notifică componenta din același tab prin Custom Event
+      window.dispatchEvent(new CustomEvent('ui-elements-changed', { 
+        detail: { timestamp: Date.now() } 
+      }));
     } catch (error) {
-      console.error('Error toggling visibility:', error);
+      console.error('❌ Error toggling visibility:', error);
     }
   };
 

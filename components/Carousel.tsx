@@ -101,10 +101,14 @@ export default function Carousel({ items, autoPlayInterval = 5000 }: CarouselPro
   const currentItem = items[currentIndex];
 
   // Get display title and description (with custom overrides)
-  const displayTitle = currentItem.customTitle || 
+  const rawTitle = currentItem.customTitle || 
     (currentItem.type === 'product' && currentItem.product?.title) ||
     (currentItem.type === 'media' && currentItem.media?.title) ||
     currentItem.title || '';
+  
+  // Nu afișa titlul dacă este un nume de fișier (conține extensii precum .jpg, .png, etc.)
+  const isFileName = /\.(jpg|jpeg|png|gif|webp|svg|bmp|ico|mp4|mov|avi|pdf|doc|docx)$/i.test(rawTitle);
+  const displayTitle = isFileName ? '' : rawTitle;
 
   const displayDescription = currentItem.customDescription ||
     (currentItem.type === 'product' && currentItem.product?.description) ||
@@ -121,11 +125,11 @@ export default function Carousel({ items, autoPlayInterval = 5000 }: CarouselPro
   // Get text styles - support both old and new format
   let titleStyle, descriptionStyle, linkStyle, overlayBackground;
   
-  if (currentItem.textStyle?.title && currentItem.textStyle?.description) {
+  if ((currentItem.textStyle as any)?.title && (currentItem.textStyle as any)?.description) {
     // New format with separate styles
-    titleStyle = currentItem.textStyle.title;
-    descriptionStyle = currentItem.textStyle.description;
-    linkStyle = currentItem.textStyle.link || {
+    titleStyle = (currentItem.textStyle as any).title;
+    descriptionStyle = (currentItem.textStyle as any).description;
+    linkStyle = (currentItem.textStyle as any).link || {
       color: '#3b82f6',
       fontSize: '14px',
       fontFamily: 'Arial',
@@ -134,7 +138,7 @@ export default function Carousel({ items, autoPlayInterval = 5000 }: CarouselPro
       lineHeight: '1.5',
       letterSpacing: '0px'
     };
-    overlayBackground = currentItem.textStyle.overlayBackground || 'rgba(0,0,0,0.5)';
+    overlayBackground = (currentItem.textStyle as any).overlayBackground || 'rgba(0,0,0,0.5)';
   } else if (currentItem.textStyle) {
     // Old format - single style for all text
     const oldStyle = currentItem.textStyle;
@@ -204,20 +208,27 @@ export default function Carousel({ items, autoPlayInterval = 5000 }: CarouselPro
         {/* Main Image - Clickable */}
         <div 
           onClick={() => handleItemClick(currentItem)}
-          className="relative h-64 md:h-80 lg:h-96 cursor-pointer bg-gray-100"
+          className="relative w-full cursor-pointer overflow-hidden"
+          style={{ height: '450px' }}
         >
           <img
             src={imageUrl}
             alt={displayTitle}
-            className="w-full h-full object-contain hover:scale-105 transition-transform duration-300"
+            width="100%"
+            height="100%"
+            style={{ width: '100%', height: '100%', display: 'block' }}
+            className="hover:scale-105 transition-transform duration-300"
           />
           
           {/* Text Overlay with Custom Styling - Centrat Jos */}
+          {/* Afișează overlay-ul DOAR dacă există titlu, descriere sau link */}
           {((displayTitle && displayTitle.trim()) || (displayDescription && displayDescription.trim()) || currentItem.linkUrl) && (
             <div 
               className="absolute bottom-0 left-0 right-0 flex flex-col items-center justify-end p-6"
               style={{
-                backgroundColor: overlayBackground
+                backgroundColor: (displayTitle && displayTitle.trim()) || (displayDescription && displayDescription.trim()) || currentItem.linkUrl 
+                  ? overlayBackground 
+                  : 'transparent'
               }}
             >
               {displayTitle && displayTitle.trim() && (
@@ -331,13 +342,16 @@ export default function Carousel({ items, autoPlayInterval = 5000 }: CarouselPro
               </div>
 
               {/* Enlarged Image */}
-              <div className="mb-4">
+              <div className="mb-4 w-full rounded overflow-hidden" style={{ height: '600px' }}>
                 <img
                   src={selectedMedia.type === 'media' && selectedMedia.media?.url
                     ? `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}${selectedMedia.media.url}`
                     : selectedMedia.imageUrl || '/placeholder.jpg'}
                   alt={selectedMedia.customTitle || selectedMedia.media?.title || ''}
-                  className="w-full h-auto rounded"
+                  width="100%"
+                  height="100%"
+                  style={{ width: '100%', height: '100%', display: 'block' }}
+                  className="rounded"
                 />
               </div>
 

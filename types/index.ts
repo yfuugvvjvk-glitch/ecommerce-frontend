@@ -153,4 +153,24 @@ export interface DeliverySettings {
   freeDeliveryThreshold?: number;
 }
 
+export interface TextStyle {
+  color: string;
+  backgroundColor: string;
+  fontSize: number;
+  fontFamily: string;
+  fontWeight: 'normal' | 'bold' | 'light';
+  textAlign: 'left' | 'center' | 'right';
+}
 
+export interface AnnouncementBannerConfig {
+  isActive: boolean;
+  title: string;
+  description: string;
+  titleStyle: TextStyle;
+  descriptionStyle: TextStyle;
+}
+
+
+
+// Export order blocking types
+export * from './order-blocking';

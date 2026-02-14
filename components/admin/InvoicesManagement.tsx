@@ -5,6 +5,7 @@ import { apiClient } from '@/lib/api-client';
 import { FileText, Eye, User, Calendar, CreditCard, Copy, Trash2 } from 'lucide-react';
 import { usePagination } from '@/lib/usePagination';
 import Pagination from '@/components/Pagination';
+import { stripHtml } from '@/utils/stripHtml';
 
 interface Invoice {
   id: string;
@@ -382,7 +383,7 @@ export default function InvoicesManagement() {
 
                       <div className="text-sm text-gray-600">
                         <strong>Produse:</strong> {invoice.orderItems.map(item => 
-                          `${item.dataItem.title} (${item.quantity}x)`
+                          `${stripHtml(item.dataItem.title)} (${item.quantity}x)`
                         ).join(', ')}
                       </div>
                     </div>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/lib/auth-context';
+import { usePathname } from 'next/navigation';
 import { io, Socket } from 'socket.io-client';
 import { MessageCircle, Users, Plus, X, Send, Phone, Video, Settings, Paperclip, Edit3, Trash2, MoreVertical, Move, Maximize2, Minimize2 } from 'lucide-react';
 
@@ -30,6 +31,8 @@ interface ChatRoom {
 
 interface ChatMessage {
   id: string;
+  chatRoomId: string;
+  senderId: string;
   content: string;
   type: 'TEXT' | 'IMAGE' | 'FILE' | 'SYSTEM';
   sender: {
@@ -43,6 +46,7 @@ interface ChatMessage {
   fileName?: string;
   isEdited?: boolean;
   editedAt?: string;
+  isDeleted?: boolean;
 }
 
 interface AvailableUser {
@@ -55,6 +59,7 @@ interface AvailableUser {
 
 export default function ChatSystem() {
   const { token, user } = useAuth();
+  const pathname = usePathname();
   const [socket, setSocket] = useState<Socket | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
@@ -72,6 +77,9 @@ export default function ChatSystem() {
   const [editingMessage, setEditingMessage] = useState<string | null>(null);
   const [editContent, setEditContent] = useState('');
   const [sendingMessage, setSendingMessage] = useState(false);
+  const [isVisible, setIsVisible] = useState(true); // Controlează vizibilitatea butonului din UI Elements
+  const [allowedPages, setAllowedPages] = useState<string[]>(['all']); // Paginile pe care poate apărea butonul
+  const [shouldShow, setShouldShow] = useState(true); // Verifică dacă butonul este permis pe pagina curentă
   
   // Chat window positioning and sizing
   const [position, setPosition] = useState({ x: 20, y: 20 });
@@ -84,6 +92,86 @@ export default function ChatSystem() {
   
   const chatRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<HTMLDivElement>(null);
+  const selectedRoomRef = useRef<ChatRoom | null>(null);
+
+  // BLOCARE CHAT PENTRU GUEST
+  const isGuest = user?.role === 'guest';
+
+  // Verifică dacă butonul de chat este vizibil în setările UI Elements
+  useEffect(() => {
+    const checkVisibility = async () => {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+        console.log('🟢 [ChatSystem] Checking visibility from:', `${apiUrl}/api/public/ui-elements`);
+        const response = await fetch(`${apiUrl}/api/public/ui-elements`);
+        
+        if (response.ok) {
+          const elements = await response.json();
+          console.log('🟢 [ChatSystem] UI Elements received:', elements);
+          
+          // Caută elementul "Chat Utilizatori"
+          const chatElement = elements.find((el: any) => 
+            el.label === 'Chat Utilizatori'
+          );
+          
+          console.log('🟢 [ChatSystem] Chat Utilizatori element found:', chatElement);
+          
+          if (chatElement) {
+            // Salvează paginile permise
+            setAllowedPages(chatElement.page || ['all']);
+            // Setează vizibilitatea
+            setIsVisible(chatElement.isVisible);
+            console.log('🟢 [ChatSystem] Allowed pages:', chatElement.page);
+            console.log('🟢 [ChatSystem] Is visible:', chatElement.isVisible);
+          } else {
+            setIsVisible(false);
+            setAllowedPages([]);
+          }
+        } else {
+          console.warn('🟢 [ChatSystem] API response not OK:', response.status);
+          setIsVisible(false);
+        }
+      } catch (error) {
+        console.error('🟢 [ChatSystem] Error checking chat visibility:', error);
+        setIsVisible(false);
+      }
+    };
+
+    // Verifică imediat la montare
+    checkVisibility();
+    
+    // Verifică din nou la fiecare 10 secunde (backup)
+    const interval = setInterval(checkVisibility, 10000);
+    
+    // Ascultă pentru Custom Event (actualizare instantanee în același tab)
+    const handleCustomEvent = () => {
+      console.log('🟢 [ChatSystem] UI elements changed event received');
+      checkVisibility();
+    };
+    
+    // Ascultă pentru schimbări în localStorage (notificări de la alte tab-uri)
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'ui-elements-updated') {
+        console.log('🟢 [ChatSystem] UI elements updated notification received');
+        checkVisibility();
+      }
+    };
+    
+    window.addEventListener('ui-elements-changed', handleCustomEvent as EventListener);
+    window.addEventListener('storage', handleStorageChange);
+    
+    // Curăță interval-ul și listener-ele la demontare
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('ui-elements-changed', handleCustomEvent as EventListener);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
+  // Keep ref in sync with selectedRoom state
+  useEffect(() => {
+    selectedRoomRef.current = selectedRoom;
+  }, [selectedRoom]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -96,7 +184,7 @@ export default function ChatSystem() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showRoomOptions]);
 
-  // Initialize Socket.IO connection
+  // Initialize Socket.IO connection (only once)
   useEffect(() => {
     if (!token || !user) return;
 
@@ -110,17 +198,44 @@ export default function ChatSystem() {
     });
 
     newSocket.on('new_message', (message: ChatMessage) => {
-      setMessages(prev => [...prev, message]);
-      // Update last message in chat rooms
-      setChatRooms(prev => prev.map(room => 
-        room.id === selectedRoom?.id 
-          ? { ...room, lastMessage: { content: message.content, sender: message.sender, createdAt: message.createdAt } }
-          : room
-      ));
+      console.log('📨 New message received:', message);
+      
+      // Check if the room exists in the current list
+      setChatRooms(prev => {
+        const roomExists = prev.some(room => room.id === message.chatRoomId);
+        
+        // If room doesn't exist, reload all rooms (it might have been hidden and reactivated)
+        if (!roomExists) {
+          console.log('🔄 Room not found in list, reloading rooms...');
+          loadChatRooms();
+        }
+        
+        // Update last message for the room
+        return prev.map(room => 
+          room.id === message.chatRoomId
+            ? { ...room, lastMessage: { content: message.content, sender: message.sender, createdAt: message.createdAt } }
+            : room
+        );
+      });
+      
+      // Only add message to messages state if it's for the currently selected room
+      if (selectedRoomRef.current?.id === message.chatRoomId) {
+        setMessages(prev => {
+          // Check if message already exists by ID (avoid duplicates)
+          const exists = prev.some(m => m.id === message.id);
+          if (exists) {
+            console.log('⚠️ Message already exists, skipping:', message.id);
+            return prev;
+          }
+          
+          console.log('✅ Adding new message:', message.id);
+          return [...prev, message];
+        });
+      }
     });
 
     newSocket.on('user_typing', (data: { userId: string; userEmail: string; roomId: string }) => {
-      if (data.roomId === selectedRoom?.id && data.userId !== user.id) {
+      if (data.userId !== user.id) {
         setIsTyping(prev => ({ ...prev, [data.userId]: true }));
         setTimeout(() => {
           setIsTyping(prev => ({ ...prev, [data.userId]: false }));
@@ -132,12 +247,32 @@ export default function ChatSystem() {
       setIsTyping(prev => ({ ...prev, [data.userId]: false }));
     });
 
+    newSocket.on('message_deleted', (data: { messageId: string; roomId: string }) => {
+      console.log('🗑️ Message deleted:', data.messageId);
+      // Remove message from UI for all users in the room
+      if (selectedRoomRef.current?.id === data.roomId) {
+        setMessages(prev => prev.filter(msg => msg.id !== data.messageId));
+      }
+    });
+
+    newSocket.on('message_edited', (data: { messageId: string; content: string; roomId: string }) => {
+      console.log('✏️ Message edited:', data.messageId);
+      // Update message content for all users in the room
+      if (selectedRoomRef.current?.id === data.roomId) {
+        setMessages(prev => prev.map(msg => 
+          msg.id === data.messageId 
+            ? { ...msg, content: data.content, isEdited: true }
+            : msg
+        ));
+      }
+    });
+
     setSocket(newSocket);
 
     return () => {
       newSocket.disconnect();
     };
-  }, [token, user, selectedRoom?.id]);
+  }, [token, user]); // Removed selectedRoom?.id dependency
 
   // Load chat rooms
   useEffect(() => {
@@ -419,9 +554,33 @@ export default function ChatSystem() {
   };
 
   const sendMessage = async () => {
-    if (!newMessage.trim() || !selectedRoom || !token) return;
+    if (!newMessage.trim() || !selectedRoom || !token || !user) return;
 
     setSendingMessage(true);
+    const messageContent = newMessage.trim();
+    setNewMessage(''); // Clear input immediately
+    
+    // Optimistic update - add message immediately to UI
+    const optimisticMessage: ChatMessage = {
+      id: `temp-${Date.now()}`,
+      chatRoomId: selectedRoom.id,
+      senderId: user.id,
+      content: messageContent,
+      type: 'TEXT',
+      createdAt: new Date().toISOString(),
+      sender: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        avatar: user.avatar,
+        role: user.role,
+      },
+      isEdited: false,
+      isDeleted: false,
+    };
+    
+    setMessages(prev => [...prev, optimisticMessage]);
+    
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
       const response = await fetch(`${apiUrl}/api/chat/rooms/${selectedRoom.id}/messages`, {
@@ -430,17 +589,27 @@ export default function ChatSystem() {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ content: newMessage })
+        body: JSON.stringify({ content: messageContent })
       });
 
       if (response.ok) {
-        setNewMessage('');
+        const realMessage = await response.json();
+        // Remove optimistic message and let Socket.IO add the real one
+        setMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id));
+        
         if (socket) {
           socket.emit('typing_stop', { roomId: selectedRoom.id });
         }
+      } else {
+        // Remove optimistic message on error
+        setMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id));
+        setNewMessage(messageContent); // Restore message
       }
     } catch (error) {
       console.error('Error sending message:', error);
+      // Remove optimistic message on error
+      setMessages(prev => prev.filter(msg => msg.id !== optimisticMessage.id));
+      setNewMessage(messageContent); // Restore message
     } finally {
       setSendingMessage(false);
     }
@@ -614,8 +783,12 @@ export default function ChatSystem() {
       if (response.ok) {
         setEditingMessage(null);
         setEditContent('');
-        // Reload messages to show updated content
-        loadMessages(selectedRoom.id);
+        // Update message immediately (Socket.IO will handle other users)
+        setMessages(prev => prev.map(msg => 
+          msg.id === messageId 
+            ? { ...msg, content: newContent, isEdited: true }
+            : msg
+        ));
       }
     } catch (error) {
       console.error('Error editing message:', error);
@@ -635,8 +808,8 @@ export default function ChatSystem() {
       });
 
       if (response.ok) {
-        // Reload messages to show updated list
-        loadMessages(selectedRoom.id);
+        // Remove message from UI immediately (Socket.IO will handle other users)
+        setMessages(prev => prev.filter(msg => msg.id !== messageId));
       }
     } catch (error) {
       console.error('Error deleting message:', error);
@@ -657,12 +830,51 @@ export default function ChatSystem() {
     if (room.type === 'GROUP') return '👥';
     
     const otherUser = room.members.find(member => member.user.id !== user?.id);
-    return otherUser?.user.avatar || '👤';
+    if (otherUser?.user.avatar) {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      const avatarUrl = otherUser.user.avatar.startsWith('http') 
+        ? otherUser.user.avatar 
+        : `${apiUrl}${otherUser.user.avatar}`;
+      return <img src={avatarUrl} alt={otherUser.user.name} className="w-8 h-8 rounded-full object-cover" />;
+    }
+    return '👤';
   };
+
+  // Verifică dacă butonul este permis pe pagina curentă
+  useEffect(() => {
+    let currentPage = pathname?.split('/').filter(p => p).pop() || 'dashboard';
+    if (!currentPage || currentPage === '') {
+      currentPage = 'dashboard';
+    }
+    const isAllowedOnCurrentPage = allowedPages.includes('all') || allowedPages.includes(currentPage);
+    
+    console.log('🟢 [ChatSystem] ===== PAGE CHECK =====');
+    console.log('🟢 [ChatSystem] Full pathname:', pathname);
+    console.log('🟢 [ChatSystem] Pathname parts:', pathname?.split('/'));
+    console.log('🟢 [ChatSystem] Current page (extracted):', currentPage);
+    console.log('🟢 [ChatSystem] Allowed pages:', allowedPages);
+    console.log('🟢 [ChatSystem] Is allowed on current page:', isAllowedOnCurrentPage);
+    console.log('🟢 [ChatSystem] Is visible:', isVisible);
+    console.log('🟢 [ChatSystem] Is guest:', isGuest);
+    console.log('🟢 [ChatSystem] ========================');
+    
+    setShouldShow(isAllowedOnCurrentPage);
+  }, [pathname, allowedPages, isVisible, isGuest]);
 
   const totalUnreadCount = chatRooms.reduce((sum, room) => sum + room.unreadCount, 0);
 
   if (!user) return null;
+
+  // BLOCARE CHAT PENTRU GUEST - Nu afișa butonul deloc
+  if (isGuest) return null;
+
+  // BLOCARE CHAT dacă nu este vizibil în UI Elements
+  if (!isVisible) return null;
+  
+  if (!shouldShow) {
+    console.log('🟢 [ChatSystem] ❌ NOT ALLOWED ON THIS PAGE - HIDING BUTTON');
+    return null;
+  }
 
   return (
     <>
@@ -838,7 +1050,9 @@ export default function ChatSystem() {
                         className="flex items-center space-x-3"
                         onClick={() => selectRoom(room)}
                       >
-                        <div className="text-2xl">{getRoomAvatar(room)}</div>
+                        <div className="flex items-center justify-center w-8 h-8 text-2xl">
+                          {getRoomAvatar(room)}
+                        </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between">
                             <p className="font-medium text-sm truncate">
@@ -929,7 +1143,9 @@ export default function ChatSystem() {
                 <div className="p-3 border-b border-gray-200 bg-gray-50">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
-                      <span className="text-lg">{getRoomAvatar(selectedRoom)}</span>
+                      <div className="flex items-center justify-center w-8 h-8">
+                        {getRoomAvatar(selectedRoom)}
+                      </div>
                       <div>
                         <p className="font-medium text-sm">{getRoomDisplayName(selectedRoom)}</p>
                         <p className="text-xs text-gray-500">
@@ -1153,9 +1369,13 @@ export default function ChatSystem() {
                     onClick={() => createDirectChat(availableUser.id)}
                     className="flex items-center space-x-3 p-3 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors"
                   >
-                  <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
+                  <div className="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center overflow-hidden">
                     {availableUser.avatar ? (
-                      <img src={availableUser.avatar} alt={availableUser.name} className="w-10 h-10 rounded-full" />
+                      <img 
+                        src={availableUser.avatar.startsWith('http') ? availableUser.avatar : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}${availableUser.avatar}`} 
+                        alt={availableUser.name} 
+                        className="w-10 h-10 rounded-full object-cover" 
+                      />
                     ) : (
                       <span className="text-lg">👤</span>
                     )}
@@ -1240,9 +1460,13 @@ export default function ChatSystem() {
                         }}
                         className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                       />
-                      <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
+                      <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center overflow-hidden">
                         {availableUser.avatar ? (
-                          <img src={availableUser.avatar} alt={availableUser.name} className="w-8 h-8 rounded-full" />
+                          <img 
+                            src={availableUser.avatar.startsWith('http') ? availableUser.avatar : `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}${availableUser.avatar}`} 
+                            alt={availableUser.name} 
+                            className="w-8 h-8 rounded-full object-cover" 
+                          />
                         ) : (
                           <span className="text-sm">👤</span>
                         )}

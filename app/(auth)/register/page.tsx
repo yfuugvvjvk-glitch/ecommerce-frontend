@@ -6,6 +6,7 @@ import { registerSchema, RegisterInput } from '@/lib/validations';
 import { useAuth } from '@/lib/auth-context';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { Eye, EyeOff } from 'lucide-react';
 
 export default function RegisterPage() {
   const { register: registerUser } = useAuth();
@@ -13,6 +14,7 @@ export default function RegisterPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -200,13 +202,27 @@ export default function RegisterPage() {
           <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
             Parolă
           </label>
-          <input
-            {...register('password')}
-            type="password"
-            id="password"
-            className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            aria-invalid={errors.password ? 'true' : 'false'}
-          />
+          <div className="relative">
+            <input
+              {...register('password')}
+              type={showPassword ? 'text' : 'password'}
+              id="password"
+              className="w-full px-4 py-3 pr-12 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+              aria-invalid={errors.password ? 'true' : 'false'}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
+              aria-label={showPassword ? 'Ascunde parola' : 'Arată parola'}
+            >
+              {showPassword ? (
+                <EyeOff className="h-5 w-5" />
+              ) : (
+                <Eye className="h-5 w-5" />
+              )}
+            </button>
+          </div>
           {password && passwordStrength.strength > 0 && (
             <div className="mt-2">
               <div className="flex gap-1">

@@ -49,7 +49,8 @@ interface BlockRule {
   isActive: boolean;
   blockNewOrders: boolean;
   blockReason: string;
-  blockUntil?: string;
+  blockFrom?: string; // Data de la care începe blocarea
+  blockUntil?: string; // Data până la care durează blocarea
   blockedPaymentMethods: string[];
   blockedDeliveryMethods: string[];
   minimumOrderValue: number;
@@ -79,7 +80,7 @@ export default function DeliveryScheduleManager() {
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
   const [deliveryMethods, setDeliveryMethods] = useState<DeliveryMethod[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'schedule' | 'blocking' | 'special-dates'>('schedule');
+  const [activeTab, setActiveTab] = useState<'schedule' | 'blocking'>('schedule');
   const [showModal, setShowModal] = useState(false);
   const [showBlockRuleModal, setShowBlockRuleModal] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState<DeliverySchedule | null>(null);
@@ -92,14 +93,14 @@ export default function DeliveryScheduleManager() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
-  // Form states
+  // Form states - SIMPLIFICAT
   const [scheduleForm, setScheduleForm] = useState({
     name: '',
-    deliveryDays: [] as number[],
-    deliveryTimeSlots: [{ startTime: '09:00', endTime: '17:00', maxOrders: 10 }],
+    deliveryDays: [] as number[], // Zilele când se fac livrări
+    deliveryTimeSlots: [{ startTime: '09:00', endTime: '21:00', maxOrders: 999 }], // Interval de livrare
     isActive: true,
-    blockOrdersAfter: '20:00',
-    advanceOrderDays: 1
+    blockOrdersAfter: '23:59', // Nu mai este relevant
+    advanceOrderDays: 0 // Fără limită
   });
 
   const [specialDateForm, setSpecialDateForm] = useState({
@@ -113,6 +114,8 @@ export default function DeliveryScheduleManager() {
     isActive: true,
     blockNewOrders: false,
     blockReason: '',
+    blockFrom: '',
+    blockUntil: '',
     blockedPaymentMethods: [],
     blockedDeliveryMethods: [],
     minimumOrderValue: 0
@@ -326,6 +329,8 @@ export default function DeliveryScheduleManager() {
       isActive: true,
       blockNewOrders: false,
       blockReason: '',
+      blockFrom: '',
+      blockUntil: '',
       blockedPaymentMethods: [],
       blockedDeliveryMethods: [],
       minimumOrderValue: 0
@@ -379,10 +384,10 @@ export default function DeliveryScheduleManager() {
     setScheduleForm({
       name: '',
       deliveryDays: [],
-      deliveryTimeSlots: [{ startTime: '09:00', endTime: '17:00', maxOrders: 10 }],
+      deliveryTimeSlots: [{ startTime: '09:00', endTime: '21:00', maxOrders: 999 }],
       isActive: true,
-      blockOrdersAfter: '20:00',
-      advanceOrderDays: 1
+      blockOrdersAfter: '23:59',
+      advanceOrderDays: 0
     });
     setEditingSchedule(null);
   };
@@ -455,16 +460,6 @@ export default function DeliveryScheduleManager() {
           }`}
         >
           🚫 Blocare Comenzi
-        </button>
-        <button
-          onClick={() => setActiveTab('special-dates')}
-          className={`px-4 py-2 font-medium transition ${
-            activeTab === 'special-dates'
-              ? 'border-b-2 border-blue-600 text-blue-600'
-              : 'text-gray-600 hover:text-gray-900'
-          }`}
-        >
-          🗓️ Date Speciale
         </button>
       </div>
 
@@ -566,7 +561,7 @@ export default function DeliveryScheduleManager() {
                       </span>
                     </div>
                     
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                       <div>
                         <p className="text-gray-500">Zile de livrare</p>
                         <p className="font-medium">
@@ -578,11 +573,6 @@ export default function DeliveryScheduleManager() {
                         <p className="text-gray-500">Comenzi se blochează după</p>
                         <p className="font-medium">{schedule.blockOrdersAfter}</p>
                       </div>
-                      
-                      <div>
-                        <p className="text-gray-500">Comandă în avans</p>
-                        <p className="font-medium">{schedule.advanceOrderDays} zile</p>
-                      </div>
                     </div>
 
                     <div className="mt-3">
@@ -590,7 +580,7 @@ export default function DeliveryScheduleManager() {
                       <div className="space-y-1">
                         {schedule.deliveryTimeSlots.map((slot, index) => (
                           <div key={index} className="text-sm bg-gray-50 p-2 rounded">
-                            {slot.startTime} - {slot.endTime} (max {slot.maxOrders} comenzi)
+                            {slot.startTime} - {slot.endTime}
                           </div>
                         ))}
                       </div>
@@ -598,6 +588,28 @@ export default function DeliveryScheduleManager() {
                   </div>
                   
                   <div className="flex gap-2">
+                    <button
+                      onClick={async () => {
+                        try {
+                          await apiClient.put(`/api/admin/delivery-schedules/${schedule.id}`, {
+                            ...schedule,
+                            isActive: !schedule.isActive
+                          });
+                          fetchData();
+                        } catch (error) {
+                          console.error('Error toggling schedule:', error);
+                          alert('Eroare la schimbarea statusului');
+                        }
+                      }}
+                      className={`px-3 py-1 rounded transition text-sm font-medium ${
+                        schedule.isActive 
+                          ? 'bg-green-100 text-green-700 hover:bg-green-200' 
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                      title={schedule.isActive ? 'Dezactivează' : 'Activează'}
+                    >
+                      {schedule.isActive ? '✓ Activ' : '○ Inactiv'}
+                    </button>
                     <button
                       onClick={() => {
                         setEditingSchedule(schedule);
@@ -723,8 +735,12 @@ export default function DeliveryScheduleManager() {
 
                       {rule.blockUntil && (
                         <div className="bg-pink-50 p-2 rounded">
-                          <p className="text-pink-800 font-medium">⏰ Blocat până la:</p>
-                          <p className="text-pink-700 text-xs">{new Date(rule.blockUntil).toLocaleString('ro-RO')}</p>
+                          <p className="text-pink-800 font-medium">⏰ Perioadă blocare:</p>
+                          <p className="text-pink-700 text-xs">
+                            {rule.blockFrom ? `De la: ${new Date(rule.blockFrom).toLocaleString('ro-RO')}` : ''}
+                            {rule.blockFrom && <br />}
+                            Până la: {new Date(rule.blockUntil).toLocaleString('ro-RO')}
+                          </p>
                         </div>
                       )}
                     </div>
@@ -733,8 +749,19 @@ export default function DeliveryScheduleManager() {
                   <div className="flex gap-2 ml-4">
                     <button
                       onClick={() => {
+                        console.log('Editing rule:', rule);
                         setEditingBlockRule(rule);
-                        setBlockRuleForm(rule);
+                        setBlockRuleForm({
+                          ...rule,
+                          blockNewOrders: rule.blockNewOrders || false,
+                          blockReason: rule.blockReason || '',
+                          blockFrom: rule.blockFrom || '',
+                          blockUntil: rule.blockUntil || '',
+                          blockedPaymentMethods: rule.blockedPaymentMethods || [],
+                          blockedDeliveryMethods: rule.blockedDeliveryMethods || [],
+                          minimumOrderValue: rule.minimumOrderValue || 0,
+                          maximumOrderValue: rule.maximumOrderValue || undefined
+                        });
                         setShowBlockRuleModal(true);
                       }}
                       className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 transition text-sm"
@@ -762,87 +789,7 @@ export default function DeliveryScheduleManager() {
         </div>
       )}
 
-      {/* Special Dates Tab */}
-      {activeTab === 'special-dates' && (
-        <div>
-          <h3 className="text-lg font-semibold mb-4">Date Speciale (Sărbători, Concedii)</h3>
-          
-          <div className="bg-white border rounded-lg p-6 mb-6">
-            <h4 className="font-medium mb-3">Adaugă Dată Specială</h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Data</label>
-                <input
-                  type="date"
-                  value={specialDateForm.date}
-                  onChange={(e) => setSpecialDateForm({...specialDateForm, date: e.target.value})}
-                  className="w-full border rounded px-3 py-2"
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Tip</label>
-                <select
-                  value={specialDateForm.isBlocked ? 'blocked' : 'special'}
-                  onChange={(e) => setSpecialDateForm({
-                    ...specialDateForm, 
-                    isBlocked: e.target.value === 'blocked'
-                  })}
-                  className="w-full border rounded px-3 py-2"
-                >
-                  <option value="blocked">Zi blocată (fără livrări)</option>
-                  <option value="special">Zi specială (program modificat)</option>
-                </select>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Motiv</label>
-                <input
-                  type="text"
-                  value={specialDateForm.reason}
-                  onChange={(e) => setSpecialDateForm({...specialDateForm, reason: e.target.value})}
-                  className="w-full border rounded px-3 py-2"
-                  placeholder="Ex: Crăciun, Paște, etc."
-                />
-              </div>
-            </div>
-            
-            <button
-              onClick={() => handleAddSpecialDate(schedules[0]?.id || '1')}
-              className="mt-3 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 transition"
-            >
-              ➕ Adaugă Dată
-            </button>
-          </div>
-
-          {/* Lista date speciale */}
-          <div className="space-y-2">
-            {schedules[0]?.specialDates?.map((specialDate, index) => (
-              <div key={index} className="border rounded-lg p-3 flex justify-between items-center">
-                <div>
-                  <p className="font-medium">{new Date(specialDate.date).toLocaleDateString('ro-RO')}</p>
-                  <p className="text-sm text-gray-600">{specialDate.reason}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className={`px-2 py-1 rounded text-xs font-medium ${
-                    specialDate.isBlocked ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'
-                  }`}>
-                    {specialDate.isBlocked ? 'Blocată' : 'Specială'}
-                  </span>
-                  <button
-                    onClick={() => handleDeleteSpecialDate(schedules[0]?.id || '1', index)}
-                    className="px-2 py-1 bg-red-600 text-white rounded hover:bg-red-700 transition text-sm"
-                  >
-                    🗑️ Șterge
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Modal pentru creare/editare program */}
+      {/* Modal pentru creare/editare program - SIMPLIFICAT */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
@@ -858,10 +805,11 @@ export default function DeliveryScheduleManager() {
               </button>
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-6">
+              {/* Nume Program */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nume Program
+                  📝 Nume Program *
                 </label>
                 <input
                   type="text"
@@ -869,16 +817,18 @@ export default function DeliveryScheduleManager() {
                   onChange={(e) => setScheduleForm({...scheduleForm, name: e.target.value})}
                   className="w-full border rounded px-3 py-2"
                   placeholder="Ex: Program Standard, Program Weekend"
+                  required
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Zile de Livrare
+              {/* Zile de Livrare */}
+              <div className="border-t pt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  📅 Zile când se fac livrări *
                 </label>
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-4 gap-3">
                   {[1, 2, 3, 4, 5, 6, 0].map(day => (
-                    <label key={day} className="flex items-center space-x-2">
+                    <label key={day} className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-2 rounded">
                       <input
                         type="checkbox"
                         checked={scheduleForm.deliveryDays.includes(day)}
@@ -886,7 +836,7 @@ export default function DeliveryScheduleManager() {
                           if (e.target.checked) {
                             setScheduleForm({
                               ...scheduleForm,
-                              deliveryDays: [...scheduleForm.deliveryDays, day]
+                              deliveryDays: [...scheduleForm.deliveryDays, day].sort()
                             });
                           } else {
                             setScheduleForm({
@@ -895,134 +845,161 @@ export default function DeliveryScheduleManager() {
                             });
                           }
                         }}
+                        className="w-4 h-4"
                       />
-                      <span className="text-sm">{getDayName(day)}</span>
+                      <span className="text-sm font-medium">{getDayName(day)}</span>
                     </label>
                   ))}
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Intervale de Livrare
+              {/* Interval de Livrare */}
+              <div className="border-t pt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  ⏰ Interval de ore pentru livrare *
                 </label>
-                <div className="space-y-3">
-                  {scheduleForm.deliveryTimeSlots.map((slot, index) => (
-                    <div key={index} className="flex items-center gap-2 bg-gray-50 p-3 rounded">
-                      <div className="flex-1 grid grid-cols-3 gap-2">
-                        <div>
-                          <label className="block text-xs text-gray-600 mb-1">Ora început</label>
-                          <input
-                            type="time"
-                            value={slot.startTime}
-                            onChange={(e) => {
-                              const newSlots = [...scheduleForm.deliveryTimeSlots];
-                              newSlots[index].startTime = e.target.value;
-                              setScheduleForm({...scheduleForm, deliveryTimeSlots: newSlots});
-                            }}
-                            className="w-full border rounded px-2 py-1 text-sm"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs text-gray-600 mb-1">Ora sfârșit</label>
-                          <input
-                            type="time"
-                            value={slot.endTime}
-                            onChange={(e) => {
-                              const newSlots = [...scheduleForm.deliveryTimeSlots];
-                              newSlots[index].endTime = e.target.value;
-                              setScheduleForm({...scheduleForm, deliveryTimeSlots: newSlots});
-                            }}
-                            className="w-full border rounded px-2 py-1 text-sm"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs text-gray-600 mb-1">Max comenzi</label>
-                          <input
-                            type="number"
-                            min="1"
-                            value={slot.maxOrders || 1}
-                            onChange={(e) => {
-                              const newSlots = [...scheduleForm.deliveryTimeSlots];
-                              newSlots[index].maxOrders = parseInt(e.target.value) || 1;
-                              setScheduleForm({...scheduleForm, deliveryTimeSlots: newSlots});
-                            }}
-                            className="w-full border rounded px-2 py-1 text-sm"
-                          />
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const newSlots = scheduleForm.deliveryTimeSlots.filter((_, i) => i !== index);
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">De la ora:</label>
+                      <input
+                        type="time"
+                        value={scheduleForm.deliveryTimeSlots[0]?.startTime || '09:00'}
+                        onChange={(e) => {
+                          const newSlots = [...scheduleForm.deliveryTimeSlots];
+                          newSlots[0] = { ...newSlots[0], startTime: e.target.value };
                           setScheduleForm({...scheduleForm, deliveryTimeSlots: newSlots});
                         }}
-                        className="text-red-500 hover:text-red-700 text-sm px-2"
-                        disabled={scheduleForm.deliveryTimeSlots.length === 1}
-                      >
-                        🗑️
-                      </button>
+                        className="w-full border rounded px-3 py-2"
+                      />
                     </div>
-                  ))}
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">Până la ora:</label>
+                      <input
+                        type="time"
+                        value={scheduleForm.deliveryTimeSlots[0]?.endTime || '21:00'}
+                        onChange={(e) => {
+                          const newSlots = [...scheduleForm.deliveryTimeSlots];
+                          newSlots[0] = { ...newSlots[0], endTime: e.target.value };
+                          setScheduleForm({...scheduleForm, deliveryTimeSlots: newSlots});
+                        }}
+                        className="w-full border rounded px-3 py-2"
+                      />
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-600 mt-2">
+                    Exemplu: Livrările se fac între 09:00 - 21:00
+                  </p>
+                </div>
+              </div>
+
+              {/* Date Speciale - Zile BLOCATE */}
+              <div className="border-t pt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-3">
+                  🚫 Zile când NU se pot plasa comenzi (opțional)
+                </label>
+                <p className="text-xs text-gray-500 mb-3">
+                  Adaugă date când comenzile sunt blocate (ex: sărbători, concedii)
+                </p>
+                
+                {/* Formular adăugare dată blocată */}
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">Data blocată:</label>
+                      <input
+                        type="date"
+                        value={specialDateForm.date}
+                        onChange={(e) => setSpecialDateForm({...specialDateForm, date: e.target.value})}
+                        className="w-full border rounded px-3 py-2"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs text-gray-600 mb-1">Motiv:</label>
+                      <input
+                        type="text"
+                        value={specialDateForm.reason}
+                        onChange={(e) => setSpecialDateForm({...specialDateForm, reason: e.target.value})}
+                        placeholder="Ex: Crăciun, Concediu"
+                        className="w-full border rounded px-3 py-2"
+                      />
+                    </div>
+                  </div>
                   <button
                     type="button"
                     onClick={() => {
-                      setScheduleForm({
-                        ...scheduleForm,
-                        deliveryTimeSlots: [
-                          ...scheduleForm.deliveryTimeSlots,
-                          { startTime: '09:00', endTime: '17:00', maxOrders: 10 }
-                        ]
-                      });
+                      if (specialDateForm.date) {
+                        const currentDates = editingSchedule?.specialDates || [];
+                        const newDate = {
+                          date: specialDateForm.date,
+                          isBlocked: true,
+                          reason: specialDateForm.reason || 'Zi blocată'
+                        };
+                        
+                        if (editingSchedule) {
+                          editingSchedule.specialDates = [...currentDates, newDate];
+                        }
+                        
+                        setSpecialDateForm({ date: '', isBlocked: true, reason: '' });
+                      }
                     }}
-                    className="text-blue-600 hover:text-blue-800 text-sm"
+                    className="mt-2 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
                   >
-                    ➕ Adaugă Interval
+                    ➕ Adaugă Dată Blocată
                   </button>
                 </div>
+
+                {/* Lista date blocate */}
+                {editingSchedule?.specialDates && editingSchedule.specialDates.filter(d => d.isBlocked).length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">Date blocate:</p>
+                    {editingSchedule.specialDates.filter(d => d.isBlocked).map((date, idx) => (
+                      <div key={idx} className="flex items-center justify-between bg-red-50 p-2 rounded border border-red-200">
+                        <div>
+                          <span className="text-sm font-medium">
+                            {new Date(date.date).toLocaleDateString('ro-RO', { 
+                              weekday: 'long', 
+                              year: 'numeric', 
+                              month: 'long', 
+                              day: 'numeric' 
+                            })}
+                          </span>
+                          {date.reason && <span className="text-xs text-gray-600 ml-2">({date.reason})</span>}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (editingSchedule) {
+                              editingSchedule.specialDates = editingSchedule.specialDates.filter((_, i) => i !== idx);
+                              setScheduleForm({...scheduleForm}); // Force re-render
+                            }
+                          }}
+                          className="text-red-600 hover:text-red-800 text-sm"
+                        >
+                          🗑️ Șterge
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Blochează comenzi după
-                  </label>
-                  <input
-                    type="time"
-                    value={scheduleForm.blockOrdersAfter}
-                    onChange={(e) => setScheduleForm({...scheduleForm, blockOrdersAfter: e.target.value})}
-                    className="w-full border rounded px-3 py-2"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Zile în avans pentru comenzi
-                  </label>
-                  <input
-                    type="number"
-                    min="0"
-                    max="30"
-                    value={scheduleForm.advanceOrderDays || 0}
-                    onChange={(e) => setScheduleForm({...scheduleForm, advanceOrderDays: parseInt(e.target.value) || 0})}
-                    className="w-full border rounded px-3 py-2"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="flex items-center space-x-2">
+              {/* Status Activ */}
+              <div className="border-t pt-4">
+                <label className="flex items-center space-x-2 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={scheduleForm.isActive}
                     onChange={(e) => setScheduleForm({...scheduleForm, isActive: e.target.checked})}
+                    className="w-4 h-4"
                   />
-                  <span>Program activ</span>
+                  <span className="font-medium">✅ Program activ</span>
                 </label>
               </div>
             </div>
 
-            <div className="flex justify-end space-x-3 mt-6">
+            {/* Butoane */}
+            <div className="flex justify-end space-x-3 mt-6 pt-4 border-t">
               <button
                 onClick={() => setShowModal(false)}
                 className="px-4 py-2 text-gray-600 hover:text-gray-800 transition"
@@ -1085,11 +1062,15 @@ export default function DeliveryScheduleManager() {
               </div>
 
               <div className="border-t pt-4">
-                <label className="flex items-center space-x-2 mb-3">
+                <label className="flex items-center space-x-2 mb-3 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={blockRuleForm.blockNewOrders || false}
-                    onChange={(e) => setBlockRuleForm({...blockRuleForm, blockNewOrders: e.target.checked})}
+                    onChange={(e) => {
+                      console.log('Checkbox clicked, new value:', e.target.checked);
+                      setBlockRuleForm({...blockRuleForm, blockNewOrders: e.target.checked});
+                    }}
+                    className="w-4 h-4 cursor-pointer"
                   />
                   <span className="font-medium">Blochează toate comenzile noi</span>
                 </label>
@@ -1105,23 +1086,82 @@ export default function DeliveryScheduleManager() {
                         value={blockRuleForm.blockReason || ''}
                         onChange={(e) => setBlockRuleForm({...blockRuleForm, blockReason: e.target.value})}
                         className="w-full border rounded px-3 py-2"
-                        placeholder="Ex: Concediu, renovări"
+                        placeholder="Ex: Concediu, renovări, eveniment special"
                       />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Perioadă de Blocare - OBLIGATORIE */}
+              <div className="border-t pt-4">
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <h5 className="font-medium text-blue-900 mb-3">📅 Perioadă de Blocare *</h5>
+                  <p className="text-sm text-blue-700 mb-3">
+                    Setează intervalul când regulile de blocare sunt active (obligatoriu)
+                  </p>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        📅 Blochează de la (Data și Ora) *
+                      </label>
+                      <input
+                        type="datetime-local"
+                        value={blockRuleForm.blockFrom || ''}
+                        onChange={(e) => setBlockRuleForm({...blockRuleForm, blockFrom: e.target.value})}
+                        className="w-full border rounded px-3 py-2"
+                        required
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Ex: Joi 20:00 (începutul blocării)</p>
                     </div>
 
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Blochează până la (opțional)
+                        📅 Blochează până la (Data și Ora) *
                       </label>
                       <input
                         type="datetime-local"
                         value={blockRuleForm.blockUntil || ''}
                         onChange={(e) => setBlockRuleForm({...blockRuleForm, blockUntil: e.target.value})}
-                        className="border rounded px-3 py-2"
+                        className="w-full border rounded px-3 py-2"
+                        required
                       />
+                      <p className="text-xs text-gray-500 mt-1">Ex: Sâmbătă 09:00 (sfârșitul blocării)</p>
                     </div>
                   </div>
-                )}
+
+                  {blockRuleForm.blockFrom && blockRuleForm.blockUntil && (
+                    <div className="mt-3 p-3 bg-white rounded border border-blue-300">
+                      <p className="text-sm font-medium text-blue-900">
+                        ✓ Regulile vor fi active:
+                      </p>
+                      <p className="text-sm text-blue-700 mt-1">
+                        De la: <strong>{new Date(blockRuleForm.blockFrom).toLocaleString('ro-RO', { 
+                          weekday: 'long', 
+                          year: 'numeric', 
+                          month: 'long', 
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}</strong>
+                      </p>
+                      <p className="text-sm text-blue-700">
+                        Până la: <strong>{new Date(blockRuleForm.blockUntil).toLocaleString('ro-RO', { 
+                          weekday: 'long', 
+                          year: 'numeric', 
+                          month: 'long', 
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}</strong>
+                      </p>
+                      <p className="text-xs text-gray-600 mt-2">
+                        Durată: {Math.ceil((new Date(blockRuleForm.blockUntil).getTime() - new Date(blockRuleForm.blockFrom).getTime()) / (1000 * 60 * 60))} ore
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="border-t pt-4">

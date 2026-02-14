@@ -335,50 +335,100 @@ export default function CategoriesManagement() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {paginatedItems.map((category) => (
-                <div key={category.id} className={`bg-white border rounded-lg p-4 ${!category.isActive ? 'opacity-60 border-gray-300' : 'border-gray-200'}`}>
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="flex items-center gap-2">
-                      {category.icon && <span className="text-2xl">{category.icon}</span>}
-                      <div>
-                        <h3 className="font-bold flex items-center gap-2">
-                          {category.name}
-                          {!category.isActive && <span className="text-xs bg-gray-200 px-2 py-0.5 rounded">Ascuns</span>}
-                        </h3>
-                        <p className="text-xs text-gray-500">{category.slug}</p>
-                        {category.parent && (
-                          <p className="text-xs text-blue-600 mt-1">
-                            └─ Sub: {category.parent.name}
+          <div key={category.id}>
+            <div className={`bg-white border rounded-lg p-4 ${!category.isActive ? 'opacity-60 border-gray-300' : 'border-gray-200'}`}>
+              <div className="flex justify-between items-start mb-2">
+                <div className="flex items-center gap-2">
+                  {category.icon && <span className="text-2xl">{category.icon}</span>}
+                  <div>
+                    <h3 className="font-bold flex items-center gap-2">
+                      {category.name}
+                      {!category.isActive && <span className="text-xs bg-gray-200 px-2 py-0.5 rounded">Ascuns</span>}
+                    </h3>
+                    <p className="text-xs text-gray-500">{category.slug}</p>
+                    {category.parent && (
+                      <p className="text-xs text-blue-600 mt-1">
+                        └─ Sub: {category.parent.name}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleEdit(category)}
+                    className="text-blue-600 hover:text-blue-800"
+                    title="Editează"
+                  >
+                    ✏️
+                  </button>
+                  <button
+                    onClick={() => handleDelete(category.id)}
+                    className="text-red-600 hover:text-red-800"
+                    title="Șterge"
+                  >
+                    🗑️
+                  </button>
+                </div>
+              </div>
+              {category.description && (
+                <p className="text-xs text-gray-600 mb-2 line-clamp-2">
+                  {category.description}
+                </p>
+              )}
+              <div className="flex justify-between items-center">
+                <p className="text-sm text-gray-600">
+                  {category._count?.dataItems || 0} produse
+                </p>
+                {category.subcategories && category.subcategories.length > 0 && (
+                  <p className="text-xs text-purple-600 font-semibold">
+                    📂 {category.subcategories.length} subcategorii
+                  </p>
+                )}
+              </div>
+            </div>
+            
+            {/* Afișează subcategoriile sub categoria părinte */}
+            {category.subcategories && category.subcategories.length > 0 && (
+              <div className="ml-4 mt-2 space-y-2">
+                {category.subcategories.map((sub: any) => (
+                  <div key={sub.id} className={`bg-gray-50 border-l-4 border-purple-400 rounded p-3 ${!sub.isActive ? 'opacity-60' : ''}`}>
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-center gap-2 flex-1">
+                        {sub.icon && <span className="text-lg">{sub.icon}</span>}
+                        <div className="flex-1">
+                          <h4 className="text-sm font-semibold flex items-center gap-2">
+                            {sub.name}
+                            {!sub.isActive && <span className="text-xs bg-gray-300 px-1.5 py-0.5 rounded">Ascuns</span>}
+                          </h4>
+                          <p className="text-xs text-gray-500">{sub.slug}</p>
+                          <p className="text-xs text-gray-600 mt-1">
+                            {sub._count?.dataItems || 0} produse
                           </p>
-                        )}
+                        </div>
+                      </div>
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => handleEdit(sub)}
+                          className="text-blue-600 hover:text-blue-800 text-sm"
+                          title="Editează"
+                        >
+                          ✏️
+                        </button>
+                        <button
+                          onClick={() => handleDelete(sub.id)}
+                          className="text-red-600 hover:text-red-800 text-sm"
+                          title="Șterge"
+                        >
+                          🗑️
+                        </button>
                       </div>
                     </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleEdit(category)}
-                        className="text-blue-600 hover:text-blue-800"
-                        title="Editează"
-                      >
-                        ✏️
-                      </button>
-                      <button
-                        onClick={() => handleDelete(category.id)}
-                        className="text-red-600 hover:text-red-800"
-                        title="Șterge"
-                      >
-                        🗑️
-                      </button>
-                    </div>
                   </div>
-                  {category.description && (
-                    <p className="text-xs text-gray-600 mb-2 line-clamp-2">
-                      {category.description}
-                    </p>
-                  )}
-                  <p className="text-sm text-gray-600">
-                    {category._count?.dataItems || 0} produse
-                  </p>
-            </div>
-          ))}
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
       </div>
       
       <Pagination
