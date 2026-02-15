@@ -9,6 +9,7 @@ import { useGiftSystem } from '@/lib/gift-context';
 import { useStockCheck } from '@/components/StockIndicator';
 import StockIndicator from '@/components/StockIndicator';
 import PaymentSimulator from '@/components/PaymentSimulator';
+import DeliveryLocationItem from '@/components/DeliveryLocationItem';
 
 // Helper function to strip HTML tags
 const stripHtml = (html: string) => {
@@ -1263,80 +1264,92 @@ export default function CheckoutPage() {
                           disabled={isBlocked}
                           className="w-5 h-5 mt-1 text-blue-600"
                         />
-                        <div className="flex-1">
-                          <div className="font-semibold text-gray-800 flex items-center gap-2 mb-1">
-                            {location.name}
-                            {location.isMainLocation && (
-                              <span className="bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full text-xs font-medium">
-                                ⭐ Principală
-                              </span>
-                            )}
-                            {isBlocked && (
-                              <span className="bg-red-100 text-red-800 px-2 py-0.5 rounded-full text-xs font-medium">
-                                🚫 Temporar indisponibilă
-                              </span>
-                            )}
-                          </div>
-                          <div className="text-sm text-gray-600 mt-1 flex items-start gap-1">
-                            <span>📍</span>
-                            <span>{location.address}, {location.city}</span>
-                          </div>
-                          {location.phone && (
-                            <div className="text-sm text-gray-600 mt-1 flex items-center gap-1">
-                              <span>📞</span>
-                              <span>{location.phone}</span>
-                            </div>
-                          )}
-                          {isBlocked && (
-                            <div className="text-xs text-red-600 mt-2 bg-red-50 p-2 rounded">
-                              Această locație de livrare este temporar blocată
-                            </div>
-                          )}
-                          {!isBlocked && location.deliveryFee !== undefined && location.deliveryFee === 0 && (
-                            <div className="text-sm font-medium text-green-700 mt-2 bg-green-50 px-3 py-1 rounded-lg inline-block">
-                              💎 Cost livrare: GRATUIT
-                            </div>
-                          )}
-                          {!isBlocked && location.deliveryFee !== undefined && location.deliveryFee > 0 && (
-                            <div className="text-sm font-medium text-green-700 mt-2 bg-green-50 px-3 py-1 rounded-lg inline-block">
-                              💎 Cost livrare: {location.deliveryFee} RON
-                              {location.freeDeliveryThreshold && location.deliveryFee > 0 && (
-                                <span className="text-xs ml-1">
-                                  (Gratuit peste {location.freeDeliveryThreshold} RON)
-                                </span>
+                        <DeliveryLocationItem location={location}>
+                          {(translatedName, translatedInstructions) => (
+                            <div className="flex-1">
+                              <div className="font-semibold text-gray-800 flex items-center gap-2 mb-1">
+                                {translatedName}
+                                {location.isMainLocation && (
+                                  <span className="bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full text-xs font-medium">
+                                    ⭐ Principală
+                                  </span>
+                                )}
+                                {isBlocked && (
+                                  <span className="bg-red-100 text-red-800 px-2 py-0.5 rounded-full text-xs font-medium">
+                                    🚫 Temporar indisponibilă
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-sm text-gray-600 mt-1 flex items-start gap-1">
+                                <span>📍</span>
+                                <span>{location.address}, {location.city}</span>
+                              </div>
+                              {location.phone && (
+                                <div className="text-sm text-gray-600 mt-1 flex items-center gap-1">
+                                  <span>📞</span>
+                                  <span>{location.phone}</span>
+                                </div>
+                              )}
+                              {isBlocked && (
+                                <div className="text-xs text-red-600 mt-2 bg-red-50 p-2 rounded">
+                                  Această locație de livrare este temporar blocată
+                                </div>
+                              )}
+                              {!isBlocked && location.deliveryFee !== undefined && location.deliveryFee === 0 && (
+                                <div className="text-sm font-medium text-green-700 mt-2 bg-green-50 px-3 py-1 rounded-lg inline-block">
+                                  💎 Cost livrare: GRATUIT
+                                </div>
+                              )}
+                              {!isBlocked && location.deliveryFee !== undefined && location.deliveryFee > 0 && (
+                                <div className="text-sm font-medium text-green-700 mt-2 bg-green-50 px-3 py-1 rounded-lg inline-block">
+                                  💎 Cost livrare: {location.deliveryFee} RON
+                                  {location.freeDeliveryThreshold && location.deliveryFee > 0 && (
+                                    <span className="text-xs ml-1">
+                                      (Gratuit peste {location.freeDeliveryThreshold} RON)
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                              {!isBlocked && translatedInstructions && (
+                                <div className="text-sm text-blue-700 mt-2 bg-blue-50 p-2 rounded-lg flex items-start gap-1">
+                                  <span>ℹ️</span>
+                                  <span>{translatedInstructions}</span>
+                                </div>
+                              )}
+                              {!isBlocked && location.workingHours && (
+                                <div className="text-xs text-gray-500 mt-2 flex items-center gap-1">
+                                  <span>🕒</span>
+                                  <span>Program: {(() => {
+                                    try {
+                                      // workingHours vine deja ca obiect din API
+                                      const hours = location.workingHours;
+                                      
+                                      const today = new Date().getDay();
+                                      const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                                      const todayHours = hours[dayNames[today]];
+                                      
+                                      // Verifică dacă este string simplu (ex: "09:00-18:00" sau "Închis")
+                                      if (typeof todayHours === 'string') {
+                                        return todayHours === 'Închis' || todayHours === 'Closed' 
+                                          ? 'Astăzi: Închis' 
+                                          : `Astăzi: ${todayHours}`;
+                                      } 
+                                      // Sau obiect cu isOpen, start, end
+                                      else if (todayHours?.isOpen) {
+                                        return `Astăzi: ${todayHours.start}-${todayHours.end}`;
+                                      } else {
+                                        return 'Astăzi: Închis';
+                                      }
+                                    } catch (error) {
+                                      console.error('Error parsing working hours:', error);
+                                      return 'Program disponibil la locație';
+                                    }
+                                  })()}</span>
+                                </div>
                               )}
                             </div>
                           )}
-                          {!isBlocked && location.specialInstructions && (
-                            <div className="text-sm text-blue-700 mt-2 bg-blue-50 p-2 rounded-lg flex items-start gap-1">
-                              <span>ℹ️</span>
-                              <span>{location.specialInstructions}</span>
-                            </div>
-                          )}
-                          {!isBlocked && location.workingHours && (
-                            <div className="text-xs text-gray-500 mt-2 flex items-center gap-1">
-                              <span>🕒</span>
-                              <span>Program: {(() => {
-                                try {
-                                  // workingHours vine deja ca obiect din API
-                                  const hours = location.workingHours;
-                                  
-                                  const today = new Date().getDay();
-                                  const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-                                  const todayHours = hours[dayNames[today]];
-                                  
-                                  // Verifică dacă este string simplu (ex: "09:00-18:00" sau "Închis")
-                                  if (typeof todayHours === 'string') {
-                                    return todayHours === 'Închis' || todayHours === 'Closed' 
-                                      ? 'Astăzi: Închis' 
-                                      : `Astăzi: ${todayHours}`;
-                                  } 
-                                  // Sau obiect cu isOpen, start, end
-                                  else if (todayHours?.isOpen) {
-                                    return `Astăzi: ${todayHours.start}-${todayHours.end}`;
-                                  } else {
-                                    return 'Astăzi: Închis';
-                                  }
+                        </DeliveryLocationItem>
                                 } catch (error) {
                                   console.error('Error parsing working hours:', error);
                                   return 'Program disponibil la locație';
