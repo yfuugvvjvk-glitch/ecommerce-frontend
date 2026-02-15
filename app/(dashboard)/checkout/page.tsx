@@ -110,6 +110,13 @@ export default function CheckoutPage() {
     }
   }, [subtotal]);
 
+  // Recalculează costul de livrare când se schimbă coșul sau locația
+  useEffect(() => {
+    if (selectedDeliveryLocation && cart) {
+      calculateDeliveryFee(selectedDeliveryLocation);
+    }
+  }, [cart, selectedDeliveryLocation]);
+
   // Refresh cart when returning to page
   useEffect(() => {
     const handleFocus = () => {
