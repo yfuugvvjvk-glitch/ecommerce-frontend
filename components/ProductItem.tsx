@@ -1,6 +1,6 @@
 'use client';
 
-import { useDynamicTranslation } from '@/hooks/useDynamicTranslation';
+import { useTranslation } from '@/hooks/useTranslation';
 import { stripHtml } from '@/utils/stripHtml';
 
 interface ProductItemProps {
@@ -9,19 +9,25 @@ interface ProductItemProps {
 }
 
 export default function ProductItem({ product, children }: ProductItemProps) {
-  const { value: translatedTitle } = useDynamicTranslation(
-    'product',
-    product.id,
-    'title',
-    product.title
-  );
-
-  const { value: translatedDescription } = useDynamicTranslation(
-    'product',
-    product.id,
-    'description',
-    product.description || ''
-  );
+  const { locale } = useTranslation();
+  
+  // Get translated title based on locale
+  const translatedTitle = locale === 'ro' ? product.title :
+                         locale === 'en' ? (product.titleEn || product.title) :
+                         locale === 'fr' ? (product.titleFr || product.title) :
+                         locale === 'de' ? (product.titleDe || product.title) :
+                         locale === 'es' ? (product.titleEs || product.title) :
+                         locale === 'it' ? (product.titleIt || product.title) :
+                         product.title;
+  
+  // Get translated description based on locale
+  const translatedDescription = locale === 'ro' ? (product.description || '') :
+                               locale === 'en' ? (product.descriptionEn || product.description || '') :
+                               locale === 'fr' ? (product.descriptionFr || product.description || '') :
+                               locale === 'de' ? (product.descriptionDe || product.description || '') :
+                               locale === 'es' ? (product.descriptionEs || product.description || '') :
+                               locale === 'it' ? (product.descriptionIt || product.description || '') :
+                               (product.description || '');
 
   return <>{children(translatedTitle, translatedDescription)}</>;
 }
