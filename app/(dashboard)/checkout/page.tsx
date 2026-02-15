@@ -940,7 +940,7 @@ export default function CheckoutPage() {
                     })()}
                   </div>
                 ) : null}
-                <p><strong>Cost livrare:</strong> {deliveryCost === 0 ? 'GRATUIT' : `${deliveryCost.toFixed(2)} RON`}</p>
+                <p><strong>Cost livrare:</strong> {deliveryCost === 0 ? '🎁 GRATUIT' : `${deliveryCost.toFixed(2)} RON`}</p>
               </div>
             </div>
 
@@ -1287,7 +1287,7 @@ export default function CheckoutPage() {
                           )}
                           {!isBlocked && location.deliveryFee !== undefined && (
                             <div className="text-sm font-medium text-green-700 mt-2 bg-green-50 px-3 py-1 rounded-lg inline-block">
-                              💰 Cost livrare: {location.deliveryFee === 0 ? 'GRATUIT' : `${location.deliveryFee} RON`}
+                              � Cost livrare: {location.deliveryFee === 0 ? 'GRATUIT' : `${location.deliveryFee} RON`}
                               {location.freeDeliveryThreshold && location.deliveryFee > 0 && (
                                 <span className="text-xs ml-1">
                                   (Gratuit peste {location.freeDeliveryThreshold} RON)
