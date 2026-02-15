@@ -1108,11 +1108,15 @@ export default function CheckoutPage() {
                         </div>
                       )}
                       <span className="text-sm text-gray-600 bg-white px-3 py-1 rounded-full border border-gray-300">
-                        💰 {isGiftProduct ? '0.00' : item.dataItem.price.toFixed(2)} RON / {
-                          item.dataItem.priceType === 'fixed' 
-                            ? 'bucată' 
-                            : (item.dataItem.unitName || 'buc')
-                        }
+                        {isGiftProduct ? (
+                          <span className="text-green-600 font-semibold">🎁 GRATUIT</span>
+                        ) : (
+                          <>💰 {item.dataItem.price.toFixed(2)} RON / {
+                            item.dataItem.priceType === 'fixed' 
+                              ? 'bucată' 
+                              : (item.dataItem.unitName || 'buc')
+                          }</>
+                        )}
                       </span>
                     </div>
                   </div>
