@@ -9,6 +9,7 @@ import DataTable from '@/components/DataTable';
 import AddToCartButton from '@/components/AddToCartButton';
 import { dataAPI, apiClient, categoryAPI } from '@/lib/api-client';
 import { stripHtml } from '@/utils/stripHtml';
+import ProductItem from '@/components/ProductItem';
 
 export default function ProductsPage() {
   const { token, user } = useAuth();
@@ -439,14 +440,15 @@ export default function ProductsPage() {
             {filteredProducts
               .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
               .map((product) => (
+            <ProductItem key={product.id} product={product}>
+              {(translatedTitle, translatedDescription) => (
             <div
-              key={product.id}
               className="bg-white rounded-lg shadow hover:shadow-xl transition-all duration-300 overflow-hidden"
             >
               <div className="relative h-64 bg-gray-200 flex items-center justify-center">
                 <img
                   src={product.image}
-                  alt={stripHtml(product.title)}
+                  alt={stripHtml(translatedTitle)}
                   width="100%"
                   height="100%"
                   style={{ width: '100%', height: '100%', display: 'block' }}
@@ -468,11 +470,11 @@ export default function ProductsPage() {
 
               <div className="p-4">
                 <h3 className="font-semibold text-lg mb-2 break-words whitespace-normal overflow-visible min-h-[3.5rem]">
-                  {stripHtml(product.title)}
+                  {stripHtml(translatedTitle)}
                 </h3>
 
-                {product.description && (
-                  <div className="text-sm text-gray-600 mb-3 line-clamp-2" dangerouslySetInnerHTML={{ __html: product.description }} />
+                {translatedDescription && (
+                  <div className="text-sm text-gray-600 mb-3 line-clamp-2" dangerouslySetInnerHTML={{ __html: translatedDescription }} />
                 )}
 
                 <div className="mb-2">
@@ -579,6 +581,8 @@ export default function ProductsPage() {
                 </div>
               </div>
             </div>
+              )}
+            </ProductItem>
             ))}
           </div>
 

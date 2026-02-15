@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { apiClient, favoritesAPI, cartAPI } from '@/lib/api-client';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useDynamicTranslation } from '@/hooks/useDynamicTranslation';
 import { useCart } from '@/lib/cart-context';
 import { useAuth } from '@/lib/auth-context';
 import { Heart, ShoppingCart } from 'lucide-react';
@@ -20,6 +21,28 @@ export default function ProductDetailsPage() {
   const [isFavorite, setIsFavorite] = useState(false);
 
   const [selectedQuantity, setSelectedQuantity] = useState<number>(1);
+
+  // Dynamic translations for product
+  const { value: translatedTitle } = useDynamicTranslation(
+    'product',
+    params.id as string,
+    'title',
+    product?.title || ''
+  );
+
+  const { value: translatedDescription } = useDynamicTranslation(
+    'product',
+    params.id as string,
+    'description',
+    product?.description || ''
+  );
+
+  const { value: translatedContent } = useDynamicTranslation(
+    'product',
+    params.id as string,
+    'content',
+    product?.content || ''
+  );
 
   useEffect(() => {
     if (params.id) {
@@ -211,7 +234,7 @@ export default function ProductDetailsPage() {
             
             {/* Header cu titlu și favorite */}
             <div className="flex items-start justify-between gap-4">
-              <h1 className="text-3xl font-bold text-gray-900 flex-1">{stripHtml(product.title)}</h1>
+              <h1 className="text-3xl font-bold text-gray-900 flex-1">{stripHtml(translatedTitle || product.title)}</h1>
               <button
                 onClick={toggleFavorite}
                 className="flex-shrink-0 p-3 border-2 border-gray-300 rounded-full hover:border-red-500 hover:bg-red-50 transition"
