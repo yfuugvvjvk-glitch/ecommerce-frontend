@@ -1,0 +1,41 @@
+{
+  "buttons": {
+    "save": "Salva",
+    "cancel": "Annulla",
+    "delete": "Elimina",
+    "edit": "Modifica",
+    "back": "Indietro",
+    "next": "Avanti",
+    "previous": "Precedente",
+    "close": "Chiudi"
+  },
+  "messages": {
+    "loading": "Caricamento...",
+    "error": "Errore",
+    "success": "Successo"
+  },
+  "navigation": {
+    "home": "Home",
+    "products": "Prodotti",
+    "cart": "Carrello",
+    "favorites": "Preferiti",
+    "profile": "Profilo",
+    "orders": "Ordini",
+    "contact": "Contatto",
+    "about": "Chi siamo"
+  },
+  "search": "Cerca prodotti...",
+  "contact": "Contatto",
+  "about": "Chi siamo",
+  "login": "Accedi",
+  "logout": "Esci",
+  "register": "Registrati",
+  "home": "Home",
+  "products": "Prodotti",
+  "cart": "Carrello",
+  "favorites": "Preferiti",
+  "profile": "Profilo",
+  "orders": "Ordini",
+  "admin": "Pannello di amministrazione",
+  "vouchers": "Buoni"
+}

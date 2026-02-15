@@ -1,0 +1,15 @@
+{
+  "allProducts": "Tous les produits",
+  "viewAllProducts": "Voir tous les produits",
+  "addToCart": "Ajouter au panier",
+  "addToFavorites": "Ajouter aux favoris",
+  "removeFromFavorites": "Retirer des favoris",
+  "outOfStock": "Rupture de stock",
+  "inStock": "En stock",
+  "inStockCount": "En stock",
+  "price": "Prix",
+  "description": "Description",
+  "reviews": "Avis",
+  "category": "Catégorie",
+  "allCategories": "Toutes les catégories"
+}

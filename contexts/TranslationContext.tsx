@@ -31,6 +31,34 @@ import enCart from '@/locales/en/cart.json';
 import enAdmin from '@/locales/en/admin.json';
 import enErrors from '@/locales/en/errors.json';
 
+import frCommon from '@/locales/fr/common.json';
+import frAuth from '@/locales/fr/auth.json';
+import frProducts from '@/locales/fr/products.json';
+import frCart from '@/locales/fr/cart.json';
+import frAdmin from '@/locales/fr/admin.json';
+import frErrors from '@/locales/fr/errors.json';
+
+import deCommon from '@/locales/de/common.json';
+import deAuth from '@/locales/de/auth.json';
+import deProducts from '@/locales/de/products.json';
+import deCart from '@/locales/de/cart.json';
+import deAdmin from '@/locales/de/admin.json';
+import deErrors from '@/locales/de/errors.json';
+
+import esCommon from '@/locales/es/common.json';
+import esAuth from '@/locales/es/auth.json';
+import esProducts from '@/locales/es/products.json';
+import esCart from '@/locales/es/cart.json';
+import esAdmin from '@/locales/es/admin.json';
+import esErrors from '@/locales/es/errors.json';
+
+import itCommon from '@/locales/it/common.json';
+import itAuth from '@/locales/it/auth.json';
+import itProducts from '@/locales/it/products.json';
+import itCart from '@/locales/it/cart.json';
+import itAdmin from '@/locales/it/admin.json';
+import itErrors from '@/locales/it/errors.json';
+
 // Static translations loaded from JSON files
 const staticTranslations: Record<Locale, Record<string, any>> = {
   ro: {
@@ -49,10 +77,38 @@ const staticTranslations: Record<Locale, Record<string, any>> = {
     admin: enAdmin,
     errors: enErrors,
   },
-  fr: {},
-  de: {},
-  es: {},
-  it: {},
+  fr: {
+    common: frCommon,
+    auth: frAuth,
+    products: frProducts,
+    cart: frCart,
+    admin: frAdmin,
+    errors: frErrors,
+  },
+  de: {
+    common: deCommon,
+    auth: deAuth,
+    products: deProducts,
+    cart: deCart,
+    admin: deAdmin,
+    errors: deErrors,
+  },
+  es: {
+    common: esCommon,
+    auth: esAuth,
+    products: esProducts,
+    cart: esCart,
+    admin: esAdmin,
+    errors: esErrors,
+  },
+  it: {
+    common: itCommon,
+    auth: itAuth,
+    products: itProducts,
+    cart: itCart,
+    admin: itAdmin,
+    errors: itErrors,
+  },
 };
 
 interface TranslationProviderProps {

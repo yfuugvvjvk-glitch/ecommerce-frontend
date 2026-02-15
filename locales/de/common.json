@@ -1,0 +1,41 @@
+{
+  "buttons": {
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "delete": "Löschen",
+    "edit": "Bearbeiten",
+    "back": "Zurück",
+    "next": "Weiter",
+    "previous": "Vorherige",
+    "close": "Schließen"
+  },
+  "messages": {
+    "loading": "Laden...",
+    "error": "Fehler",
+    "success": "Erfolg"
+  },
+  "navigation": {
+    "home": "Startseite",
+    "products": "Produkte",
+    "cart": "Warenkorb",
+    "favorites": "Favoriten",
+    "profile": "Profil",
+    "orders": "Bestellungen",
+    "contact": "Kontakt",
+    "about": "Über uns"
+  },
+  "search": "Produkte suchen...",
+  "contact": "Kontakt",
+  "about": "Über uns",
+  "login": "Anmelden",
+  "logout": "Abmelden",
+  "register": "Registrieren",
+  "home": "Startseite",
+  "products": "Produkte",
+  "cart": "Warenkorb",
+  "favorites": "Favoriten",
+  "profile": "Profil",
+  "orders": "Bestellungen",
+  "admin": "Admin-Panel",
+  "vouchers": "Gutscheine"
+}

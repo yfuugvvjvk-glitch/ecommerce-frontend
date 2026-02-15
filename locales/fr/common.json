@@ -1,0 +1,41 @@
+{
+  "buttons": {
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "back": "Retour",
+    "next": "Suivant",
+    "previous": "Précédent",
+    "close": "Fermer"
+  },
+  "messages": {
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "success": "Succès"
+  },
+  "navigation": {
+    "home": "Accueil",
+    "products": "Produits",
+    "cart": "Panier",
+    "favorites": "Favoris",
+    "profile": "Profil",
+    "orders": "Commandes",
+    "contact": "Contact",
+    "about": "À propos"
+  },
+  "search": "Rechercher des produits...",
+  "contact": "Contact",
+  "about": "À propos",
+  "login": "Connexion",
+  "logout": "Déconnexion",
+  "register": "S'inscrire",
+  "home": "Accueil",
+  "products": "Produits",
+  "cart": "Panier",
+  "favorites": "Favoris",
+  "profile": "Profil",
+  "orders": "Commandes",
+  "admin": "Panneau d'administration",
+  "vouchers": "Bons"
+}

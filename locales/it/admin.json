@@ -1,0 +1,17 @@
+{
+  "adminPanel": "Pannello di amministrazione",
+  "admin": "Pannello di amministrazione",
+  "users": "Utenti",
+  "manageProducts": "Gestisci prodotti",
+  "manageUsers": "Gestisci utenti",
+  "manageOrders": "Gestisci ordini",
+  "manageVouchers": "Gestisci buoni",
+  "manageOffers": "Gestisci offerte",
+  "reports": "Rapporti",
+  "viewReports": "Visualizza rapporti",
+  "vouchers": "Buoni",
+  "orderHistory": "Cronologia ordini",
+  "profileSettings": "Impostazioni profilo",
+  "myOrders": "I miei ordini",
+  "myVouchers": "I miei buoni"
+}
