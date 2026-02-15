@@ -1350,14 +1350,6 @@ export default function CheckoutPage() {
                             </div>
                           )}
                         </DeliveryLocationItem>
-                                } catch (error) {
-                                  console.error('Error parsing working hours:', error);
-                                  return 'Program disponibil la locație';
-                                }
-                              })()}</span>
-                            </div>
-                          )}
-                        </div>
                       </label>
                     );
                   })}
