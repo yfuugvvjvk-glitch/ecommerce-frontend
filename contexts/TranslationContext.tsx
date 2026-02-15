@@ -228,8 +228,9 @@ export function TranslationProvider({ children }: TranslationProviderProps) {
       }
 
       // Fetch from API
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
       const response = await fetch(
-        `/api/translations/${entityType}/${entityId}/${field}?locale=${locale}`,
+        `${apiUrl}/api/translations/${entityType}/${entityId}/${field}?locale=${locale}`,
         { 
           method: 'GET',
           headers: { 'Content-Type': 'application/json' }
