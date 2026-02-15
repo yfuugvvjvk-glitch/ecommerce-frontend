@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, LoginInput } from '@/lib/validations';
 import { useAuth } from '@/lib/auth-context';
-import { useTranslation } from '@/components/LanguageSwitcher';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff } from 'lucide-react';

@@ -1,0 +1,7 @@
+{
+  "error": "Error",
+  "notFound": "Not Found",
+  "serverError": "Server Error",
+  "networkError": "Network Error",
+  "unknownError": "Unknown Error"
+}

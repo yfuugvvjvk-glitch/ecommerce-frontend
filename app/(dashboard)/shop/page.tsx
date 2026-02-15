@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { dataAPI, categoryAPI } from '@/lib/api-client';
-import { useTranslation } from '@/components/LanguageSwitcher';
+import { useTranslation } from '@/hooks/useTranslation';
 import Link from 'next/link';
 import { stripHtml } from '@/utils/stripHtml';
 

@@ -11,6 +11,8 @@ import { stripHtml } from '@/utils/stripHtml';
 interface CartItem {
   id: string;
   quantity: number;
+  isGift?: boolean;
+  giftRuleId?: string | null;
   dataItem: {
     id: string;
     title: string;
@@ -134,7 +136,11 @@ export default function ShoppingCart({ onClose }: { onClose?: () => void }) {
       </div>
 
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {cart.items.map((item) => (
+        {cart.items.map((item) => {
+          // Verifică dacă este produs cadou
+          const isGiftProduct = item.isGift === true || item.giftRuleId != null;
+          
+          return (
           <div key={item.id} className="flex gap-4 bg-white p-4 rounded-lg shadow">
             <img
               src={item.dataItem.image}
@@ -145,24 +151,31 @@ export default function ShoppingCart({ onClose }: { onClose?: () => void }) {
               }}
             />
             <div className="flex-1">
-              <h3 className="font-semibold mb-1">{stripHtml(item.dataItem.title)}</h3>
+              <div className="flex items-center gap-2 mb-1">
+                <h3 className="font-semibold">{stripHtml(item.dataItem.title)}</h3>
+                {isGiftProduct && (
+                  <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded-full text-xs font-medium">
+                    🎁 CADOU
+                  </span>
+                )}
+              </div>
               <div className="text-blue-600 font-bold">
-                <CurrencyPrice amount={item.dataItem.price} />
-                {item.dataItem.priceType === 'per_unit' && item.dataItem.unitName && item.dataItem.unitName !== 'bucată' && (
+                <CurrencyPrice amount={isGiftProduct ? 0 : item.dataItem.price} />
+                {!isGiftProduct && item.dataItem.priceType === 'per_unit' && item.dataItem.unitName && item.dataItem.unitName !== 'bucată' && (
                   <span className="text-sm font-normal text-gray-600">/{item.dataItem.unitName}</span>
                 )}
-                {item.dataItem.priceType === 'fixed' && (
+                {!isGiftProduct && item.dataItem.priceType === 'fixed' && (
                   <span className="text-sm font-normal text-gray-600">/buc</span>
                 )}
               </div>
-              {item.dataItem.priceType === 'fixed' && item.dataItem.availableQuantities && item.dataItem.availableQuantities[0] > 1 && (
+              {!isGiftProduct && item.dataItem.priceType === 'fixed' && item.dataItem.availableQuantities && item.dataItem.availableQuantities[0] > 1 && (
                 <p className="text-xs text-gray-500">
                   {item.dataItem.availableQuantities[0]} {item.dataItem.unitName}/bucată
                 </p>
               )}
               
-              {/* Afișare cantități disponibile */}
-              {item.dataItem.availableQuantities && Array.isArray(item.dataItem.availableQuantities) && item.dataItem.availableQuantities.length > 0 && (
+              {/* Afișare cantități disponibile - doar pentru produse normale */}
+              {!isGiftProduct && item.dataItem.availableQuantities && Array.isArray(item.dataItem.availableQuantities) && item.dataItem.availableQuantities.length > 0 && (
                 <div className="mt-2 p-2 bg-blue-50 rounded">
                   <p className="text-xs font-medium text-blue-900 mb-1">
                     📦 Cantități disponibile:
@@ -186,44 +199,55 @@ export default function ShoppingCart({ onClose }: { onClose?: () => void }) {
               )}
               
               <div className="flex items-center gap-2 mt-2">
-                <button
-                  onClick={() => {
-                    // Calculează step-ul corect
-                    let step = 1;
-                    console.log('Decrement - availableQuantities:', item.dataItem.availableQuantities);
-                    if (item.dataItem.availableQuantities && Array.isArray(item.dataItem.availableQuantities) && item.dataItem.availableQuantities.length > 1) {
-                      const sortedQtys = [...item.dataItem.availableQuantities].sort((a, b) => a - b);
-                      step = sortedQtys[1] - sortedQtys[0];
-                      console.log('Calculated step:', step, 'from quantities:', sortedQtys);
-                    }
-                    const minQty = (item.dataItem.availableQuantities && item.dataItem.availableQuantities[0]) || step;
-                    console.log('Min quantity:', minQty, 'Current:', item.quantity, 'Step:', step);
-                    updateQuantity(item.id, Math.max(minQty, item.quantity - step));
-                  }}
-                  className="w-8 h-8 bg-gray-200 rounded hover:bg-gray-300"
-                  disabled={item.quantity <= (item.dataItem.availableQuantities?.[0] || 1)}
-                >
-                  -
-                </button>
-                <span className="w-12 text-center font-semibold">{item.quantity}</span>
-                <button
-                  onClick={() => {
-                    // Calculează step-ul corect
-                    let step = 1;
-                    console.log('Increment - availableQuantities:', item.dataItem.availableQuantities);
-                    if (item.dataItem.availableQuantities && Array.isArray(item.dataItem.availableQuantities) && item.dataItem.availableQuantities.length > 1) {
-                      const sortedQtys = [...item.dataItem.availableQuantities].sort((a, b) => a - b);
-                      step = sortedQtys[1] - sortedQtys[0];
-                      console.log('Calculated step:', step, 'from quantities:', sortedQtys);
-                    }
-                    console.log('Current quantity:', item.quantity, 'Step:', step, 'New quantity:', item.quantity + step);
-                    updateQuantity(item.id, item.quantity + step);
-                  }}
-                  className="w-8 h-8 bg-gray-200 rounded hover:bg-gray-300"
-                  disabled={item.quantity >= ((item.dataItem as any).availableStock || item.dataItem.stock)}
-                >
-                  +
-                </button>
+                {!isGiftProduct ? (
+                  // Butoane normale pentru produse obișnuite
+                  <>
+                    <button
+                      onClick={() => {
+                        // Calculează step-ul corect
+                        let step = 1;
+                        console.log('Decrement - availableQuantities:', item.dataItem.availableQuantities);
+                        if (item.dataItem.availableQuantities && Array.isArray(item.dataItem.availableQuantities) && item.dataItem.availableQuantities.length > 1) {
+                          const sortedQtys = [...item.dataItem.availableQuantities].sort((a, b) => a - b);
+                          step = sortedQtys[1] - sortedQtys[0];
+                          console.log('Calculated step:', step, 'from quantities:', sortedQtys);
+                        }
+                        const minQty = (item.dataItem.availableQuantities && item.dataItem.availableQuantities[0]) || step;
+                        console.log('Min quantity:', minQty, 'Current:', item.quantity, 'Step:', step);
+                        updateQuantity(item.id, Math.max(minQty, item.quantity - step));
+                      }}
+                      className="w-8 h-8 bg-gray-200 rounded hover:bg-gray-300"
+                      disabled={item.quantity <= (item.dataItem.availableQuantities?.[0] || 1)}
+                    >
+                      -
+                    </button>
+                    <span className="w-12 text-center font-semibold">{item.quantity}</span>
+                    <button
+                      onClick={() => {
+                        // Calculează step-ul corect
+                        let step = 1;
+                        console.log('Increment - availableQuantities:', item.dataItem.availableQuantities);
+                        if (item.dataItem.availableQuantities && Array.isArray(item.dataItem.availableQuantities) && item.dataItem.availableQuantities.length > 1) {
+                          const sortedQtys = [...item.dataItem.availableQuantities].sort((a, b) => a - b);
+                          step = sortedQtys[1] - sortedQtys[0];
+                          console.log('Calculated step:', step, 'from quantities:', sortedQtys);
+                        }
+                        console.log('Current quantity:', item.quantity, 'Step:', step, 'New quantity:', item.quantity + step);
+                        updateQuantity(item.id, item.quantity + step);
+                      }}
+                      className="w-8 h-8 bg-gray-200 rounded hover:bg-gray-300"
+                      disabled={item.quantity >= ((item.dataItem as any).availableStock || item.dataItem.stock)}
+                    >
+                      +
+                    </button>
+                  </>
+                ) : (
+                  // Afișare cantitate fixă pentru produse cadou
+                  <div className="flex items-center gap-2 bg-green-50 rounded-lg border border-green-300 px-3 py-2">
+                    <span className="text-sm font-semibold text-green-800">Cantitate: {item.quantity}</span>
+                    <span className="text-xs text-green-600">(cadou - cantitate fixă)</span>
+                  </div>
+                )}
                 <button
                   onClick={() => removeItem(item.id)}
                   className="ml-auto text-red-600 hover:text-red-800"
@@ -234,12 +258,16 @@ export default function ShoppingCart({ onClose }: { onClose?: () => void }) {
               </div>
               <div className="mt-2 text-sm text-gray-600">
                 Subtotal: <span className="font-semibold text-gray-800">
-                  <CurrencyPrice amount={item.dataItem.price * item.quantity} />
+                  {isGiftProduct ? (
+                    <span className="text-green-600 font-bold">GRATUIT</span>
+                  ) : (
+                    <CurrencyPrice amount={item.dataItem.price * item.quantity} />
+                  )}
                 </span>
               </div>
             </div>
           </div>
-        ))}
+        )})}
       </div>
 
       <div className="border-t p-4 bg-gray-50">

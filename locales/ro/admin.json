@@ -1,0 +1,17 @@
+{
+  "adminPanel": "Panou Administrator",
+  "admin": "Admin Panel",
+  "users": "Utilizatori",
+  "manageProducts": "Gestionare Produse",
+  "manageUsers": "Gestionare Utilizatori",
+  "manageOrders": "Gestionare Comenzi",
+  "manageVouchers": "Gestionare Vouchere",
+  "manageOffers": "Gestionare Oferte",
+  "reports": "Rapoarte",
+  "viewReports": "Vezi Rapoarte",
+  "vouchers": "Vouchere",
+  "orderHistory": "Istoric Comenzi",
+  "profileSettings": "Setări Profil",
+  "myOrders": "Comenzile Mele",
+  "myVouchers": "Voucherele Mele"
+}

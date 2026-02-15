@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { apiClient } from '@/lib/api-client';
-import { useTranslation } from '@/components/LanguageSwitcher';
+import { useTranslation } from '@/hooks/useTranslation';
 import Link from 'next/link';
 import Sidebar from '@/components/Sidebar';
 import Carousel from '@/components/Carousel';

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { useTranslation } from './LanguageSwitcher';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface Category {
   id: string;

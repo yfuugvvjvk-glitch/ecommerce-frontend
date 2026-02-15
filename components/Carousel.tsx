@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { useTranslation } from './LanguageSwitcher';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface CarouselItem {
   id: string;

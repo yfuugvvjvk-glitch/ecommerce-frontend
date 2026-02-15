@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useTranslation } from '@/hooks/useTranslation';
+import { formatNumber } from '@/lib/formatters';
 
 interface CurrencyPriceProps {
   amount: number;
@@ -16,6 +18,7 @@ export default function CurrencyPrice({
   className = '',
   showOriginal = false 
 }: CurrencyPriceProps) {
+  const { locale } = useTranslation();
   const [convertedAmount, setConvertedAmount] = useState<number>(amount);
   const [targetCurrency, setTargetCurrency] = useState<string>('RON');
   const [symbol, setSymbol] = useState<string>('lei');
@@ -83,7 +86,11 @@ export default function CurrencyPrice({
   };
 
   const formatPrice = (value: number) => {
-    return value.toFixed(2);
+    // Use locale-aware number formatting
+    return formatNumber(value, locale, {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    });
   };
 
   if (loading) {

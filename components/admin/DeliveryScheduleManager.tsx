@@ -176,7 +176,7 @@ export default function DeliveryScheduleManager() {
         apiClient.get('/api/admin/delivery-schedules'),
         apiClient.get('/api/admin/block-rules'),
         apiClient.get('/api/admin/payment-methods'),
-        apiClient.get('/api/delivery-locations') // Schimbat pentru a încărca locațiile
+        apiClient.get('/api/public/delivery-locations') // Endpoint public pentru locații
       ]);
       
       setSchedules(schedulesRes.data || []);

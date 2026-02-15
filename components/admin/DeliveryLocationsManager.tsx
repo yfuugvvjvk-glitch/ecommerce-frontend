@@ -438,8 +438,8 @@ export default function DeliveryLocationsManager() {
                     
                     <div>
                       <p className="text-sm text-gray-600">💰 Costuri livrare:</p>
-                      <p className="font-medium">{location.deliveryFee} RON</p>
-                      {location.freeDeliveryThreshold && (
+                      <p className="font-medium">{location.deliveryFee === 0 ? 'GRATUIT' : `${location.deliveryFee} RON`}</p>
+                      {location.freeDeliveryThreshold && location.deliveryFee > 0 && (
                         <p className="text-xs text-green-600">
                           Gratuită peste {location.freeDeliveryThreshold} RON
                         </p>

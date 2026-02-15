@@ -169,8 +169,8 @@ export default function AboutPage() {
                   {location.deliveryRadius > 0 && (
                     <p className="text-gray-700">🎯 Rază de livrare: <strong>{location.deliveryRadius} km</strong></p>
                   )}
-                  {location.deliveryFee > 0 && (
-                    <p className="text-gray-700">💰 Cost livrare: <strong>{location.deliveryFee} RON</strong></p>
+                  {location.deliveryFee !== undefined && (
+                    <p className="text-gray-700">💰 Cost livrare: <strong>{location.deliveryFee === 0 ? 'GRATUIT' : `${location.deliveryFee} RON`}</strong></p>
                   )}
                   {location.freeDeliveryThreshold > 0 && (
                     <p className="text-green-600 font-medium">🎁 Livrare gratuită peste {location.freeDeliveryThreshold} RON</p>

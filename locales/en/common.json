@@ -1,0 +1,41 @@
+{
+  "buttons": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "close": "Close"
+  },
+  "messages": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success"
+  },
+  "navigation": {
+    "home": "Home",
+    "products": "Products",
+    "cart": "Cart",
+    "favorites": "Favorites",
+    "profile": "Profile",
+    "orders": "Orders",
+    "contact": "Contact",
+    "about": "About"
+  },
+  "search": "Search products...",
+  "contact": "Contact",
+  "about": "About",
+  "login": "Login",
+  "logout": "Logout",
+  "register": "Register",
+  "home": "Home",
+  "products": "Products",
+  "cart": "Cart",
+  "favorites": "Favorites",
+  "profile": "Profile",
+  "orders": "Orders",
+  "admin": "Admin Panel",
+  "vouchers": "Vouchers"
+}

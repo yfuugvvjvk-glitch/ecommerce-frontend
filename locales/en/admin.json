@@ -1,0 +1,17 @@
+{
+  "adminPanel": "Admin Panel",
+  "admin": "Admin Panel",
+  "users": "Users",
+  "manageProducts": "Manage Products",
+  "manageUsers": "Manage Users",
+  "manageOrders": "Manage Orders",
+  "manageVouchers": "Manage Vouchers",
+  "manageOffers": "Manage Offers",
+  "reports": "Reports",
+  "viewReports": "View Reports",
+  "vouchers": "Vouchers",
+  "orderHistory": "Order History",
+  "profileSettings": "Profile Settings",
+  "myOrders": "My Orders",
+  "myVouchers": "My Vouchers"
+}

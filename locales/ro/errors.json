@@ -1,0 +1,7 @@
+{
+  "error": "Eroare",
+  "notFound": "Nu a fost găsit",
+  "serverError": "Eroare de server",
+  "networkError": "Eroare de rețea",
+  "unknownError": "Eroare necunoscută"
+}

@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { apiClient, favoritesAPI, cartAPI } from '@/lib/api-client';
-import { useTranslation } from '@/components/LanguageSwitcher';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useCart } from '@/lib/cart-context';
 import { useAuth } from '@/lib/auth-context';
 import { Heart, ShoppingCart } from 'lucide-react';

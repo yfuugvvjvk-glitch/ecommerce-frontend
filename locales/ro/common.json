@@ -1,0 +1,41 @@
+{
+  "buttons": {
+    "save": "Salvează",
+    "cancel": "Anulează",
+    "delete": "Șterge",
+    "edit": "Editează",
+    "back": "Înapoi",
+    "next": "Următorul",
+    "previous": "Anterior",
+    "close": "Închide"
+  },
+  "messages": {
+    "loading": "Se încarcă...",
+    "error": "Eroare",
+    "success": "Succes"
+  },
+  "navigation": {
+    "home": "Acasă",
+    "products": "Produse",
+    "cart": "Coș",
+    "favorites": "Favorite",
+    "profile": "Profil",
+    "orders": "Comenzi",
+    "contact": "Contact",
+    "about": "Despre"
+  },
+  "search": "Caută produse...",
+  "contact": "Contact",
+  "about": "Despre",
+  "login": "Autentificare",
+  "logout": "Deconectare",
+  "register": "Înregistrare",
+  "home": "Acasă",
+  "products": "Produse",
+  "cart": "Coș",
+  "favorites": "Favorite",
+  "profile": "Profil",
+  "orders": "Comenzi",
+  "admin": "Admin Panel",
+  "vouchers": "Vouchere"
+}

@@ -940,7 +940,7 @@ export default function CheckoutPage() {
                     })()}
                   </div>
                 ) : null}
-                <p><strong>Cost livrare:</strong> {deliveryCost.toFixed(2)} RON</p>
+                <p><strong>Cost livrare:</strong> {deliveryCost === 0 ? 'GRATUIT' : `${deliveryCost.toFixed(2)} RON`}</p>
               </div>
             </div>
 

@@ -1,0 +1,15 @@
+{
+  "allProducts": "Toate Produsele",
+  "viewAllProducts": "Vezi Toate Produsele",
+  "addToCart": "Adaugă în coș",
+  "addToFavorites": "Adaugă la favorite",
+  "removeFromFavorites": "Șterge din favorite",
+  "outOfStock": "Stoc epuizat",
+  "inStock": "În stoc",
+  "inStockCount": "În stoc",
+  "price": "Preț",
+  "description": "Descriere",
+  "reviews": "Recenzii",
+  "category": "Categorie",
+  "allCategories": "Toate Categoriile"
+}

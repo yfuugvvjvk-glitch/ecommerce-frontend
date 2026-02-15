@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { favoritesAPI } from '@/lib/api-client';
-import { useTranslation } from '@/components/LanguageSwitcher';
+import { useTranslation } from '@/hooks/useTranslation';
 import Link from 'next/link';
 import { Heart } from 'lucide-react';
 import CurrencyPrice from '@/components/CurrencyPrice';

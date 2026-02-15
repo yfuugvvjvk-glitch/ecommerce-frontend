@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { useTranslation } from './LanguageSwitcher';
+import { useTranslation } from '@/hooks/useTranslation';
 import CurrencyPrice from './CurrencyPrice';
 import { stripHtml } from '@/utils/stripHtml';
 

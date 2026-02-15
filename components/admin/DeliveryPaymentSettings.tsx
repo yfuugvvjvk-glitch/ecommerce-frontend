@@ -424,8 +424,8 @@ export default function DeliveryPaymentSettings() {
                   <div>
                     <h3 className="font-bold">{method.name}</h3>
                     <p className="text-sm text-gray-600">
-                      Cost: {method.deliveryCost} RON
-                      {method.freeDeliveryThreshold && 
+                      Cost: {method.deliveryCost === 0 ? 'GRATUIT' : `${method.deliveryCost} RON`}
+                      {method.freeDeliveryThreshold && method.deliveryCost > 0 && 
                         ` (Gratuit peste ${method.freeDeliveryThreshold} RON)`}
                     </p>
                     <p className="text-sm">

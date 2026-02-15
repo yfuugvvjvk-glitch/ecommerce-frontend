@@ -4,6 +4,7 @@ import './tailwind.css';
 import './globals.css';
 import { AuthProvider } from '@/lib/auth-context';
 import { GiftProvider } from '@/lib/gift-context';
+import { TranslationProvider } from '@/contexts/TranslationContext';
 import AIChatbot from '@/components/AIChatbot';
 import ChatSystem from '@/components/chat/ChatSystem';
 import { SITE_CONFIG } from '@/lib/site-config';
@@ -23,13 +24,15 @@ export default function RootLayout({
   return (
     <html lang="ro" dir="ltr">
       <body className={inter.className}>
-        <AuthProvider>
-          <GiftProvider>
-            {children}
-            <AIChatbot />
-            <ChatSystem />
-          </GiftProvider>
-        </AuthProvider>
+        <TranslationProvider>
+          <AuthProvider>
+            <GiftProvider>
+              {children}
+              <AIChatbot />
+              <ChatSystem />
+            </GiftProvider>
+          </AuthProvider>
+        </TranslationProvider>
       </body>
     </html>
   );

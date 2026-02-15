@@ -1,10 +1,7 @@
 'use client';
 
-import Link from 'next/link';
-import Image from 'next/image';
-import { Heart } from 'lucide-react';
-import CurrencyPrice from './CurrencyPrice';
-import { stripHtml } from '@/utils/stripHtml';
+import ProductCard from './ProductCard';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface Product {
   id: string;
@@ -37,71 +34,19 @@ export default function ProductGrid({
   onFavoriteToggle,
   favorites,
 }: ProductGridProps) {
+  const { t } = useTranslation();
+
   return (
     <div>
       {/* Products Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-6">
         {products.map((product) => (
-          <div key={product.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow relative group">
-            {/* Favorite Button */}
-            <button
-              onClick={(e) => {
-                e.preventDefault();
-                onFavoriteToggle(product.id);
-              }}
-              className="absolute top-2 right-2 z-10 p-2 bg-white/90 rounded-full hover:bg-white transition-colors"
-            >
-              <Heart
-                className={`h-5 w-5 ${
-                  favorites.includes(product.id)
-                    ? 'fill-red-500 text-red-500'
-                    : 'text-gray-600'
-                }`}
-              />
-            </button>
-
-            <Link href={`/products/${product.id}`}>
-              <div className="relative h-56 bg-gray-200">
-                <img
-                  src={product.image || '/placeholder.jpg'}
-                  alt={product.title}
-                  width="100%"
-                  height="100%"
-                  style={{ width: '100%', height: '100%', display: 'block' }}
-                  className="group-hover:scale-105 transition-transform"
-                />
-              </div>
-              <div className="p-4">
-                <h3 className="font-medium text-gray-800 break-words whitespace-normal overflow-visible group-hover:text-blue-600 mb-2">
-                  {stripHtml(product.title)}
-                </h3>
-                {product.rating && (
-                  <div className="flex items-center gap-1 mb-2">
-                    <span className="text-yellow-500">⭐</span>
-                    <span className="text-sm text-gray-600">{product.rating.toFixed(1)}</span>
-                  </div>
-                )}
-                <p className="text-lg font-bold text-blue-600">
-                  <CurrencyPrice amount={product.price} />
-                  {product.priceType === 'per_unit' && product.unitName && product.unitName !== 'bucată' ? (
-                    <span className="text-sm font-normal text-gray-600">/{product.unitName}</span>
-                  ) : product.priceType === 'fixed' && product.availableQuantities && product.availableQuantities[0] > 1 ? (
-                    <span className="text-sm font-normal text-gray-600">/buc</span>
-                  ) : null}
-                </p>
-                {product.priceType === 'per_unit' && product.unitName && product.unitName !== 'bucată' && (
-                  <p className="text-xs text-gray-500">
-                    Preț per {product.unitName}
-                  </p>
-                )}
-                {product.priceType === 'fixed' && product.availableQuantities && product.availableQuantities[0] > 1 && (
-                  <p className="text-xs text-gray-500">
-                    {product.availableQuantities[0]} {product.unitName} per produs
-                  </p>
-                )}
-              </div>
-            </Link>
-          </div>
+          <ProductCard
+            key={product.id}
+            product={product}
+            onFavoriteToggle={onFavoriteToggle}
+            isFavorite={favorites.includes(product.id)}
+          />
         ))}
       </div>
 
@@ -113,7 +58,7 @@ export default function ProductGrid({
             disabled={currentPage === 1}
             className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Anterior
+            {t('common.buttons.previous') || 'Anterior'}
           </button>
 
           <div className="flex gap-1">
@@ -137,7 +82,7 @@ export default function ProductGrid({
             disabled={currentPage === totalPages}
             className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Următor
+            {t('common.buttons.next') || 'Următor'}
           </button>
         </div>
       )}
