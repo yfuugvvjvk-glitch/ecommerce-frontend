@@ -12,6 +12,7 @@ import AIChatbot from '@/components/AIChatbot';
 import CurrencyPrice from '@/components/CurrencyPrice';
 import AnnouncementBanner from '@/components/AnnouncementBanner';
 import { stripHtml } from '@/utils/stripHtml';
+import ProductItem from '@/components/ProductItem';
 
 interface Category {
   id: string;
@@ -389,15 +390,16 @@ export default function DashboardPage() {
                 selectedCategory ? currentPage * itemsPerPage : 10
               )
               .map((product: any) => (
+              <ProductItem key={product.id} product={product}>
+                {(translatedTitle, translatedDescription) => (
               <Link
-                key={product.id}
                 href={`/products/${product.id}`}
                 className="group bg-gray-50 rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
               >
                 <div className="relative h-56 bg-gray-200 flex items-center justify-center">
                   <img
                     src={product.image || '/placeholder.jpg'}
-                    alt={stripHtml(product.title)}
+                    alt={stripHtml(translatedTitle)}
                     width="100%"
                     height="100%"
                     style={{ width: '100%', height: '100%', display: 'block' }}
@@ -405,7 +407,7 @@ export default function DashboardPage() {
                 </div>
                 <div className="p-3">
                   <h3 className="font-medium text-gray-800 break-words whitespace-normal overflow-visible group-hover:text-blue-600">
-                    {stripHtml(product.title)}
+                    {stripHtml(translatedTitle)}
                   </h3>
                   <p className="text-lg font-bold text-blue-600 mt-1">
                     <CurrencyPrice amount={product.price} />
@@ -417,6 +419,8 @@ export default function DashboardPage() {
                   </p>
                 </div>
               </Link>
+                )}
+              </ProductItem>
             ))}
           </div>
 
