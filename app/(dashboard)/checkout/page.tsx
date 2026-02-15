@@ -1287,8 +1287,13 @@ export default function CheckoutPage() {
                           )}
                           {!isBlocked && location.deliveryFee !== undefined && (
                             <div className="text-sm font-medium text-green-700 mt-2 bg-green-50 px-3 py-1 rounded-lg inline-block">
-                              {/* Cost livrare - afișează GRATUIT când este 0 */}
-                              💎 Cost livrare: {!location.deliveryFee || location.deliveryFee === 0 ? 'GRATUIT' : `${location.deliveryFee} RON`}
+                              💎 Cost livrare: {(() => {
+                                const fee = location.deliveryFee;
+                                if (fee === 0 || fee === null || fee === undefined) {
+                                  return 'GRATUIT';
+                                }
+                                return `${fee} RON`;
+                              })()}
                               {location.freeDeliveryThreshold && location.deliveryFee > 0 && (
                                 <span className="text-xs ml-1">
                                   (Gratuit peste {location.freeDeliveryThreshold} RON)
