@@ -1292,12 +1292,14 @@ export default function CheckoutPage() {
                               Această locație de livrare este temporar blocată
                             </div>
                           )}
+                          {!isBlocked && location.deliveryFee !== undefined && location.deliveryFee === 0 && (
+                            <div className="text-sm font-medium text-green-700 mt-2 bg-green-50 px-3 py-1 rounded-lg inline-block">
+                              💎 Cost livrare: GRATUIT
+                            </div>
+                          )}
                           {!isBlocked && location.deliveryFee !== undefined && location.deliveryFee > 0 && (
                             <div className="text-sm font-medium text-green-700 mt-2 bg-green-50 px-3 py-1 rounded-lg inline-block">
-                              💎 Cost livrare: {(() => {
-                                const fee = location.deliveryFee;
-                                return `${fee} RON`;
-                              })()}
+                              💎 Cost livrare: {location.deliveryFee} RON
                               {location.freeDeliveryThreshold && location.deliveryFee > 0 && (
                                 <span className="text-xs ml-1">
                                   (Gratuit peste {location.freeDeliveryThreshold} RON)
