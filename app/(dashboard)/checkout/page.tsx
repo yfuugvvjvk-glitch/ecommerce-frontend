@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -963,7 +963,7 @@ export default function CheckoutPage() {
                 </div>
                 <div className="flex justify-between text-sm">
                   <span>Livrare:</span>
-                  <span>{deliveryCost.toFixed(2)} RON</span>
+                  <span>{deliveryCost === 0 ? 'GRATUIT' : `${deliveryCost.toFixed(2)} RON`}</span>
                 </div>
                 {appliedVoucher && (
                   <div className="flex justify-between text-sm text-green-600">
@@ -1287,7 +1287,7 @@ export default function CheckoutPage() {
                           )}
                           {!isBlocked && location.deliveryFee !== undefined && (
                             <div className="text-sm font-medium text-green-700 mt-2 bg-green-50 px-3 py-1 rounded-lg inline-block">
-                              � Cost livrare: {location.deliveryFee === 0 ? 'GRATUIT' : `${location.deliveryFee} RON`}
+                              💎 Cost livrare: {location.deliveryFee === 0 ? 'GRATUIT' : `${location.deliveryFee} RON`}
                               {location.freeDeliveryThreshold && location.deliveryFee > 0 && (
                                 <span className="text-xs ml-1">
                                   (Gratuit peste {location.freeDeliveryThreshold} RON)
@@ -1643,7 +1643,7 @@ export default function CheckoutPage() {
               </div>
               <div className="flex justify-between text-gray-700 bg-white p-3 rounded-lg">
                 <span className="font-medium">Livrare:</span>
-                <span className="font-semibold">{deliveryFee.toFixed(2)} RON</span>
+                <span className="font-semibold">{deliveryFee === 0 ? 'GRATUIT' : `${deliveryFee.toFixed(2)} RON`}</span>
               </div>
               {appliedVoucher && (
                 <div className="flex justify-between text-green-700 bg-green-50 p-3 rounded-lg border border-green-300">
