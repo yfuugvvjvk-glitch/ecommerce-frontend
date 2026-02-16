@@ -48,8 +48,8 @@ export default function RegisterPage() {
       setError('');
       await registerUser(data.email, data.password, data.name, data.phone, data.city, data.county, data.street, data.streetNumber, data.addressDetails);
       setSuccess(true);
-      // Redirect to email verification page
-      setTimeout(() => router.push(`/verify-email?email=${encodeURIComponent(data.email)}`), 1500);
+      // Redirect to dashboard directly (no email verification needed)
+      setTimeout(() => router.push('/dashboard'), 1500);
     } catch (err) {
       setError(err instanceof Error ? err.message : t('auth.registrationFailed'));
     } finally {
@@ -62,7 +62,7 @@ export default function RegisterPage() {
       <div className="bg-white p-6 sm:p-8 rounded-lg shadow-lg text-center w-full max-w-md mx-auto">
         <div className="text-green-600 text-5xl mb-4">✓</div>
         <h2 className="text-xl sm:text-2xl font-bold mb-2">{t('auth.registrationSuccess')}</h2>
-        <p className="text-gray-600">Vă redirecționăm către pagina de verificare email...</p>
+        <p className="text-gray-600">Vă redirecționăm către dashboard...</p>
       </div>
     );
   }

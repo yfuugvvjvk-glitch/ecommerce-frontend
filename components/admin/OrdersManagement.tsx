@@ -428,11 +428,15 @@ export default function OrdersManagement() {
             </div>
             <div className="text-sm mb-3">
               <strong>Produse:</strong>
-              {order.orderItems.map((item: any) => (
-                <div key={item.id} className="ml-4">
-                  • {item.dataItem.title} x {item.quantity} = {(item.price * item.quantity).toFixed(2)} RON
-                </div>
-              ))}
+              {order.orderItems.map((item: any) => {
+                // Extract clean text from HTML title
+                const cleanTitle = item.dataItem.title.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+                return (
+                  <div key={item.id} className="ml-4">
+                    • {cleanTitle} x {item.quantity} = {(item.price * item.quantity).toFixed(2)} RON
+                  </div>
+                );
+              })}
             </div>
             <div className="text-sm text-gray-600 mb-3">
               <p><strong>Adresă:</strong> {order.shippingAddress}</p>

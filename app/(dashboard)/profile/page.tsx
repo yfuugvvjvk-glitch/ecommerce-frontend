@@ -29,7 +29,7 @@ export default function ProfilePage() {
     addressDetails: '',
   });
   const [passwordData, setPasswordData] = useState({
-    oldPassword: '',
+    currentPassword: '',
     newPassword: '',
   });
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
@@ -146,7 +146,7 @@ export default function ProfilePage() {
     e.preventDefault();
     try {
       await apiClient.post('/api/user/change-password', passwordData);
-      setPasswordData({ oldPassword: '', newPassword: '' });
+      setPasswordData({ currentPassword: '', newPassword: '' });
       setToast({ message: t('profile.passwordChangeSuccess'), type: 'success' });
     } catch (error: any) {
       setToast({ message: error.response?.data?.error || t('profile.errorChangePassword'), type: 'error' });
@@ -429,8 +429,8 @@ export default function ProfilePage() {
               <label className="block text-sm font-medium mb-1">{t('profile.oldPassword')}</label>
               <input
                 type="password"
-                value={passwordData.oldPassword}
-                onChange={(e) => setPasswordData({ ...passwordData, oldPassword: e.target.value })}
+                value={passwordData.currentPassword}
+                onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
                 className="w-full px-4 py-2 border rounded focus:ring-2 focus:ring-blue-500"
                 required
               />

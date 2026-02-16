@@ -1,7 +1,7 @@
 // Configurare globală pentru site
 export const SITE_CONFIG = {
-  name: 'Din grădina mea la voi',
-  shortName: 'Din grădina mea la voi',
+  name: 'Din ograda mea direct pe masa ta',
+  shortName: 'Din ograda mea direct pe masa ta',
   description: 'Produse proaspete direct din grădina noastră la tine acasă',
   year: new Date().getFullYear(),
   // Funcție pentru a obține data completă formatată

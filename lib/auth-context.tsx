@@ -87,8 +87,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       throw new Error(error.error || 'Registration failed');
     }
     
-    // Return response data for redirect
-    return await response.json();
+    // Get response data with token and user
+    const data = await response.json();
+    
+    // Save token and user (auto-login after registration)
+    if (data.token && data.user) {
+      setToken(data.token);
+      setUser(data.user);
+      localStorage.setItem('token', data.token);
+    }
+    
+    return data;
   };
 
   const logout = () => {
