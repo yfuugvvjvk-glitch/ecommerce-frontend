@@ -32,7 +32,14 @@ export default function LoginPage() {
       await login(data.email, data.password);
       router.push('/dashboard');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Login failed');
+      const errorMessage = err instanceof Error ? err.message : 'Login failed';
+      
+      // Check if error is about email verification
+      if (errorMessage.includes('Email not verified') || errorMessage.includes('verify your email')) {
+        setError('❌ Email-ul nu este verificat. Verifică-ți inbox-ul (și folderul SPAM) pentru codul de verificare.');
+      } else {
+        setError(errorMessage);
+      }
     } finally {
       setIsLoading(false);
     }
