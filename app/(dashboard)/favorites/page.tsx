@@ -6,6 +6,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 import Link from 'next/link';
 import { Heart } from 'lucide-react';
 import CurrencyPrice from '@/components/CurrencyPrice';
+import ProductTitle from '@/components/ProductTitle';
 
 export default function FavoritesPage() {
   const { t } = useTranslation();
@@ -33,7 +34,7 @@ export default function FavoritesPage() {
       const response = await favoritesAPI.remove(dataItemId);
       console.log('Remove favorite response:', response);
       setFavorites(favorites.filter((fav: any) => fav.dataItemId !== dataItemId));
-      alert('Produs șters din favorite! ✓');
+      alert(t('favorites.removeSuccess'));
     } catch (error: any) {
       console.error('Failed to remove favorite:', error);
       console.error('Error details:', {
@@ -41,8 +42,8 @@ export default function FavoritesPage() {
         data: error.response?.data,
         message: error.message,
       });
-      const errorMsg = error.response?.data?.error || error.message || 'Eroare necunoscută';
-      alert(`Eroare la ștergerea din favorite: ${errorMsg}`);
+      const errorMsg = error.response?.data?.error || error.message || t('favorites.removeError');
+      alert(`${t('favorites.removeError')}: ${errorMsg}`);
       // Refresh favorites list to ensure consistency
       fetchFavorites();
     }
@@ -58,18 +59,18 @@ export default function FavoritesPage() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-6">❤️ {t('myFavorites')}</h1>
+      <h1 className="text-3xl font-bold mb-6">❤️ {t('favorites.myFavorites')}</h1>
 
       {favorites.length === 0 ? (
         <div className="bg-white rounded-lg shadow-md p-12 text-center">
           <Heart className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-          <h2 className="text-xl font-semibold text-gray-700 mb-2">{t('noFavorites')}</h2>
-          <p className="text-gray-500 mb-6">{t('addFavoritesText')}</p>
+          <h2 className="text-xl font-semibold text-gray-700 mb-2">{t('favorites.noFavorites')}</h2>
+          <p className="text-gray-500 mb-6">{t('favorites.addFavoritesText')}</p>
           <Link
             href="/products"
             className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
           >
-            {t('exploreProducts')}
+            {t('favorites.exploreProducts')}
           </Link>
         </div>
       ) : (
@@ -92,9 +93,13 @@ export default function FavoritesPage() {
                   />
                 </div>
                 <div className="p-4">
-                  <h3 className="font-medium text-gray-800 truncate group-hover:text-blue-600 mb-2">
-                    {favorite.dataItem?.title}
-                  </h3>
+                  <ProductTitle product={favorite.dataItem}>
+                    {(translatedTitle) => (
+                      <h3 className="font-medium text-gray-800 truncate group-hover:text-blue-600 mb-2">
+                        {translatedTitle}
+                      </h3>
+                    )}
+                  </ProductTitle>
                   <p className="text-lg font-bold text-blue-600">
                     <CurrencyPrice amount={favorite.dataItem?.price || 0} />
                     {favorite.dataItem?.priceType === 'per_unit' && favorite.dataItem?.unitName && favorite.dataItem?.unitName !== 'bucată' && (

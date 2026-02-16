@@ -571,10 +571,9 @@ export default function ChatSystem() {
       sender: {
         id: user.id,
         name: user.name,
-        email: user.email,
         avatar: user.avatar,
-        role: user.role,
       },
+      readBy: [],
       isEdited: false,
       isDeleted: false,
     };

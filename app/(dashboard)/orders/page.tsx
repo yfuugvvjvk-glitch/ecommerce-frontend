@@ -3,8 +3,11 @@
 import { useEffect, useState } from 'react';
 import { orderAPI } from '@/lib/api-client';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import { useTranslation } from '@/hooks/useTranslation';
+import ProductTitle from '@/components/ProductTitle';
 
 export default function OrdersPage() {
+  const { t } = useTranslation();
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -37,22 +40,22 @@ export default function OrdersPage() {
 
   const getStatusLabel = (status: string) => {
     const labels: any = {
-      PENDING: '⏳ În așteptare',
-      PROCESSING: '📦 În procesare',
-      SHIPPED: '🚚 Expediată',
-      DELIVERED: '✅ Livrată',
-      CANCELLED: '❌ Anulată',
-      COMPLETED: '✓ Finalizată',
+      PENDING: t('orders.statusPending'),
+      PROCESSING: t('orders.statusProcessing'),
+      SHIPPED: t('orders.statusShipped'),
+      DELIVERED: t('orders.statusDelivered'),
+      CANCELLED: t('orders.statusCancelled'),
+      COMPLETED: t('orders.statusCompleted'),
     };
     return labels[status] || status;
   };
 
   const getStatusSteps = (currentStatus: string) => {
     const steps = [
-      { key: 'PENDING', label: 'Plasată', icon: '📝' },
-      { key: 'PROCESSING', label: 'În procesare', icon: '📦' },
-      { key: 'SHIPPED', label: 'Expediată', icon: '🚚' },
-      { key: 'DELIVERED', label: 'Livrată', icon: '✅' },
+      { key: 'PENDING', label: t('orders.placed'), icon: '📝' },
+      { key: 'PROCESSING', label: t('orders.processing'), icon: '📦' },
+      { key: 'SHIPPED', label: t('orders.shipped'), icon: '🚚' },
+      { key: 'DELIVERED', label: t('orders.delivered'), icon: '✅' },
     ];
 
     const statusOrder = ['PENDING', 'PROCESSING', 'SHIPPED', 'DELIVERED'];
@@ -75,17 +78,17 @@ export default function OrdersPage() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-6">📦 Comenzile mele</h1>
+      <h1 className="text-3xl font-bold mb-6">📦 {t('orders.title')}</h1>
 
       {orders.length === 0 ? (
         <div className="text-center py-12 bg-white rounded-lg shadow">
           <div className="text-6xl mb-4">📦</div>
-          <p className="text-gray-600 text-lg mb-4">Nu ai comenzi încă</p>
+          <p className="text-gray-600 text-lg mb-4">{t('orders.noOrders')}</p>
           <a
             href="/products"
             className="inline-block px-6 py-3 bg-blue-600 text-white rounded hover:bg-blue-700"
           >
-            Începe cumpărăturile
+            {t('orders.noOrdersDesc')}
           </a>
         </div>
       ) : (
@@ -95,7 +98,7 @@ export default function OrdersPage() {
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4">
                 <div>
                   <h3 className="text-lg font-semibold">
-                    Comandă #{order.id.slice(0, 8)}
+                    {t('orders.order')} #{order.id.slice(0, 8)}
                   </h3>
                   <p className="text-sm text-gray-600">
                     {new Date(order.createdAt).toLocaleDateString('ro-RO', {
@@ -122,13 +125,17 @@ export default function OrdersPage() {
               </div>
 
               <div className="border-t pt-4">
-                <h4 className="font-semibold mb-2">Produse:</h4>
+                <h4 className="font-semibold mb-2">{t('orders.products')}:</h4>
                 <div className="space-y-2">
                   {order.orderItems.map((item: any) => (
                     <div key={item.id} className="flex justify-between text-sm">
-                      <span>
-                        {item.dataItem.title} x {item.quantity}
-                      </span>
+                      <ProductTitle product={item.dataItem}>
+                        {(translatedTitle) => (
+                          <span>
+                            {translatedTitle} x {item.quantity}
+                          </span>
+                        )}
+                      </ProductTitle>
                       <span className="font-semibold">
                         {(item.price * item.quantity).toFixed(2)} RON
                       </span>
@@ -138,7 +145,7 @@ export default function OrdersPage() {
               </div>
 
               <div className="border-t mt-4 pt-4 flex justify-between items-center">
-                <span className="font-semibold">Total:</span>
+                <span className="font-semibold">{t('orders.total')}:</span>
                 <span className="text-2xl font-bold text-blue-600">
                   {order.total.toFixed(2)} RON
                 </span>
@@ -147,7 +154,7 @@ export default function OrdersPage() {
               {/* Status Tracking */}
               {order.status !== 'CANCELLED' && (
                 <div className="mt-6 border-t pt-4">
-                  <h4 className="font-semibold mb-4">Status comandă:</h4>
+                  <h4 className="font-semibold mb-4">{t('orders.orderStatus')}:</h4>
                   <div className="flex items-center justify-between">
                     {getStatusSteps(order.status).map((step, index) => (
                       <div key={step.key} className="flex-1 flex items-center">
@@ -183,14 +190,14 @@ export default function OrdersPage() {
               )}
 
               <div className="mt-4 text-sm text-gray-600 space-y-1">
-                <p><strong>Adresă livrare:</strong> {order.shippingAddress}</p>
-                <p><strong>Metodă plată:</strong> {
-                  order.paymentMethod === 'cash' ? '💵 Numerar' :
-                  order.paymentMethod === 'card' ? '💳 Card' :
-                  '🏦 Transfer'
+                <p><strong>{t('orders.shippingAddress')}:</strong> {order.shippingAddress}</p>
+                <p><strong>{t('orders.paymentMethod')}:</strong> {
+                  order.paymentMethod === 'cash' ? t('orders.cash') :
+                  order.paymentMethod === 'card' ? t('orders.card') :
+                  t('orders.transfer')
                 }</p>
-                <p><strong>Metodă livrare:</strong> {
-                  order.deliveryMethod === 'courier' ? '🚚 Curier' : '🏪 Ridicare personală'
+                <p><strong>{t('orders.deliveryMethod')}:</strong> {
+                  order.deliveryMethod === 'courier' ? t('orders.courier') : t('orders.pickup')
                 }</p>
               </div>
             </div>

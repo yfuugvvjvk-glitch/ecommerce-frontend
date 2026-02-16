@@ -141,34 +141,39 @@ export function TranslationProvider({ children }: TranslationProviderProps) {
   const t = useCallback((key: string, params?: Record<string, string>): string => {
     const keys = key.split('.');
     
-    // Try current locale first
-    let value: any = staticTranslations[locale];
-    for (const k of keys) {
-      if (value && typeof value === 'object' && k in value) {
-        value = value[k];
-      } else {
-        value = null;
-        break;
+    // Try to find the translation in all modules
+    const modules = Object.keys(staticTranslations[locale]);
+    
+    for (const module of modules) {
+      let value: any = staticTranslations[locale][module];
+      
+      // Try to navigate through the keys
+      for (const k of keys) {
+        if (value && typeof value === 'object' && k in value) {
+          value = value[k];
+        } else {
+          value = null;
+          break;
+        }
+      }
+      
+      // If found in this module, use it
+      if (value && typeof value === 'string') {
+        let result = value;
+        
+        // Replace parameters if provided
+        if (params) {
+          Object.entries(params).forEach(([paramKey, paramValue]) => {
+            result = result.replace(`{{${paramKey}}}`, paramValue);
+          });
+        }
+        
+        return result;
       }
     }
 
-    // If found in current locale, use it
-    if (value && typeof value === 'string') {
-      let result = value;
-      
-      // Replace parameters if provided
-      if (params) {
-        Object.entries(params).forEach(([paramKey, paramValue]) => {
-          result = result.replace(`{{${paramKey}}}`, paramValue);
-        });
-      }
-      
-      return result;
-    }
-
-    // If key doesn't have a module prefix, search in all modules
+    // If key doesn't have a module prefix, search for the key directly in all modules
     if (!key.includes('.')) {
-      const modules = Object.keys(staticTranslations[locale]);
       for (const module of modules) {
         const moduleData = staticTranslations[locale][module];
         if (moduleData && typeof moduleData === 'object') {
@@ -190,33 +195,37 @@ export function TranslationProvider({ children }: TranslationProviderProps) {
 
     // Fallback to Romanian if current locale is not Romanian
     if (locale !== 'ro') {
-      let fallbackValue: any = staticTranslations['ro'];
-      for (const k of keys) {
-        if (fallbackValue && typeof fallbackValue === 'object' && k in fallbackValue) {
-          fallbackValue = fallbackValue[k];
-        } else {
-          fallbackValue = null;
-          break;
+      const roModules = Object.keys(staticTranslations['ro']);
+      
+      for (const module of roModules) {
+        let fallbackValue: any = staticTranslations['ro'][module];
+        
+        for (const k of keys) {
+          if (fallbackValue && typeof fallbackValue === 'object' && k in fallbackValue) {
+            fallbackValue = fallbackValue[k];
+          } else {
+            fallbackValue = null;
+            break;
+          }
         }
-      }
 
-      if (fallbackValue && typeof fallbackValue === 'string') {
-        console.warn(`Translation missing for key "${key}" in locale "${locale}", using Romanian fallback`);
-        
-        let result = fallbackValue;
-        if (params) {
-          Object.entries(params).forEach(([paramKey, paramValue]) => {
-            result = result.replace(`{{${paramKey}}}`, paramValue);
-          });
+        if (fallbackValue && typeof fallbackValue === 'string') {
+          console.warn(`Translation missing for key "${key}" in locale "${locale}", using Romanian fallback`);
+          
+          let result = fallbackValue;
+          if (params) {
+            Object.entries(params).forEach(([paramKey, paramValue]) => {
+              result = result.replace(`{{${paramKey}}}`, paramValue);
+            });
+          }
+          
+          return result;
         }
-        
-        return result;
       }
 
       // Also search in Romanian modules if key doesn't have prefix
       if (!key.includes('.')) {
-        const modules = Object.keys(staticTranslations['ro']);
-        for (const module of modules) {
+        for (const module of roModules) {
           const moduleData = staticTranslations['ro'][module];
           if (moduleData && typeof moduleData === 'object') {
             if (key in moduleData) {
@@ -239,8 +248,8 @@ export function TranslationProvider({ children }: TranslationProviderProps) {
 
     // If we're in Romanian locale, also search in modules
     if (locale === 'ro' && !key.includes('.')) {
-      const modules = Object.keys(staticTranslations['ro']);
-      for (const module of modules) {
+      const roModules = Object.keys(staticTranslations['ro']);
+      for (const module of roModules) {
         const moduleData = staticTranslations['ro'][module];
         if (moduleData && typeof moduleData === 'object') {
           if (key in moduleData) {

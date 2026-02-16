@@ -1,6 +1,8 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslation } from '@/hooks/useTranslation';
+import DeliveryLocationItem from '@/components/DeliveryLocationItem';
 
 interface PageContent {
   title: string;
@@ -10,6 +12,7 @@ interface PageContent {
 }
 
 export default function AboutPage() {
+  const { t } = useTranslation();
   const [pageContent, setPageContent] = useState<PageContent | null>(null);
   const [contactInfo, setContactInfo] = useState<any>(null);
   const [deliveryLocations, setDeliveryLocations] = useState<any[]>([]);
@@ -115,10 +118,10 @@ export default function AboutPage() {
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-5xl font-bold text-gray-900 mb-4">
-            {pageContent?.title || 'Despre Noi'}
+            {t('pages.aboutUs')}
           </h1>
           <p className="text-xl text-gray-600">
-            Produse proaspete direct din grădina noastră la tine acasă
+            {t('pages.aboutUsSubtitle')}
           </p>
         </div>
 
@@ -128,27 +131,12 @@ export default function AboutPage() {
             <div className="bg-green-100 p-3 rounded-lg mr-3">
               <span className="text-4xl">🌱</span>
             </div>
-            <h2 className="text-3xl font-bold text-gray-800">Despre Ferma Noastră</h2>
+            <h2 className="text-3xl font-bold text-gray-800">{t('pages.aboutFarm')}</h2>
           </div>
           
-          {pageContent?.content ? (
-            <div 
-              className="prose max-w-none text-gray-700 leading-relaxed"
-              dangerouslySetInnerHTML={{ __html: pageContent.content }}
-            />
-          ) : (
-            <div className="text-gray-700 leading-relaxed space-y-4">
-              <p>
-                Bun venit la <strong>Din grădina mea la voi</strong>! Suntem o fermă locală dedicată să aducă produse proaspete și naturale direct de la noi la tine acasă.
-              </p>
-              <p>
-                Cu pasiune pentru agricultură și respect pentru natură, cultivăm produse de cea mai înaltă calitate, fără chimicale dăunătoare. Fiecare produs este ales cu grijă pentru a-ți oferi cea mai bună experiență.
-              </p>
-              <p>
-                Misiunea noastră este să promovăm un stil de viață sănătos prin produse naturale, proaspete și accesibile pentru toată familia.
-              </p>
-            </div>
-          )}
+          <div className="text-gray-700 leading-relaxed space-y-4">
+            <p>{t('pages.aboutFarmContent')}</p>
+          </div>
         </div>
 
         {/* Metode de Livrare */}
@@ -157,31 +145,35 @@ export default function AboutPage() {
             <div className="bg-blue-100 p-3 rounded-lg mr-3">
               <span className="text-4xl">🚚</span>
             </div>
-            <h2 className="text-3xl font-bold text-gray-800">Metode de Livrare</h2>
+            <h2 className="text-3xl font-bold text-gray-800">{t('pages.deliveryMethods')}</h2>
           </div>
           
           <div className="grid md:grid-cols-2 gap-6">
             {deliveryLocations.length > 0 ? (
               deliveryLocations.map((location) => (
-                <div key={location.id} className="p-5 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg border-l-4 border-blue-500">
-                  <h3 className="font-bold text-gray-800 mb-2 text-lg">{location.name}</h3>
-                  <p className="text-gray-700 mb-2">📍 {location.address}</p>
-                  {location.deliveryRadius > 0 && (
-                    <p className="text-gray-700">🎯 Rază de livrare: <strong>{location.deliveryRadius} km</strong></p>
+                <DeliveryLocationItem key={location.id} location={location}>
+                  {(translatedName, translatedInstructions) => (
+                    <div className="p-5 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg border-l-4 border-blue-500">
+                      <h3 className="font-bold text-gray-800 mb-2 text-lg">{translatedName}</h3>
+                      <p className="text-gray-700 mb-2">📍 {location.address}</p>
+                      {location.deliveryRadius > 0 && (
+                        <p className="text-gray-700">🎯 {t('pages.deliveryRadius')}: <strong>{location.deliveryRadius} km</strong></p>
+                      )}
+                      {location.deliveryFee !== undefined && (
+                        <p className="text-gray-700">💰 {t('pages.deliveryCost')}: <strong>{location.deliveryFee === 0 ? t('pages.personalPickup') : `${location.deliveryFee} RON`}</strong></p>
+                      )}
+                      {location.freeDeliveryThreshold > 0 && (
+                        <p className="text-green-600 font-medium">🎁 {t('pages.freeDeliveryOver')} {location.freeDeliveryThreshold} RON</p>
+                      )}
+                      {(location.deliveryRadius === 0 || !location.deliveryRadius) && location.isMainLocation && (
+                        <p className="text-green-600 font-medium">✅ {t('pages.personalPickup')}</p>
+                      )}
+                    </div>
                   )}
-                  {location.deliveryFee !== undefined && (
-                    <p className="text-gray-700">💰 Cost livrare: <strong>{location.deliveryFee === 0 ? 'GRATUIT' : `${location.deliveryFee} RON`}</strong></p>
-                  )}
-                  {location.freeDeliveryThreshold > 0 && (
-                    <p className="text-green-600 font-medium">🎁 Livrare gratuită peste {location.freeDeliveryThreshold} RON</p>
-                  )}
-                  {(location.deliveryRadius === 0 || !location.deliveryRadius) && location.isMainLocation && (
-                    <p className="text-green-600 font-medium">✅ Ridicare personală</p>
-                  )}
-                </div>
+                </DeliveryLocationItem>
               ))
             ) : (
-              <p className="text-gray-600">Livrare rapidă la locația specificată în ziua aleasă de tine.</p>
+              <p className="text-gray-600">{t('pages.howToOrderAnswer')}</p>
             )}
           </div>
         </div>
@@ -192,7 +184,7 @@ export default function AboutPage() {
             <div className="bg-purple-100 p-3 rounded-lg mr-3">
               <span className="text-4xl">💳</span>
             </div>
-            <h2 className="text-3xl font-bold text-gray-800">Metode de Plată</h2>
+            <h2 className="text-3xl font-bold text-gray-800">{t('pages.paymentMethods')}</h2>
           </div>
           
           <div className="grid md:grid-cols-3 gap-6">
@@ -238,7 +230,7 @@ export default function AboutPage() {
             <div className="bg-red-100 p-3 rounded-lg mr-3">
               <span className="text-4xl">📍</span>
             </div>
-            <h2 className="text-3xl font-bold text-gray-800">Unde Ne Găsești</h2>
+            <h2 className="text-3xl font-bold text-gray-800">{t('pages.whereToFindUs')}</h2>
           </div>
           
           <div className="grid md:grid-cols-2 gap-6">
@@ -246,7 +238,7 @@ export default function AboutPage() {
               <div className="flex items-start p-4 bg-gray-50 rounded-lg">
                 <span className="text-2xl mr-3">📍</span>
                 <div>
-                  <h3 className="font-semibold text-gray-700 mb-1">Adresă</h3>
+                  <h3 className="font-semibold text-gray-700 mb-1">{t('pages.address')}</h3>
                   <p className="text-gray-600">{contactInfo?.address || 'Str. Garii nr. 69, Galați, România'}</p>
                 </div>
               </div>
@@ -254,7 +246,7 @@ export default function AboutPage() {
               <div className="flex items-start p-4 bg-gray-50 rounded-lg">
                 <span className="text-2xl mr-3">📞</span>
                 <div>
-                  <h3 className="font-semibold text-gray-700 mb-1">Telefon</h3>
+                  <h3 className="font-semibold text-gray-700 mb-1">{t('pages.phone')}</h3>
                   <a href={`tel:${contactInfo?.phone || '+40753615752'}`} className="text-blue-600 hover:underline">
                     {contactInfo?.phone || '+40753615752'}
                   </a>
@@ -264,7 +256,7 @@ export default function AboutPage() {
               <div className="flex items-start p-4 bg-gray-50 rounded-lg">
                 <span className="text-2xl mr-3">📧</span>
                 <div>
-                  <h3 className="font-semibold text-gray-700 mb-1">Email</h3>
+                  <h3 className="font-semibold text-gray-700 mb-1">{t('pages.email')}</h3>
                   <a href={`mailto:${contactInfo?.email || 'crys.cristi@yahoo.com'}`} className="text-blue-600 hover:underline">
                     {contactInfo?.email || 'crys.cristi@yahoo.com'}
                   </a>
@@ -275,8 +267,8 @@ export default function AboutPage() {
             <div className="bg-gradient-to-br from-green-100 to-blue-100 rounded-lg p-6 flex items-center justify-center">
               <div className="text-center">
                 <span className="text-6xl mb-4 block">🏡</span>
-                <p className="text-gray-700 font-medium">Vino să ne vizitezi!</p>
-                <p className="text-gray-600 text-sm mt-2">Te așteptăm cu drag la fermă</p>
+                <p className="text-gray-700 font-medium">{t('pages.visitUs')}</p>
+                <p className="text-gray-600 text-sm mt-2">{t('pages.welcomeToFarm')}</p>
               </div>
             </div>
           </div>
@@ -288,7 +280,7 @@ export default function AboutPage() {
             <div className="bg-yellow-100 p-3 rounded-lg mr-3">
               <span className="text-4xl">🎁</span>
             </div>
-            <h2 className="text-3xl font-bold text-gray-800">Produse Cadou</h2>
+            <h2 className="text-3xl font-bold text-gray-800">{t('pages.giftProducts')}</h2>
           </div>
           
           <div className="text-gray-700 leading-relaxed space-y-4">
@@ -312,35 +304,35 @@ export default function AboutPage() {
                     <div className="space-y-2 text-sm">
                       {rule.minOrderValue > 0 && (
                         <p className="text-gray-700">
-                          <strong>Comandă minimă:</strong> {rule.minOrderValue} RON
+                          <strong>{t('pages.minOrder')}:</strong> {rule.minOrderValue} RON
                         </p>
                       )}
                       
                       {rule.giftType === 'voucher' && rule.voucherValue && (
                         <p className="text-green-600 font-semibold">
-                          💵 Valoare voucher: {rule.voucherValue} RON
+                          💵 {t('pages.voucherValue')}: {rule.voucherValue} RON
                         </p>
                       )}
                       
                       {rule.giftType === 'free_product' && rule.freeProductId && (
                         <p className="text-green-600 font-semibold">
-                          🎁 Produs cadou gratuit
+                          🎁 {t('pages.freeGiftProduct')}
                         </p>
                       )}
                       
                       {rule.giftType === 'discount' && rule.discountPercentage && (
                         <p className="text-green-600 font-semibold">
-                          💰 Reducere: {rule.discountPercentage}%
+                          💰 {t('pages.discount')}: {rule.discountPercentage}%
                         </p>
                       )}
                       
                       {rule.isActive ? (
                         <span className="inline-block px-3 py-1 bg-green-500 text-white text-xs rounded-full font-medium">
-                          ✓ Activ
+                          ✓ {t('pages.active')}
                         </span>
                       ) : (
                         <span className="inline-block px-3 py-1 bg-gray-400 text-white text-xs rounded-full font-medium">
-                          Inactiv
+                          {t('pages.inactive')}
                         </span>
                       )}
                     </div>
@@ -351,14 +343,14 @@ export default function AboutPage() {
               <div className="grid md:grid-cols-2 gap-6 mt-6">
                 <div className="p-5 bg-gradient-to-r from-yellow-50 to-yellow-100 rounded-lg text-center border border-yellow-200">
                   <span className="text-4xl block mb-3">🎟️</span>
-                  <h3 className="font-bold text-gray-800 text-lg">Vouchere</h3>
-                  <p className="text-gray-600 text-sm mt-2">Cadoul perfect pentru orice buget</p>
+                  <h3 className="font-bold text-gray-800 text-lg">{t('pages.vouchers')}</h3>
+                  <p className="text-gray-600 text-sm mt-2">{t('pages.vouchersDesc')}</p>
                 </div>
                 
                 <div className="p-5 bg-gradient-to-r from-yellow-50 to-yellow-100 rounded-lg text-center border border-yellow-200">
                   <span className="text-4xl block mb-3">🎁</span>
-                  <h3 className="font-bold text-gray-800 text-lg">Produse Cadou</h3>
-                  <p className="text-gray-600 text-sm mt-2">Produse gratuite la comenzi speciale</p>
+                  <h3 className="font-bold text-gray-800 text-lg">{t('pages.giftProducts')}</h3>
+                  <p className="text-gray-600 text-sm mt-2">{t('pages.giftProductsDesc')}</p>
                 </div>
               </div>
             )}

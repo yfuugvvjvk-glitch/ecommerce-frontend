@@ -3,8 +3,10 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { SITE_CONFIG } from '@/lib/site-config';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function Footer() {
+  const { t, locale } = useTranslation();
   const [contactInfo, setContactInfo] = useState<any>(null);
   const [aboutContent, setAboutContent] = useState<string>('');
   const [currentDate, setCurrentDate] = useState('');
@@ -26,7 +28,7 @@ export default function Footer() {
     const interval = setInterval(updateDate, 1000); // Update every second
     
     return () => clearInterval(interval);
-  }, []);
+  }, [locale]); // Re-fetch when locale changes
 
   const fetchContactInfo = async () => {
     try {
@@ -49,30 +51,27 @@ export default function Footer() {
 
       // Parse schedule from mainLocation if available
       let scheduleText = '';
-      if (mainLocation?.specialInstructions) {
-        // Use specialInstructions field if available (simplified text)
-        scheduleText = mainLocation.specialInstructions;
-      } else if (mainLocation?.workingHours) {
+      if (mainLocation?.workingHours) {
         // Parse structured workingHours and convert to readable format
         try {
           const workingHours = mainLocation.workingHours;
           
           const dayNames: { [key: string]: string } = {
-            'monday': 'Luni',
-            'tuesday': 'Marți',
-            'wednesday': 'Miercuri',
-            'thursday': 'Joi',
-            'friday': 'Vineri',
-            'saturday': 'Sâmbătă',
-            'sunday': 'Duminică',
-            'online': 'Online'
+            'monday': t('monday'),
+            'tuesday': t('tuesday'),
+            'wednesday': t('wednesday'),
+            'thursday': t('thursday'),
+            'friday': t('friday'),
+            'saturday': t('saturday'),
+            'sunday': t('sunday'),
+            'online': t('onlineStoreSchedule')
           };
 
           const scheduleLines: string[] = [];
           Object.entries(workingHours).forEach(([day, data]: [string, any]) => {
             // Check if day is open (isOpen === true)
             if (data && typeof data === 'object' && data.isOpen === true) {
-              const hours = `${data.start}-${data.end}`;
+              const hours = `${data.start} - ${data.end}`;
               scheduleLines.push(`${dayNames[day] || day}: ${hours}`);
             } else if (typeof data === 'string' && data.trim() !== '' && data.toLowerCase() !== 'închis') {
               // Fallback for string format (shouldn't happen with new structure)
@@ -80,11 +79,19 @@ export default function Footer() {
             }
           });
           
-          scheduleText = scheduleLines.join('\n');
+          // Add physical store label if we have schedule
+          if (scheduleLines.length > 0) {
+            scheduleText = `${t('physicalStore')}\n${scheduleLines.join('\n')}\n${t('onlineStoreSchedule')}`;
+          } else {
+            scheduleText = `${t('physicalStore')} ${t('monday')} - ${t('friday')}: 9:00 - 18:00\n${t('onlineStoreSchedule')}`;
+          }
         } catch (e) {
           console.error('Error parsing working hours:', e);
-          scheduleText = 'Luni - Vineri: 9:00 - 18:00';
+          scheduleText = `${t('physicalStore')} ${t('monday')} - ${t('friday')}: 9:00 - 18:00\n${t('onlineStoreSchedule')}`;
         }
+      } else {
+        // Default schedule if no workingHours
+        scheduleText = `${t('physicalStore')} ${t('monday')} - ${t('friday')}: 9:00 - 18:00\n${t('onlineStoreSchedule')}`;
       }
 
       // Combine data with priority: mainLocation > siteConfig > defaults
@@ -92,7 +99,7 @@ export default function Footer() {
         email: mainLocation?.email || siteConfig?.contact_email || 'crys.cristi@yahoo.com',
         phone: mainLocation?.phone || siteConfig?.contact_phone || '+40753615752',
         address: mainLocation?.address || siteConfig?.contact_address || 'Str. Garii nr. 69, Galați, România',
-        schedule: scheduleText || 'Luni - Vineri: 9:00 - 18:00'
+        schedule: scheduleText || `${t('physicalStore')} ${t('monday')} - ${t('friday')}: 9:00 - 18:00\n${t('onlineStoreSchedule')}`
       });
     } catch (error) {
       console.error('Failed to fetch contact info:', error);
@@ -101,7 +108,7 @@ export default function Footer() {
         email: 'crys.cristi@yahoo.com',
         phone: '+40753615752',
         address: 'Str. Garii nr. 69, Galați, România',
-        schedule: 'Luni - Vineri: 9:00 - 18:00'
+        schedule: `${t('physicalStore')} ${t('monday')} - ${t('friday')}: 9:00 - 18:00\n${t('onlineStoreSchedule')}`
       });
     }
   };
@@ -132,17 +139,17 @@ export default function Footer() {
           {/* About Section - DINAMIC */}
           <div className="space-y-4">
             <h3 className="text-2xl font-bold text-gray-900 mb-4 border-b-2 border-green-500 pb-2 inline-block">
-              Despre Noi
+              {t('pages.aboutUs')}
             </h3>
             <p className="text-gray-700 text-base leading-relaxed">
-              {aboutContent || 'Bun venit la Din grădina mea la voi! Suntem o fermă locală dedicată să aducă produse proaspete și naturale direct de la noi la tine acasă. Cu pasiune pentru agricultură și respect pentru natură, cultivăm produse de cea mai înaltă calitate, fără chimicale dăunătoare. Fiecare produs este ales cu grijă pentru a-ți oferi cea mai bună experiență. Misiunea noastră este să promovăm un stil de viață sănătos prin produse naturale, proaspete și accesibile pentru toată familia.'}
+              {aboutContent || t('pages.aboutFarmContent')}
             </p>
           </div>
 
           {/* Contact Info - SINCRONIZAT cu delivery location settings */}
           <div className="space-y-4">
             <h3 className="text-2xl font-bold text-gray-900 mb-4 border-b-2 border-blue-500 pb-2 inline-block">
-              Contact
+              {t('pages.contactTitle')}
             </h3>
             <ul className="space-y-4">
               <li className="flex items-center text-gray-700 hover:text-blue-600 transition-colors">
@@ -202,7 +209,7 @@ export default function Footer() {
 
         <div className="border-t border-gray-300 mt-10 pt-8 text-center">
           <p className="text-gray-600 text-base font-medium">
-            {currentDate} {SITE_CONFIG.name}.
+            {currentDate} {t('siteName')}.
           </p>
         </div>
       </div>

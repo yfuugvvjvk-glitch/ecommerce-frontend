@@ -3,8 +3,10 @@
 import { useEffect, useState } from 'react';
 import { apiClient } from '@/lib/api-client';
 import { Ticket } from 'lucide-react';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function VouchersPage() {
+  const { t } = useTranslation();
   const [myVouchers, setMyVouchers] = useState([]);
   const [availableVouchers, setAvailableVouchers] = useState([]);
   const [requests, setRequests] = useState([]);
@@ -69,7 +71,7 @@ export default function VouchersPage() {
     e.preventDefault();
     
     if (!voucherCode.trim() || !discountValue) {
-      setToast({ message: 'Te rog completează toate câmpurile obligatorii!', type: 'error' });
+      setToast({ message: t('vouchers.fillRequired'), type: 'error' });
       return;
     }
 
@@ -84,7 +86,7 @@ export default function VouchersPage() {
           validUntil: validUntil || null,
           description: description.trim(),
         });
-        setToast({ message: 'Cerere actualizată cu succes!', type: 'success' });
+        setToast({ message: t('vouchers.updateSuccess'), type: 'success' });
         setEditingRequest(null);
       } else {
         await apiClient.post('/api/vouchers/request', {
@@ -95,7 +97,7 @@ export default function VouchersPage() {
           validUntil: validUntil || null,
           description: description.trim(),
         });
-        setToast({ message: 'Cererea ta de voucher a fost trimisă! Vei primi un răspuns în curând.', type: 'success' });
+        setToast({ message: t('vouchers.requestSuccess'), type: 'success' });
       }
       
       // Reset form
@@ -108,7 +110,7 @@ export default function VouchersPage() {
       
       fetchRequests();
     } catch (error: any) {
-      const errorMsg = error.response?.data?.error || 'Eroare la trimiterea cererii';
+      const errorMsg = error.response?.data?.error || t('vouchers.requestError');
       setToast({ message: errorMsg, type: 'error' });
     } finally {
       setSubmitting(false);
@@ -127,13 +129,13 @@ export default function VouchersPage() {
   };
 
   const handleDeleteRequest = async (requestId: string) => {
-    if (!confirm('Sigur vrei să ștergi această cerere de voucher?')) return;
+    if (!confirm(t('vouchers.confirmDelete'))) return;
     try {
       await apiClient.delete(`/api/vouchers/my-requests/${requestId}`);
-      setToast({ message: 'Cerere ștearsă cu succes!', type: 'success' });
+      setToast({ message: t('vouchers.deleteSuccess'), type: 'success' });
       fetchRequests();
     } catch (error: any) {
-      setToast({ message: error.response?.data?.error || 'Eroare la ștergere', type: 'error' });
+      setToast({ message: error.response?.data?.error || t('vouchers.deleteError'), type: 'error' });
     }
   };
 
@@ -157,12 +159,12 @@ export default function VouchersPage() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-6">🎟️ Voucherele Mele</h1>
+      <h1 className="text-3xl font-bold mb-6">🎟️ {t('vouchers.title')}</h1>
 
       {/* Available Public Vouchers */}
       {availableVouchers.length > 0 && (
         <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg shadow-md p-6 mb-6">
-          <h2 className="text-xl font-semibold mb-4">🎁 Vouchere Disponibile</h2>
+          <h2 className="text-xl font-semibold mb-4">🎁 {t('vouchers.availableVouchers')}</h2>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
             {availableVouchers.map((voucher: any) => {
               if (!voucher) return null;
@@ -171,17 +173,17 @@ export default function VouchersPage() {
                   <p className="font-mono font-bold text-lg text-purple-600">{voucher.code}</p>
                   <p className="text-sm text-gray-600 mb-2">
                     {voucher.discountType === 'PERCENTAGE' 
-                      ? `${voucher.discountValue}% reducere` 
-                      : `${voucher.discountValue} RON reducere`}
+                      ? `${voucher.discountValue}% ${t('vouchers.percentDiscount')}` 
+                      : `${voucher.discountValue} RON ${t('vouchers.percentDiscount')}`}
                   </p>
                   {voucher.minPurchase && (
                     <p className="text-xs text-gray-500">
-                      Minim {voucher.minPurchase} RON
+                      {t('vouchers.minPurchase')} {voucher.minPurchase} RON
                     </p>
                   )}
                   {voucher.validUntil && (
                     <p className="text-xs text-gray-500">
-                      Valabil până: {new Date(voucher.validUntil).toLocaleDateString('ro-RO')}
+                      {t('vouchers.validUntil')}: {new Date(voucher.validUntil).toLocaleDateString('ro-RO')}
                     </p>
                   )}
                 </div>
@@ -194,13 +196,13 @@ export default function VouchersPage() {
       <div className="grid md:grid-cols-2 gap-6 mb-8">
         {/* My Vouchers */}
         <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-xl font-semibold mb-4">🎟️ Voucherele Mele</h2>
+          <h2 className="text-xl font-semibold mb-4">🎟️ {t('vouchers.myVouchers')}</h2>
           
           {myVouchers.length === 0 ? (
             <div className="text-center py-8">
               <Ticket className="h-12 w-12 text-gray-300 mx-auto mb-2" />
-              <p className="text-gray-500">Nu ai vouchere atribuite</p>
-              <p className="text-xs text-gray-400 mt-2">Solicită un voucher sau folosește voucherele publice de mai sus</p>
+              <p className="text-gray-500">{t('vouchers.noVouchers')}</p>
+              <p className="text-xs text-gray-400 mt-2">{t('vouchers.noVouchersDesc')}</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -213,18 +215,18 @@ export default function VouchersPage() {
                         <p className="font-mono font-bold text-lg text-blue-600">{userVoucher.voucher.code}</p>
                         <p className="text-sm text-gray-600">
                           {userVoucher.voucher.discountType === 'PERCENTAGE' 
-                            ? `${userVoucher.voucher.discountValue}% reducere` 
-                            : `${userVoucher.voucher.discountValue} RON reducere`}
+                            ? `${userVoucher.voucher.discountValue}% ${t('vouchers.percentDiscount')}` 
+                            : `${userVoucher.voucher.discountValue} RON ${t('vouchers.percentDiscount')}`}
                         </p>
                         {userVoucher.usedAt && (
                           <p className="text-xs text-gray-500 mt-1">
-                            Folosit: {new Date(userVoucher.usedAt).toLocaleDateString('ro-RO')}
+                            {t('vouchers.used')}: {new Date(userVoucher.usedAt).toLocaleDateString('ro-RO')}
                           </p>
                         )}
                       </div>
                       {!userVoucher.usedAt && (
                         <button className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
-                          Folosește
+                          {t('vouchers.use')}
                         </button>
                       )}
                     </div>
@@ -245,21 +247,21 @@ export default function VouchersPage() {
         {/* Request Voucher */}
         <div className="bg-white rounded-lg shadow-md p-6">
           <h2 className="text-xl font-semibold mb-4">
-            {editingRequest ? '✏️ Editează Cerere Voucher' : '✨ Creează și Solicită Voucher'}
+            {editingRequest ? `✏️ ${t('vouchers.editRequest')}` : `✨ ${t('vouchers.createRequest')}`}
           </h2>
           
           <form onSubmit={requestVoucher} className="space-y-4">
             {/* Voucher Code */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Cod Voucher <span className="text-red-500">*</span>
+                {t('vouchers.voucherCode')} <span className="text-red-500">{t('vouchers.required')}</span>
               </label>
               <input
                 type="text"
                 value={voucherCode}
                 onChange={(e) => setVoucherCode(e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 uppercase"
-                placeholder="ex: SUMMER2024"
+                placeholder={t('vouchers.voucherCodePlaceholder')}
                 required
               />
             </div>
@@ -267,59 +269,59 @@ export default function VouchersPage() {
             {/* Discount Type */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Tip Reducere <span className="text-red-500">*</span>
+                {t('vouchers.discountType')} <span className="text-red-500">{t('vouchers.required')}</span>
               </label>
               <select
                 value={discountType}
                 onChange={(e) => setDiscountType(e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
               >
-                <option value="PERCENTAGE">Procent (%)</option>
-                <option value="FIXED">Sumă fixă (RON)</option>
+                <option value="PERCENTAGE">{t('vouchers.percentage')}</option>
+                <option value="FIXED">{t('vouchers.fixed')}</option>
               </select>
             </div>
 
             {/* Discount Value */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Valoare Reducere <span className="text-red-500">*</span>
+                {t('vouchers.discountValue')} <span className="text-red-500">{t('vouchers.required')}</span>
               </label>
               <input
                 type="number"
                 value={discountValue}
                 onChange={(e) => setDiscountValue(e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                placeholder={discountType === 'PERCENTAGE' ? 'ex: 20' : 'ex: 50'}
+                placeholder={t('vouchers.discountValuePlaceholder')}
                 min="0"
                 step="0.01"
                 required
               />
               <p className="text-xs text-gray-500 mt-1">
-                {discountType === 'PERCENTAGE' ? 'Procent de reducere (ex: 20 pentru 20%)' : 'Sumă în RON (ex: 50 pentru 50 RON)'}
+                {discountType === 'PERCENTAGE' ? t('vouchers.discountValueHelp') : t('vouchers.discountValueHelpFixed')}
               </p>
             </div>
 
             {/* Min Purchase */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Achiziție Minimă (RON)
+                {t('vouchers.minPurchaseAmount')}
               </label>
               <input
                 type="number"
                 value={minPurchase}
                 onChange={(e) => setMinPurchase(e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                placeholder="ex: 100"
+                placeholder={t('vouchers.minPurchasePlaceholder')}
                 min="0"
                 step="0.01"
               />
-              <p className="text-xs text-gray-500 mt-1">Opțional - suma minimă pentru a folosi voucherul</p>
+              <p className="text-xs text-gray-500 mt-1">{t('vouchers.minPurchaseHelp')}</p>
             </div>
 
             {/* Valid Until */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Valabil Până La
+                {t('vouchers.validUntilDate')}
               </label>
               <input
                 type="date"
@@ -328,20 +330,20 @@ export default function VouchersPage() {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 min={new Date().toISOString().split('T')[0]}
               />
-              <p className="text-xs text-gray-500 mt-1">Opțional - data de expirare</p>
+              <p className="text-xs text-gray-500 mt-1">{t('vouchers.validUntilHelp')}</p>
             </div>
 
             {/* Description */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Motivul Cererii
+                {t('vouchers.requestReason')}
               </label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 rows={3}
-                placeholder="De ce ai nevoie de acest voucher? (opțional)"
+                placeholder={t('vouchers.requestReasonPlaceholder')}
               />
             </div>
             
@@ -351,7 +353,7 @@ export default function VouchersPage() {
                 disabled={submitting}
                 className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400 transition font-semibold"
               >
-                {submitting ? 'Se trimite...' : editingRequest ? '💾 Salvează Modificările' : '📤 Trimite Cerere de Aprobare'}
+                {submitting ? t('vouchers.submitting') : editingRequest ? `💾 ${t('vouchers.saveChanges')}` : `📤 ${t('vouchers.submitRequest')}`}
               </button>
               {editingRequest && (
                 <button
@@ -359,7 +361,7 @@ export default function VouchersPage() {
                   onClick={handleCancelEdit}
                   className="px-4 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition font-semibold"
                 >
-                  ❌ Anulează
+                  ❌ {t('vouchers.cancel')}
                 </button>
               )}
             </div>
@@ -367,7 +369,7 @@ export default function VouchersPage() {
 
           <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
             <p className="text-sm text-yellow-800">
-              💡 Voucherul tău va fi revizuit de administratori. Dacă este aprobat, va deveni activ și îl vei putea folosi!
+              💡 {t('vouchers.requestInfo')}
             </p>
           </div>
         </div>
@@ -375,11 +377,11 @@ export default function VouchersPage() {
 
       {/* My Voucher Requests */}
       <div className="bg-white rounded-lg shadow-md p-6">
-        <h2 className="text-xl font-semibold mb-4">📋 Cererile Mele de Vouchere</h2>
+        <h2 className="text-xl font-semibold mb-4">📋 {t('vouchers.myRequests')}</h2>
         
         {requests.length === 0 ? (
           <div className="text-center py-8">
-            <p className="text-gray-500">Nu ai cereri de vouchere</p>
+            <p className="text-gray-500">{t('vouchers.noRequests')}</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -399,28 +401,28 @@ export default function VouchersPage() {
                         }`}
                       >
                         {request.status === 'PENDING'
-                          ? '⏳ În așteptare'
+                          ? `⏳ ${t('vouchers.statusPending')}`
                           : request.status === 'APPROVED'
-                          ? '✅ Aprobat'
-                          : '❌ Respins'}
+                          ? `✅ ${t('vouchers.statusApproved')}`
+                          : `❌ ${t('vouchers.statusRejected')}`}
                       </span>
                     </div>
                     
                     <div className="space-y-1 text-sm">
                       <p className="text-gray-700">
-                        <span className="font-semibold">Reducere:</span>{' '}
+                        <span className="font-semibold">{t('vouchers.discount')}:</span>{' '}
                         {request.discountType === 'PERCENTAGE' 
                           ? `${request.discountValue}%` 
                           : `${request.discountValue} RON`}
                       </p>
                       {request.minPurchase && (
                         <p className="text-gray-700">
-                          <span className="font-semibold">Minim:</span> {request.minPurchase} RON
+                          <span className="font-semibold">{t('vouchers.minPurchase')}:</span> {request.minPurchase} RON
                         </p>
                       )}
                       {request.validUntil && (
                         <p className="text-gray-700">
-                          <span className="font-semibold">Valabil până:</span>{' '}
+                          <span className="font-semibold">{t('vouchers.validUntil')}:</span>{' '}
                           {new Date(request.validUntil).toLocaleDateString('ro-RO')}
                         </p>
                       )}
@@ -430,7 +432,7 @@ export default function VouchersPage() {
                     </div>
                     
                     <p className="text-xs text-gray-500 mt-2">
-                      Trimis: {new Date(request.createdAt).toLocaleDateString('ro-RO', {
+                      {t('vouchers.submitted')}: {new Date(request.createdAt).toLocaleDateString('ro-RO', {
                         year: 'numeric',
                         month: 'long',
                         day: 'numeric',
@@ -444,7 +446,7 @@ export default function VouchersPage() {
                       <button
                         onClick={() => handleEditRequest(request)}
                         className="text-blue-600 hover:text-blue-800 p-2"
-                        title="Editează"
+                        title={t('vouchers.edit')}
                       >
                         ✏️
                       </button>
@@ -452,7 +454,7 @@ export default function VouchersPage() {
                     <button
                       onClick={() => handleDeleteRequest(request.id)}
                       className="text-red-600 hover:text-red-800 p-2"
-                      title="Șterge"
+                      title={t('vouchers.delete')}
                     >
                       🗑️
                     </button>

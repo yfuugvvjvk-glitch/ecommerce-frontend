@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { apiClient } from '@/lib/api-client';
 import { FileText, Download, Eye, Calendar, CreditCard } from 'lucide-react';
+import { useTranslation } from '@/hooks/useTranslation';
+import ProductTitle from '@/components/ProductTitle';
 
 interface Invoice {
   id: string;
@@ -16,11 +18,17 @@ interface Invoice {
     price: number;
     dataItem: {
       title: string;
+      titleEn?: string;
+      titleFr?: string;
+      titleDe?: string;
+      titleEs?: string;
+      titleIt?: string;
     };
   }>;
 }
 
 export default function InvoicesPage() {
+  const { t } = useTranslation();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [filteredInvoices, setFilteredInvoices] = useState<Invoice[]>([]);
   const [loading, setLoading] = useState(true);
@@ -149,17 +157,34 @@ export default function InvoicesPage() {
   const getStatusText = (status: string) => {
     switch (status.toUpperCase()) {
       case 'PENDING':
-        return 'În așteptare';
+        return t('invoices.statusPending');
       case 'PROCESSING':
-        return 'În procesare';
+        return t('invoices.statusProcessing');
+      case 'PREPARING':
+        return t('invoices.statusPreparing');
+      case 'SHIPPING':
+        return t('invoices.statusShipping');
       case 'SHIPPED':
-        return 'Expediată';
+        return t('invoices.statusShipped');
       case 'DELIVERED':
-        return 'Livrată';
+        return t('invoices.statusDelivered');
       case 'CANCELLED':
-        return 'Anulată';
+        return t('invoices.statusCancelled');
       default:
         return status;
+    }
+  };
+
+  const getPaymentMethodText = (method: string) => {
+    switch (method) {
+      case 'cash':
+        return t('invoices.paymentCash');
+      case 'card':
+        return t('invoices.paymentCard');
+      case 'transfer':
+        return t('invoices.paymentTransfer');
+      default:
+        return method;
     }
   };
 
@@ -187,54 +212,54 @@ export default function InvoicesPage() {
   return (
     <div className="max-w-6xl mx-auto">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">📄 Facturile Mele</h1>
-        <p className="text-gray-600">Istoric complet al facturilor pentru comenzile tale ({filteredInvoices.length} din {invoices.length})</p>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">📄 {t('invoices.title')}</h1>
+        <p className="text-gray-600">{t('invoices.subtitle')} ({filteredInvoices.length} {t('invoices.of')} {invoices.length})</p>
       </div>
 
       {/* Filters and Search */}
       {invoices.length > 0 && (
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <h2 className="text-lg font-semibold mb-4">🔍 Filtrare și Căutare</h2>
+          <h2 className="text-lg font-semibold mb-4">🔍 {t('invoices.filtersTitle')}</h2>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
             {/* Search */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Caută</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t('invoices.search')}</label>
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Nr. factură sau produs..."
+                placeholder={t('invoices.searchPlaceholder')}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
             {/* Status Filter */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t('invoices.status')}</label>
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
               >
-                <option value="all">Toate statusurile</option>
-                <option value="PROCESSING">În procesare</option>
-                <option value="PREPARING">Se pregătește</option>
-                <option value="SHIPPING">În livrare</option>
-                <option value="DELIVERED">Livrat</option>
-                <option value="CANCELLED">Anulat</option>
+                <option value="all">{t('invoices.allStatuses')}</option>
+                <option value="PROCESSING">{t('invoices.statusProcessing')}</option>
+                <option value="PREPARING">{t('invoices.statusPreparing')}</option>
+                <option value="SHIPPING">{t('invoices.statusShipping')}</option>
+                <option value="DELIVERED">{t('invoices.statusDelivered')}</option>
+                <option value="CANCELLED">{t('invoices.statusCancelled')}</option>
               </select>
             </div>
 
             {/* Year Filter */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">An</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t('invoices.year')}</label>
               <select
                 value={yearFilter}
                 onChange={(e) => setYearFilter(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
               >
-                <option value="all">Toți anii</option>
+                <option value="all">{t('invoices.allYears')}</option>
                 {getAvailableYears().map(year => (
                   <option key={year} value={year.toString()}>{year}</option>
                 ))}
@@ -243,21 +268,21 @@ export default function InvoicesPage() {
 
             {/* Sort */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Sortare</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t('invoices.sort')}</label>
               <div className="flex gap-2">
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as 'date' | 'amount' | 'status')}
                   className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="date">Data</option>
-                  <option value="amount">Valoare</option>
-                  <option value="status">Status</option>
+                  <option value="date">{t('invoices.date')}</option>
+                  <option value="amount">{t('invoices.amount')}</option>
+                  <option value="status">{t('invoices.status')}</option>
                 </select>
                 <button
                   onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
                   className="px-3 py-2 bg-gray-200 rounded-md hover:bg-gray-300"
-                  title={sortOrder === 'asc' ? 'Crescător' : 'Descrescător'}
+                  title={sortOrder === 'asc' ? t('invoices.ascending') : t('invoices.descending')}
                 >
                   {sortOrder === 'asc' ? '↑' : '↓'}
                 </button>
@@ -268,22 +293,22 @@ export default function InvoicesPage() {
           {/* Active Filters */}
           {(searchQuery || statusFilter !== 'all' || yearFilter !== 'all') && (
             <div className="flex flex-wrap gap-2 pt-4 border-t">
-              <span className="text-sm text-gray-600">Filtre active:</span>
+              <span className="text-sm text-gray-600">{t('invoices.activeFilters')}:</span>
               {searchQuery && (
                 <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-sm">
-                  Căutare: "{searchQuery}" 
+                  {t('invoices.searchFilter')}: "{searchQuery}" 
                   <button onClick={() => setSearchQuery('')} className="ml-1 text-blue-500">×</button>
                 </span>
               )}
               {statusFilter !== 'all' && (
                 <span className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-sm">
-                  Status: {statusFilter}
+                  {t('invoices.statusFilter')}: {getStatusText(statusFilter)}
                   <button onClick={() => setStatusFilter('all')} className="ml-1 text-green-500">×</button>
                 </span>
               )}
               {yearFilter !== 'all' && (
                 <span className="px-2 py-1 bg-purple-100 text-purple-700 rounded-full text-sm">
-                  An: {yearFilter}
+                  {t('invoices.yearFilter')}: {yearFilter}
                   <button onClick={() => setYearFilter('all')} className="ml-1 text-purple-500">×</button>
                 </span>
               )}
@@ -295,7 +320,7 @@ export default function InvoicesPage() {
                 }}
                 className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-sm hover:bg-gray-200"
               >
-                Șterge toate
+                {t('invoices.clearAll')}
               </button>
             </div>
           )}
@@ -305,16 +330,16 @@ export default function InvoicesPage() {
       {filteredInvoices.length === 0 && invoices.length === 0 ? (
         <div className="text-center py-12">
           <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">Nu ai încă facturi</h3>
-          <p className="text-gray-600">Facturile vor apărea aici după plasarea comenzilor.</p>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">{t('invoices.noInvoices')}</h3>
+          <p className="text-gray-600">{t('invoices.noInvoicesDesc')}</p>
         </div>
       ) : (
         <>
           {filteredInvoices.length === 0 && invoices.length > 0 && (
             <div className="text-center py-12">
               <FileText className="h-16 w-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">Nu s-au găsit facturi</h3>
-              <p className="text-gray-600">Încearcă să modifici filtrele de căutare.</p>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">{t('invoices.noResults')}</h3>
+              <p className="text-gray-600">{t('invoices.noResultsDesc')}</p>
             </div>
           )}
           
@@ -329,7 +354,7 @@ export default function InvoicesPage() {
                       </div>
                       <div>
                         <h3 className="text-lg font-semibold text-gray-900">
-                          Factură {invoice.invoiceNumber}
+                          {t('invoices.invoice')} {invoice.invoiceNumber}
                         </h3>
                         <div className="flex items-center text-sm text-gray-600 mt-1">
                           <Calendar className="h-4 w-4 mr-1" />
@@ -348,21 +373,24 @@ export default function InvoicesPage() {
                         </div>
                         <div className="flex items-center text-sm text-gray-600">
                           <span className="mr-1">{getPaymentMethodIcon(invoice.paymentMethod)}</span>
-                          {invoice.paymentMethod === 'cash' ? 'Numerar' : 
-                           invoice.paymentMethod === 'card' ? 'Card' : 'Transfer'}
+                          {getPaymentMethodText(invoice.paymentMethod)}
                         </div>
                       </div>
                     </div>
                   </div>
 
                   <div className="border-t pt-4">
-                    <h4 className="font-medium text-gray-900 mb-2">Produse:</h4>
+                    <h4 className="font-medium text-gray-900 mb-2">{t('invoices.products')}:</h4>
                     <div className="space-y-1">
                       {invoice.orderItems.map((item, index) => (
                         <div key={index} className="flex justify-between text-sm">
-                          <span className="text-gray-600">
-                            {item.dataItem.title} x {item.quantity}
-                          </span>
+                          <ProductTitle product={item.dataItem}>
+                            {(translatedTitle) => (
+                              <span className="text-gray-600">
+                                {translatedTitle} x {item.quantity}
+                              </span>
+                            )}
+                          </ProductTitle>
                           <span className="font-medium">
                             {(item.price * item.quantity).toFixed(2)} RON
                           </span>
@@ -377,20 +405,20 @@ export default function InvoicesPage() {
                       className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                     >
                       <Eye className="h-4 w-4 mr-2" />
-                      Vizualizează
+                      {t('invoices.view')}
                     </button>
                     <button
                       onClick={() => handleDownloadInvoice(invoice.id, invoice.invoiceNumber)}
                       className="flex items-center justify-center px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
                     >
                       <Download className="h-4 w-4 mr-2" />
-                      Descarcă
+                      {t('invoices.download')}
                     </button>
                     <button
                       onClick={() => window.print()}
                       className="flex items-center justify-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
                     >
-                      🖨️ Printează
+                      🖨️ {t('invoices.print')}
                     </button>
                   </div>
                 </div>

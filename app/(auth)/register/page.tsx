@@ -4,11 +4,13 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { registerSchema, RegisterInput } from '@/lib/validations';
 import { useAuth } from '@/lib/auth-context';
+import { useTranslation } from '@/hooks/useTranslation';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Eye, EyeOff } from 'lucide-react';
 
 export default function RegisterPage() {
+  const { t } = useTranslation();
   const { register: registerUser } = useAuth();
   const router = useRouter();
   const [error, setError] = useState('');
@@ -34,7 +36,7 @@ export default function RegisterPage() {
     if (/[a-z]/.test(pwd)) strength++;
     if (/[0-9]/.test(pwd)) strength++;
     
-    const labels = ['', 'Weak', 'Fair', 'Good', 'Strong'];
+    const labels = ['', t('auth.weak'), t('auth.fair'), t('auth.good'), t('auth.strong')];
     return { strength, label: labels[strength] };
   };
 
@@ -48,7 +50,7 @@ export default function RegisterPage() {
       setSuccess(true);
       setTimeout(() => router.push('/login'), 2000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Registration failed');
+      setError(err instanceof Error ? err.message : t('auth.registrationFailed'));
     } finally {
       setIsLoading(false);
     }
@@ -58,15 +60,15 @@ export default function RegisterPage() {
     return (
       <div className="bg-white p-6 sm:p-8 rounded-lg shadow-lg text-center w-full max-w-md mx-auto">
         <div className="text-green-600 text-5xl mb-4">✓</div>
-        <h2 className="text-xl sm:text-2xl font-bold mb-2">Registration Successful!</h2>
-        <p className="text-gray-600">Redirecting to login...</p>
+        <h2 className="text-xl sm:text-2xl font-bold mb-2">{t('auth.registrationSuccess')}</h2>
+        <p className="text-gray-600">{t('auth.redirectingToLogin')}</p>
       </div>
     );
   }
 
   return (
     <div className="bg-white p-6 sm:p-8 rounded-lg shadow-lg w-full max-w-md mx-auto">
-      <h1 className="text-2xl sm:text-3xl font-bold text-center mb-6">📝 Register</h1>
+      <h1 className="text-2xl sm:text-3xl font-bold text-center mb-6">📝 {t('auth.registerTitle')}</h1>
       
       {error && (
         <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded" role="alert">
@@ -77,7 +79,7 @@ export default function RegisterPage() {
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
           <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-            Nume Complet
+            {t('auth.fullName')}
           </label>
           <input
             {...register('name')}
@@ -95,7 +97,7 @@ export default function RegisterPage() {
 
         <div>
           <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-            Email
+            {t('auth.email')}
           </label>
           <input
             {...register('email')}
@@ -113,7 +115,7 @@ export default function RegisterPage() {
 
         <div>
           <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
-            Telefon (opțional)
+            {t('auth.phoneOptional')}
           </label>
           <input
             {...register('phone')}
@@ -126,31 +128,31 @@ export default function RegisterPage() {
 
         {/* Adresă detaliată */}
         <div className="border-t pt-4">
-          <h3 className="text-sm font-semibold text-gray-700 mb-3">📍 Adresă de Livrare</h3>
+          <h3 className="text-sm font-semibold text-gray-700 mb-3">📍 {t('profile.deliveryAddress')}</h3>
           
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label htmlFor="city" className="block text-sm font-medium text-gray-700 mb-1">
-                Oraș
+                {t('profile.city')}
               </label>
               <input
                 {...register('city')}
                 type="text"
                 id="city"
-                placeholder="ex: București"
+                placeholder={t('auth.cityPlaceholder')}
                 className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
             <div>
               <label htmlFor="county" className="block text-sm font-medium text-gray-700 mb-1">
-                Județ
+                {t('profile.county')}
               </label>
               <input
                 {...register('county')}
                 type="text"
                 id="county"
-                placeholder="ex: Ilfov"
+                placeholder={t('auth.countyPlaceholder')}
                 className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -159,26 +161,26 @@ export default function RegisterPage() {
           <div className="grid grid-cols-3 gap-3 mt-3">
             <div className="col-span-2">
               <label htmlFor="street" className="block text-sm font-medium text-gray-700 mb-1">
-                Stradă
+                {t('profile.street')}
               </label>
               <input
                 {...register('street')}
                 type="text"
                 id="street"
-                placeholder="ex: Str. Victoriei"
+                placeholder={t('auth.streetPlaceholder')}
                 className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
 
             <div>
               <label htmlFor="streetNumber" className="block text-sm font-medium text-gray-700 mb-1">
-                Număr
+                {t('profile.streetNumber')}
               </label>
               <input
                 {...register('streetNumber')}
                 type="text"
                 id="streetNumber"
-                placeholder="ex: 25"
+                placeholder={t('auth.numberPlaceholder')}
                 className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
@@ -186,13 +188,13 @@ export default function RegisterPage() {
 
           <div className="mt-3">
             <label htmlFor="addressDetails" className="block text-sm font-medium text-gray-700 mb-1">
-              Detalii Adresă (opțional)
+              {t('auth.addressDetailsOptional')}
             </label>
             <input
               {...register('addressDetails')}
               type="text"
               id="addressDetails"
-              placeholder="Bloc, Scară, Etaj, Apartament, etc."
+              placeholder={t('profile.addressDetailsPlaceholder')}
               className="w-full px-4 py-3 text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
@@ -200,7 +202,7 @@ export default function RegisterPage() {
 
         <div>
           <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-            Parolă
+            {t('auth.password')}
           </label>
           <div className="relative">
             <input
@@ -214,7 +216,7 @@ export default function RegisterPage() {
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 focus:outline-none"
-              aria-label={showPassword ? 'Ascunde parola' : 'Arată parola'}
+              aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
             >
               {showPassword ? (
                 <EyeOff className="h-5 w-5" />
@@ -242,7 +244,7 @@ export default function RegisterPage() {
                 ))}
               </div>
               <p className="text-xs text-gray-600 mt-1">
-                Putere parolă: {passwordStrength.label}
+                {t('auth.passwordStrength')}: {passwordStrength.label}
               </p>
             </div>
           )}
@@ -258,14 +260,14 @@ export default function RegisterPage() {
           disabled={isLoading}
           className="w-full py-3 px-4 text-base font-medium bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition min-h-[44px]"
         >
-          {isLoading ? 'Se creează contul...' : 'Înregistrare'}
+          {isLoading ? t('auth.registering') : t('auth.registerBtn')}
         </button>
       </form>
 
       <p className="mt-4 text-center text-sm text-gray-600">
-        Already have an account?{' '}
+        {t('auth.alreadyHaveAccount')}{' '}
         <a href="/login" className="text-blue-600 hover:text-blue-700 font-medium">
-          Login
+          {t('auth.login')}
         </a>
       </p>
     </div>

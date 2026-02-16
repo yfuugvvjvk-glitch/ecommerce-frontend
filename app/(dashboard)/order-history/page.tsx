@@ -3,8 +3,10 @@
 import { useEffect, useState } from 'react';
 import { apiClient } from '@/lib/api-client';
 import Link from 'next/link';
+import { useTranslation } from '@/hooks/useTranslation';
 
 export default function OrderHistoryPage() {
+  const { t } = useTranslation();
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -43,15 +45,15 @@ export default function OrderHistoryPage() {
   const getStatusText = (status: string) => {
     switch (status.toUpperCase()) {
       case 'PROCESSING':
-        return 'În procesare';
+        return t('orderHistory.statusProcessing');
       case 'PREPARING':
-        return 'Se pregătește';
+        return t('orderHistory.statusPreparing');
       case 'SHIPPING':
-        return 'În livrare';
+        return t('orderHistory.statusShipping');
       case 'DELIVERED':
-        return 'Livrat';
+        return t('orderHistory.statusDelivered');
       case 'CANCELLED':
-        return 'Anulat';
+        return t('orderHistory.statusCancelled');
       default:
         return status;
     }
@@ -67,17 +69,17 @@ export default function OrderHistoryPage() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-6">📋 Istoric Comenzi</h1>
+      <h1 className="text-3xl font-bold mb-6">📋 {t('orderHistory.title')}</h1>
 
       {orders.length === 0 ? (
         <div className="bg-white rounded-lg shadow-md p-12 text-center">
-          <h2 className="text-xl font-semibold text-gray-700 mb-2">Nu ai comenzi</h2>
-          <p className="text-gray-500 mb-6">Începe să cumperi produse!</p>
+          <h2 className="text-xl font-semibold text-gray-700 mb-2">{t('orderHistory.noOrders')}</h2>
+          <p className="text-gray-500 mb-6">{t('orderHistory.noOrdersDesc')}</p>
           <Link
             href="/products"
             className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
           >
-            Explorează Produsele
+            {t('orderHistory.exploreProducts')}
           </Link>
         </div>
       ) : (
@@ -87,7 +89,7 @@ export default function OrderHistoryPage() {
               <div className="flex items-center justify-between mb-4">
                 <div>
                   <h3 className="text-lg font-semibold text-gray-800">
-                    Comandă #{order.id.slice(0, 8)}
+                    {t('orderHistory.order')} #{order.id.slice(0, 8)}
                   </h3>
                   <p className="text-sm text-gray-500">
                     {new Date(order.createdAt).toLocaleDateString('ro-RO', {
@@ -107,14 +109,14 @@ export default function OrderHistoryPage() {
               <div className="border-t pt-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-gray-600">Total:</p>
+                    <p className="text-sm text-gray-600">{t('orderHistory.total')}:</p>
                     <p className="text-2xl font-bold text-blue-600">{order.total} RON</p>
                   </div>
                   <Link
                     href={`/orders/${order.id}`}
                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
                   >
-                    Vezi Detalii
+                    {t('orderHistory.viewDetails')}
                   </Link>
                 </div>
               </div>

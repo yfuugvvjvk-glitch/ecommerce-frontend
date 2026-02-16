@@ -3,8 +3,11 @@
 import { useEffect, useState } from 'react';
 import { apiClient } from '@/lib/api-client';
 import Link from 'next/link';
+import { useTranslation } from '@/hooks/useTranslation';
+import ProductTitle from '@/components/ProductTitle';
 
 export default function MyReviewsPage() {
+  const { t } = useTranslation();
   const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingReview, setEditingReview] = useState<any>(null);
@@ -39,25 +42,25 @@ export default function MyReviewsPage() {
 
     try {
       await apiClient.put(`/api/reviews/${editingReview.id}`, { rating, comment });
-      alert('Review actualizat cu succes!');
+      alert(t('reviews.updateSuccess'));
       setEditingReview(null);
       fetchMyReviews();
     } catch (error: any) {
-      alert(error.response?.data?.error || 'Eroare la actualizare');
+      alert(error.response?.data?.error || t('reviews.updateError'));
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDelete = async (reviewId: string) => {
-    if (!confirm('Sigur vrei să ștergi această recenzie?')) return;
+    if (!confirm(t('reviews.confirmDelete'))) return;
 
     try {
       await apiClient.delete(`/api/reviews/${reviewId}`);
-      alert('Review șters!');
+      alert(t('reviews.deleteSuccess'));
       fetchMyReviews();
     } catch (error) {
-      alert('Eroare la ștergere');
+      alert(t('reviews.deleteError'));
     }
   };
 
@@ -71,14 +74,14 @@ export default function MyReviewsPage() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-6">⭐ Recenziile Mele</h1>
+      <h1 className="text-3xl font-bold mb-6">⭐ {t('reviews.title')}</h1>
 
       {editingReview && (
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <h2 className="text-xl font-semibold mb-4">Editează recenzia</h2>
+          <h2 className="text-xl font-semibold mb-4">{t('reviews.editReview')}</h2>
           <form onSubmit={handleUpdate} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-2">Rating</label>
+              <label className="block text-sm font-medium mb-2">{t('reviews.rating')}</label>
               <div className="flex gap-2">
                 {[1, 2, 3, 4, 5].map((star) => (
                   <button
@@ -94,7 +97,7 @@ export default function MyReviewsPage() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium mb-2">Comentariu</label>
+              <label className="block text-sm font-medium mb-2">{t('reviews.comment')}</label>
               <textarea
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
@@ -110,14 +113,14 @@ export default function MyReviewsPage() {
                 disabled={submitting}
                 className="flex-1 px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
               >
-                {submitting ? 'Se salvează...' : 'Salvează modificările'}
+                {submitting ? t('reviews.saving') : t('reviews.save')}
               </button>
               <button
                 type="button"
                 onClick={() => setEditingReview(null)}
                 className="flex-1 px-4 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
               >
-                Anulează
+                {t('reviews.cancel')}
               </button>
             </div>
           </form>
@@ -127,13 +130,13 @@ export default function MyReviewsPage() {
       {reviews.length === 0 ? (
         <div className="bg-white rounded-lg shadow-md p-12 text-center">
           <div className="text-6xl mb-4">⭐</div>
-          <h2 className="text-xl font-semibold text-gray-700 mb-2">Nu ai recenzii încă</h2>
-          <p className="text-gray-500 mb-6">Cumpără produse și lasă recenzii pentru a ajuta alți utilizatori!</p>
+          <h2 className="text-xl font-semibold text-gray-700 mb-2">{t('reviews.noReviews')}</h2>
+          <p className="text-gray-500 mb-6">{t('reviews.noReviewsDesc')}</p>
           <Link
             href="/products"
             className="inline-block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
           >
-            Explorează Produsele
+            {t('reviews.exploreProducts')}
           </Link>
         </div>
       ) : (
@@ -146,7 +149,9 @@ export default function MyReviewsPage() {
                     href={`/products/${review.dataItemId}`}
                     className="text-lg font-semibold text-blue-600 hover:text-blue-800"
                   >
-                    {review.dataItem.title}
+                    <ProductTitle product={review.dataItem}>
+                      {(translatedTitle) => translatedTitle}
+                    </ProductTitle>
                   </Link>
                   <div className="flex items-center gap-2 mt-2">
                     <div className="flex">
@@ -166,13 +171,13 @@ export default function MyReviewsPage() {
                     onClick={() => handleEdit(review)}
                     className="px-4 py-2 bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
                   >
-                    ✏️ Editează
+                    {t('reviews.edit')}
                   </button>
                   <button
                     onClick={() => handleDelete(review.id)}
                     className="px-4 py-2 bg-red-100 text-red-700 rounded hover:bg-red-200"
                   >
-                    🗑️ Șterge
+                    {t('reviews.delete')}
                   </button>
                 </div>
               </div>

@@ -10,6 +10,10 @@ import { useStockCheck } from '@/components/StockIndicator';
 import StockIndicator from '@/components/StockIndicator';
 import PaymentSimulator from '@/components/PaymentSimulator';
 import DeliveryLocationItem from '@/components/DeliveryLocationItem';
+import ProductTitle from '@/components/ProductTitle';
+import PaymentMethodName from '@/components/PaymentMethodName';
+import GiftRuleName from '@/components/GiftRuleName';
+import { useTranslation } from '@/hooks/useTranslation';
 
 // Helper function to strip HTML tags
 const stripHtml = (html: string) => {
@@ -38,6 +42,7 @@ export default function CheckoutPage() {
   const router = useRouter();
   const { refreshCartCount } = useCart();
   const { evaluateGifts, eligibleRules, selectGift, isEvaluating } = useGiftSystem();
+  const { t } = useTranslation();
   const [cart, setCart] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [voucherCode, setVoucherCode] = useState('');
@@ -877,12 +882,12 @@ export default function CheckoutPage() {
     return (
       <div className="max-w-4xl mx-auto p-6 text-center">
         <div className="text-6xl mb-4">🛒</div>
-        <h1 className="text-2xl font-bold mb-4">Coșul tău este gol</h1>
+        <h1 className="text-2xl font-bold mb-4">{t('checkout.emptyCart')}</h1>
         <button
           onClick={() => router.push('/products')}
           className="px-6 py-3 bg-blue-600 text-white rounded hover:bg-blue-700"
         >
-          Continuă cumpărăturile
+          {t('checkout.continueShopping')}
         </button>
       </div>
     );
@@ -899,30 +904,50 @@ export default function CheckoutPage() {
     return (
       <div className="max-w-4xl mx-auto p-6">
         <div className="bg-white rounded-lg shadow-lg p-8">
-          <h1 className="text-3xl font-bold mb-6">✅ Verifică comanda</h1>
+          <h1 className="text-3xl font-bold mb-6">✅ {t('checkout.reviewOrder')}</h1>
           
           {/* Order Summary */}
           <div className="space-y-6">
             {/* Products */}
             <div className="border-b pb-4">
-              <h2 className="text-xl font-semibold mb-3">📦 Produse comandate</h2>
+              <h2 className="text-xl font-semibold mb-3">📦 {t('checkout.orderedProducts')}</h2>
               <div className="space-y-2">
-                {cart.items.map((item: any) => (
-                  <div key={item.id} className="flex justify-between text-sm">
-                    <span>{stripHtml(item.dataItem.title)} x {item.quantity}</span>
-                    <span className="font-semibold">{(item.quantity * item.dataItem.price).toFixed(2)} RON</span>
-                  </div>
-                ))}
+                {cart.items.map((item: any) => {
+                  const isGiftProduct = item.isGift === true || item.giftRuleId != null;
+                  return (
+                    <div key={item.id} className="flex justify-between text-sm">
+                      <ProductTitle product={item.dataItem}>
+                        {(translatedTitle) => (
+                          <span>
+                            {translatedTitle} x {item.quantity}
+                            {isGiftProduct && (
+                              <span className="ml-2 bg-green-100 text-green-800 px-2 py-0.5 rounded-full text-xs font-medium">
+                                🎁 {t('checkout.gift')}
+                              </span>
+                            )}
+                          </span>
+                        )}
+                      </ProductTitle>
+                      <span className="font-semibold">
+                        {isGiftProduct ? (
+                          <span className="text-green-600">{t('checkout.free')}</span>
+                        ) : (
+                          `${(item.quantity * item.dataItem.price).toFixed(2)} RON`
+                        )}
+                      </span>
+                    </div>
+                  );
+                })}
               </div>
             </div>
 
             {/* Delivery */}
             <div className="border-b pb-4">
-              <h2 className="text-xl font-semibold mb-3">🚚 Livrare</h2>
+              <h2 className="text-xl font-semibold mb-3">🚚 {t('checkout.delivery')}</h2>
               <div className="text-sm space-y-1">
                 {useCustomAddress ? (
                   <div>
-                    <p><strong>Adresă personalizată:</strong></p>
+                    <p><strong>{t('checkout.customAddress')}:</strong></p>
                     <p className="ml-4 text-gray-600">
                       {[
                         customStreet,
@@ -935,7 +960,7 @@ export default function CheckoutPage() {
                   </div>
                 ) : selectedDeliveryLocation ? (
                   <div>
-                    <p><strong>Locația de livrare:</strong></p>
+                    <p><strong>{t('checkout.deliveryLocation')}:</strong></p>
                     {(() => {
                       const location = deliveryLocations.find(loc => loc.id === selectedDeliveryLocation);
                       return location ? (
@@ -948,17 +973,25 @@ export default function CheckoutPage() {
                     })()}
                   </div>
                 ) : null}
-                <p><strong>Cost livrare:</strong> {deliveryCost === 0 ? 'GRATUIT' : `${deliveryCost.toFixed(2)} RON`}</p>
+                <p><strong>{t('checkout.deliveryCost')}:</strong> {deliveryCost === 0 ? t('checkout.freeDelivery') : `${deliveryCost.toFixed(2)} RON`}</p>
               </div>
             </div>
 
             {/* Payment */}
             <div className="border-b pb-4">
-              <h2 className="text-xl font-semibold mb-3">💳 Plată</h2>
+              <h2 className="text-xl font-semibold mb-3">💳 {t('checkout.payment')}</h2>
               <p className="text-sm">
-                <strong>Metodă:</strong> {
-                  paymentMethods.find(m => m.id === paymentMethod)?.name || 'Necunoscută'
-                }
+                <strong>{t('checkout.method')}:</strong>{' '}
+                {(() => {
+                  const selectedMethod = paymentMethods.find(m => m.id === paymentMethod);
+                  if (!selectedMethod) return t('checkout.unknown');
+                  
+                  return (
+                    <PaymentMethodName method={selectedMethod} field="name">
+                      {(translatedName) => translatedName}
+                    </PaymentMethodName>
+                  );
+                })()}
               </p>
             </div>
 
@@ -966,21 +999,21 @@ export default function CheckoutPage() {
             <div className="bg-blue-50 p-4 rounded-lg">
               <div className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span>Subtotal produse:</span>
+                  <span>{t('checkout.subtotal')}:</span>
                   <span>{cart.total.toFixed(2)} RON</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span>Livrare:</span>
+                  <span>{t('checkout.delivery')}:</span>
                   <span>{deliveryCost.toFixed(2)} RON</span>
                 </div>
                 {appliedVoucher && (
                   <div className="flex justify-between text-sm text-green-600">
-                    <span>Discount ({appliedVoucher.voucher.code}):</span>
+                    <span>{t('checkout.discount')} ({appliedVoucher.voucher.code}):</span>
                     <span>-{appliedVoucher.discount.toFixed(2)} RON</span>
                   </div>
                 )}
                 <div className="border-t pt-2 flex justify-between text-xl font-bold">
-                  <span>Total de plată:</span>
+                  <span>{t('checkout.totalToPay')}:</span>
                   <span className="text-blue-600">{totalWithDelivery.toFixed(2)} RON</span>
                 </div>
               </div>
@@ -992,14 +1025,14 @@ export default function CheckoutPage() {
                 onClick={() => setShowReview(false)}
                 className="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-medium"
               >
-                ← Înapoi la editare
+                ← {t('checkout.backToEdit')}
               </button>
               <button
                 onClick={handleSubmit}
                 disabled={submitting}
                 className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium disabled:opacity-50"
               >
-                {submitting ? 'Se procesează...' : '✓ Confirmă comanda'}
+                {submitting ? t('checkout.processing') : `✓ ${t('checkout.confirmOrder')}`}
               </button>
             </div>
           </div>
@@ -1014,9 +1047,9 @@ export default function CheckoutPage() {
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 rounded-lg shadow-lg mb-6">
         <h1 className="text-2xl md:text-3xl font-bold flex items-center gap-3">
           <span className="text-3xl">🛍️</span>
-          Finalizare comandă
+          {t('checkout.title')}
         </h1>
-        <p className="text-blue-100 mt-2 text-sm">Verifică și confirmă detaliile comenzii tale</p>
+        <p className="text-blue-100 mt-2 text-sm">{t('checkout.subtitle')}</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -1027,13 +1060,13 @@ export default function CheckoutPage() {
             <div className="flex justify-between items-center mb-4 pb-3 border-b-2 border-blue-100">
               <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
                 <span className="text-2xl">📦</span>
-                Produse ({cart.itemCount})
+                {t('checkout.products')} ({cart.itemCount})
               </h2>
               <button
                 onClick={() => router.push('/cart')}
                 className="text-blue-600 hover:text-blue-800 text-sm font-medium flex items-center gap-1 px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-colors"
               >
-                ✏️ Editează coșul
+                ✏️ {t('checkout.editCart')}
               </button>
             </div>
             <div className="space-y-3">
@@ -1042,7 +1075,11 @@ export default function CheckoutPage() {
                 const isGiftProduct = item.isGift === true || item.giftRuleId != null;
                 
                 return (
-                <div key={item.id} className="flex gap-4 items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200">
+                <div 
+                  key={item.id} 
+                  className="flex gap-4 items-center p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200 cursor-pointer"
+                  onClick={() => router.push(`/products/${item.dataItemId || item.dataItem?.id}`)}
+                >
                   <img
                     src={item.dataItem.image}
                     alt={stripHtml(item.dataItem.title)}
@@ -1050,10 +1087,14 @@ export default function CheckoutPage() {
                   />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold text-gray-800">{stripHtml(item.dataItem.title)}</h3>
+                      <ProductTitle product={item.dataItem}>
+                        {(translatedTitle) => (
+                          <h3 className="font-semibold text-gray-800">{translatedTitle}</h3>
+                        )}
+                      </ProductTitle>
                       {isGiftProduct && (
                         <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded-full text-xs font-medium">
-                          🎁 CADOU
+                          🎁 {t('checkout.gift')}
                         </span>
                       )}
                     </div>
@@ -1066,9 +1107,10 @@ export default function CheckoutPage() {
                     <div className="flex items-center gap-4 mt-2 flex-wrap">
                       {!isGiftProduct ? (
                         // Butoane normale pentru produse obișnuite
-                        <div className="flex items-center gap-2 bg-white rounded-lg border border-gray-300 shadow-sm">
+                        <div className="flex items-center gap-2 bg-white rounded-lg border border-gray-300 shadow-sm" onClick={(e) => e.stopPropagation()}>
                           <button
-                            onClick={async () => {
+                            onClick={async (e) => {
+                              e.stopPropagation();
                               try {
                                 // Calculează step-ul corect bazat pe priceType
                                 const step = item.dataItem.priceType === 'fixed' 
@@ -1089,7 +1131,8 @@ export default function CheckoutPage() {
                           </button>
                           <span className="w-12 text-center font-bold text-gray-800">{item.quantity}</span>
                           <button
-                            onClick={async () => {
+                            onClick={async (e) => {
+                              e.stopPropagation();
                               try {
                                 // Calculează step-ul corect bazat pe priceType
                                 const step = item.dataItem.priceType === 'fixed' 
@@ -1111,18 +1154,18 @@ export default function CheckoutPage() {
                       ) : (
                         // Afișare cantitate fixă pentru produse cadou
                         <div className="flex items-center gap-2 bg-green-50 rounded-lg border border-green-300 px-3 py-2">
-                          <span className="text-sm font-semibold text-green-800">Cantitate: {item.quantity}</span>
-                          <span className="text-xs text-green-600">(cadou - cantitate fixă)</span>
+                          <span className="text-sm font-semibold text-green-800">{t('checkout.quantity')}: {item.quantity}</span>
+                          <span className="text-xs text-green-600">{t('checkout.fixedQuantity')}</span>
                         </div>
                       )}
                       <span className="text-sm text-gray-600 bg-white px-3 py-1 rounded-full border border-gray-300">
                         {isGiftProduct ? (
-                          <span className="text-green-600 font-semibold">🎁 GRATUIT</span>
+                          <span className="text-green-600 font-semibold">🎁 {t('checkout.free')}</span>
                         ) : (
                           <>💰 {item.dataItem.price.toFixed(2)} RON / {
                             item.dataItem.priceType === 'fixed' 
-                              ? 'bucată' 
-                              : (item.dataItem.unitName || 'buc')
+                              ? t('checkout.piece')
+                              : (item.dataItem.unitName || t('checkout.perUnit'))
                           }</>
                         )}
                       </span>
@@ -1132,11 +1175,12 @@ export default function CheckoutPage() {
                     <div className={`font-bold text-lg px-3 py-1 rounded-lg ${
                       isGiftProduct ? 'text-green-600 bg-green-50' : 'text-blue-600 bg-blue-50'
                     }`}>
-                      {isGiftProduct ? 'GRATUIT' : `${(item.quantity * item.dataItem.price).toFixed(2)} RON`}
+                      {isGiftProduct ? t('checkout.free') : `${(item.quantity * item.dataItem.price).toFixed(2)} RON`}
                     </div>
                     <button
-                      onClick={async () => {
-                        if (confirm('Sigur vrei să ștergi acest produs?')) {
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        if (confirm(t('checkout.confirmDelete'))) {
                           try {
                             await cartAPI.removeFromCart(item.id);
                             fetchCart();
@@ -1147,7 +1191,7 @@ export default function CheckoutPage() {
                       }}
                       className="text-red-600 hover:text-red-800 text-sm flex items-center gap-1 px-3 py-1 rounded-lg hover:bg-red-50 transition-colors"
                     >
-                      🗑️ Șterge
+                      🗑️ {t('checkout.delete')}
                     </button>
                   </div>
                 </div>
@@ -1160,24 +1204,33 @@ export default function CheckoutPage() {
             <div className="bg-gradient-to-br from-green-50 to-emerald-50 p-6 rounded-lg shadow-md border-2 border-green-300">
               <h2 className="text-xl font-bold mb-3 text-green-800 flex items-center gap-2">
                 <span className="text-2xl">🎁</span>
-                Produse Cadou Disponibile
+                {t('checkout.giftProductsAvailable')}
               </h2>
               <p className="text-sm text-green-700 mb-4 bg-white bg-opacity-60 p-3 rounded-lg">
-                ✨ Felicitări! Coșul tău îndeplinește condițiile pentru următoarele cadouri:
+                ✨ {t('checkout.giftCongrats')}
               </p>
               
               {eligibleRules.map((eligibleRule) => (
                 <div key={eligibleRule.rule.id} className="bg-white p-4 rounded-lg mb-4 last:mb-0">
-                  <h3 className="font-semibold text-lg mb-2">{eligibleRule.rule.name}</h3>
+                  <GiftRuleName rule={eligibleRule.rule} field="name">
+                    {(translatedName) => (
+                      <h3 className="font-semibold text-lg mb-2">{translatedName}</h3>
+                    )}
+                  </GiftRuleName>
                   {eligibleRule.rule.description && (
-                    <p className="text-sm text-gray-600 mb-3">{eligibleRule.rule.description}</p>
+                    <GiftRuleName rule={eligibleRule.rule} field="description">
+                      {(translatedDescription) => (
+                        <p className="text-sm text-gray-600 mb-3">{translatedDescription}</p>
+                      )}
+                    </GiftRuleName>
                   )}
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     {eligibleRule.availableProducts.map((giftProduct) => (
                       <div 
                         key={giftProduct.id} 
-                        className="border rounded-lg p-3 hover:border-green-500 transition-colors"
+                        className="border rounded-lg p-3 hover:border-green-500 transition-colors cursor-pointer"
+                        onClick={() => router.push(`/products/${giftProduct.productId}`)}
                       >
                         <div className="flex gap-3">
                           <img
@@ -1186,15 +1239,20 @@ export default function CheckoutPage() {
                             className="w-16 h-16 object-cover rounded"
                           />
                           <div className="flex-1">
-                            <h4 className="font-medium text-sm">{stripHtml(giftProduct.product.title)}</h4>
+                            <ProductTitle product={giftProduct.product}>
+                              {(translatedTitle) => (
+                                <h4 className="font-medium text-sm">{translatedTitle}</h4>
+                              )}
+                            </ProductTitle>
                             <p className="text-xs text-gray-500 line-through">
                               {giftProduct.product.price.toFixed(2)} RON
                             </p>
-                            <p className="text-sm font-bold text-green-600">GRATUIT</p>
+                            <p className="text-sm font-bold text-green-600">{t('checkout.free')}</p>
                           </div>
                         </div>
                         <button
-                          onClick={async () => {
+                          onClick={async (e) => {
+                            e.stopPropagation(); // Previne navigarea când se apasă pe buton
                             try {
                               await selectGift(eligibleRule.rule.id, giftProduct.productId);
                               await fetchCart();
@@ -1205,7 +1263,7 @@ export default function CheckoutPage() {
                           disabled={isEvaluating}
                           className="w-full mt-3 bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 disabled:bg-gray-400 text-sm font-medium"
                         >
-                          {isEvaluating ? 'Se adaugă...' : 'Adaugă Cadou'}
+                          {isEvaluating ? t('checkout.adding') : t('checkout.addGift')}
                         </button>
                       </div>
                     ))}
@@ -1219,7 +1277,7 @@ export default function CheckoutPage() {
           <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
             <h2 className="text-xl font-bold mb-4 pb-3 border-b-2 border-blue-100 text-gray-800 flex items-center gap-2">
               <span className="text-2xl">📍</span>
-              Locația de livrare
+              {t('checkout.deliveryLocation')}
             </h2>
             
             {/* Toate locațiile (inclusiv "Localități limitrofe" din baza de date) */}
@@ -1271,12 +1329,12 @@ export default function CheckoutPage() {
                                 {translatedName}
                                 {location.isMainLocation && (
                                   <span className="bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded-full text-xs font-medium">
-                                    ⭐ Principală
+                                    ⭐ {t('checkout.mainLocation')}
                                   </span>
                                 )}
                                 {isBlocked && (
                                   <span className="bg-red-100 text-red-800 px-2 py-0.5 rounded-full text-xs font-medium">
-                                    🚫 Temporar indisponibilă
+                                    🚫 {t('checkout.temporarilyUnavailable')}
                                   </span>
                                 )}
                               </div>
@@ -1292,20 +1350,20 @@ export default function CheckoutPage() {
                               )}
                               {isBlocked && (
                                 <div className="text-xs text-red-600 mt-2 bg-red-50 p-2 rounded">
-                                  Această locație de livrare este temporar blocată
+                                  {t('checkout.blockedLocation')}
                                 </div>
                               )}
                               {!isBlocked && location.deliveryFee !== undefined && location.deliveryFee === 0 && (
                                 <div className="text-sm font-medium text-green-700 mt-2 bg-green-50 px-3 py-1 rounded-lg inline-block">
-                                  💎 Cost livrare: GRATUIT
+                                  💎 {t('checkout.deliveryCost')}: {t('checkout.freeDelivery')}
                                 </div>
                               )}
                               {!isBlocked && location.deliveryFee !== undefined && location.deliveryFee > 0 && (
                                 <div className="text-sm font-medium text-green-700 mt-2 bg-green-50 px-3 py-1 rounded-lg inline-block">
-                                  💎 Cost livrare: {location.deliveryFee} RON
+                                  💎 {t('checkout.deliveryCost')}: {location.deliveryFee} RON
                                   {location.freeDeliveryThreshold && location.deliveryFee > 0 && (
                                     <span className="text-xs ml-1">
-                                      (Gratuit peste {location.freeDeliveryThreshold} RON)
+                                      ({t('checkout.freeOver')} {location.freeDeliveryThreshold} RON)
                                     </span>
                                   )}
                                 </div>
@@ -1319,7 +1377,7 @@ export default function CheckoutPage() {
                               {!isBlocked && location.workingHours && (
                                 <div className="text-xs text-gray-500 mt-2 flex items-center gap-1">
                                   <span>🕒</span>
-                                  <span>Program: {(() => {
+                                  <span>{t('checkout.workingHours')}: {(() => {
                                     try {
                                       // workingHours vine deja ca obiect din API
                                       const hours = location.workingHours;
@@ -1331,18 +1389,18 @@ export default function CheckoutPage() {
                                       // Verifică dacă este string simplu (ex: "09:00-18:00" sau "Închis")
                                       if (typeof todayHours === 'string') {
                                         return todayHours === 'Închis' || todayHours === 'Closed' 
-                                          ? 'Astăzi: Închis' 
-                                          : `Astăzi: ${todayHours}`;
+                                          ? `${t('checkout.today')}: ${t('checkout.closed')}` 
+                                          : `${t('checkout.today')}: ${todayHours}`;
                                       } 
                                       // Sau obiect cu isOpen, start, end
                                       else if (todayHours?.isOpen) {
-                                        return `Astăzi: ${todayHours.start}-${todayHours.end}`;
+                                        return `${t('checkout.today')}: ${todayHours.start}-${todayHours.end}`;
                                       } else {
-                                        return 'Astăzi: Închis';
+                                        return `${t('checkout.today')}: ${t('checkout.closed')}`;
                                       }
                                     } catch (error) {
                                       console.error('Error parsing working hours:', error);
-                                      return 'Program disponibil la locație';
+                                      return t('checkout.workingHours');
                                     }
                                   })()}</span>
                                 </div>
@@ -1362,7 +1420,7 @@ export default function CheckoutPage() {
                   <div className="p-3 bg-blue-100 border-l-4 border-blue-600 rounded">
                     <p className="text-sm font-semibold text-blue-900 flex items-center gap-2">
                       <span className="text-lg">📝</span>
-                      Introdu adresa ta completă pentru livrare în localități limitrofe
+                      {t('checkout.enterCompleteAddress')}
                     </p>
                   </div>
                   
@@ -1371,14 +1429,14 @@ export default function CheckoutPage() {
                     <div className="bg-white p-4 rounded-lg shadow-sm">
                       <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
                         <span className="text-lg">🏙️</span>
-                        Oraș *
+                        {t('checkout.city')} *
                       </label>
                       <input
                         type="text"
                         value={customCity}
                         onChange={(e) => setCustomCity(e.target.value)}
                         className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                        placeholder="Ex: Galați"
+                        placeholder={t('pages.cityPlaceholder')}
                         required
                       />
                     </div>
@@ -1386,14 +1444,14 @@ export default function CheckoutPage() {
                     <div className="bg-white p-4 rounded-lg shadow-sm">
                       <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
                         <span className="text-lg">🗺️</span>
-                        Județ *
+                        {t('checkout.county')} *
                       </label>
                       <input
                         type="text"
                         value={customCounty}
                         onChange={(e) => setCustomCounty(e.target.value)}
                         className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                        placeholder="Ex: Galați"
+                        placeholder={t('pages.countyPlaceholder')}
                         required
                       />
                     </div>
@@ -1401,14 +1459,14 @@ export default function CheckoutPage() {
                     <div className="bg-white p-4 rounded-lg shadow-sm">
                       <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
                         <span className="text-lg">🛣️</span>
-                        Stradă *
+                        {t('checkout.street')} *
                       </label>
                       <input
                         type="text"
                         value={customStreet}
                         onChange={(e) => setCustomStreet(e.target.value)}
                         className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                        placeholder="Ex: Garii"
+                        placeholder={t('pages.streetPlaceholder')}
                         required
                       />
                     </div>
@@ -1416,14 +1474,14 @@ export default function CheckoutPage() {
                     <div className="bg-white p-4 rounded-lg shadow-sm">
                       <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
                         <span className="text-lg">🔢</span>
-                        Număr *
+                        {t('checkout.number')} *
                       </label>
                       <input
                         type="text"
                         value={customStreetNumber}
                         onChange={(e) => setCustomStreetNumber(e.target.value)}
                         className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                        placeholder="Ex: 65"
+                        placeholder={t('pages.numberPlaceholder')}
                         required
                       />
                     </div>
@@ -1431,14 +1489,14 @@ export default function CheckoutPage() {
                     <div className="md:col-span-2 bg-white p-4 rounded-lg shadow-sm">
                       <label className="block text-sm font-semibold text-gray-700 mb-2 flex items-center gap-2">
                         <span className="text-lg">🏢</span>
-                        Detalii (Bloc, Scară, Apartament)
+                        {t('checkout.addressDetails')}
                       </label>
                       <input
                         type="text"
                         value={customAddressDetails}
                         onChange={(e) => setCustomAddressDetails(e.target.value)}
                         className="w-full px-4 py-2.5 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                        placeholder="Ex: Bloc A3, Scara 2, Ap. 15"
+                        placeholder={t('checkout.addressDetailsPlaceholder')}
                       />
                     </div>
                   </div>
@@ -1454,11 +1512,11 @@ export default function CheckoutPage() {
                       {validatingAddress ? (
                         <>
                           <span className="animate-spin">🔄</span>
-                          Se verifică...
+                          {t('checkout.verifying')}
                         </>
                       ) : (
                         <>
-                          📍 Verifică Locația
+                          📍 {t('checkout.verifyLocation')}
                         </>
                       )}
                     </button>
@@ -1468,7 +1526,7 @@ export default function CheckoutPage() {
                   {validatingAddress && (
                     <div className="p-3 bg-gray-50 border border-gray-300 rounded-lg">
                       <p className="text-sm text-gray-600">
-                        🔄 Se verifică adresa...
+                        🔄 {t('checkout.verifying')}
                       </p>
                     </div>
                   )}
@@ -1491,37 +1549,37 @@ export default function CheckoutPage() {
                   
                   <div className="p-4 bg-blue-50 border-2 border-blue-300 rounded-lg">
                     <p className="text-sm font-semibold text-blue-900 mb-3">
-                      🚚 Informații Livrare la Domiciliu
+                      🚚 {t('checkout.deliveryInfo')}
                     </p>
                     <div className="text-sm text-blue-800 space-y-2">
                       <p>
-                        <strong>Livram la domiciliu clientului pe o rază de {
+                        <strong>{t('checkout.deliveryRadius')} {
                           (() => {
                             const selectedLoc = deliveryLocations.find(loc => loc.id === selectedDeliveryLocation);
                             console.log('🔍 Selected location for radius display:', selectedLoc);
                             console.log('🔍 Delivery radius value:', selectedLoc?.deliveryRadius);
                             return selectedLoc?.deliveryRadius || 0;
                           })()
-                        } km</strong> a localității <strong>{
+                        } km</strong> {t('checkout.deliveryFrom')} <strong>{
                           deliveryLocations.find(loc => loc.isMainLocation)?.city || 'Galați'
                         }</strong>.
                       </p>
                       <p>
-                        📍 Distanța se calculează de la adresa: <strong>{
+                        📍 {t('checkout.distanceFrom')} <strong>{
                           deliveryLocations.find(loc => loc.isMainLocation)?.address || 'Str. Garii nr. 69, Galați, Județul Galați'
                         }</strong>
                       </p>
                       <p>
-                        💰 Costul de livrare este de <strong>{
+                        💰 {t('checkout.deliveryCost')}: <strong>{
                           deliveryLocations.find(loc => loc.id === selectedDeliveryLocation)?.deliveryFee || 30
                         } RON</strong>
                         {deliveryLocations.find(loc => loc.id === selectedDeliveryLocation)?.freeDeliveryThreshold && 
                          deliveryLocations.find(loc => loc.id === selectedDeliveryLocation)!.freeDeliveryThreshold! > 0 && (
-                          <span> (gratuită peste {deliveryLocations.find(loc => loc.id === selectedDeliveryLocation)!.freeDeliveryThreshold} RON)</span>
+                          <span> ({t('checkout.freeOver')} {deliveryLocations.find(loc => loc.id === selectedDeliveryLocation)!.freeDeliveryThreshold} RON)</span>
                         )}
                       </p>
                       <p>
-                        📅 Livrarea se va face în ziua de <strong>{
+                        📅 {t('checkout.deliveryDay')} <strong>{
                           deliverySchedule?.deliveryDays?.length > 0 ? 
                             deliverySchedule.deliveryDays.map((day: number) => 
                               ['Duminică', 'Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă'][day]
@@ -1529,13 +1587,13 @@ export default function CheckoutPage() {
                             'conform programului stabilit'
                         }</strong>
                         {deliverySchedule?.deliveryTimeSlots?.[0] && (
-                          <span>, între orele <strong>{deliverySchedule.deliveryTimeSlots[0].startTime}-{deliverySchedule.deliveryTimeSlots[0].endTime}</strong></span>
+                          <span>, {t('checkout.deliveryTime')} <strong>{deliverySchedule.deliveryTimeSlots[0].startTime}-{deliverySchedule.deliveryTimeSlots[0].endTime}</strong></span>
                         )}
                       </p>
                     </div>
                     <div className="bg-blue-100 p-3 rounded border border-blue-300 mt-3">
                       <p className="text-sm font-semibold text-blue-900 mb-2">
-                        📞 Contact pentru detalii:
+                        📞 {t('checkout.contactDetails')}
                       </p>
                       <p className="text-sm text-blue-800">
                         <strong>Telefon:</strong> {contactInfo?.phone || '+40 753615752'}<br/>
@@ -1553,7 +1611,7 @@ export default function CheckoutPage() {
           <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
             <h2 className="text-xl font-bold mb-4 pb-3 border-b-2 border-blue-100 text-gray-800 flex items-center gap-2">
               <span className="text-2xl">💳</span>
-              Metodă de plată
+              {t('checkout.paymentMethod')}
             </h2>
             <div className="space-y-3">
               {paymentMethods.map((method) => {
@@ -1579,19 +1637,25 @@ export default function CheckoutPage() {
                     <div className="flex-1">
                       <div className="font-semibold text-gray-800 flex items-center gap-2">
                         <span className="text-xl">{method.icon || '💳'}</span>
-                        <span>{method.name}</span>
+                        <PaymentMethodName method={method} field="name">
+                          {(translatedName) => <span>{translatedName}</span>}
+                        </PaymentMethodName>
                         {isBlocked && (
                           <span className="text-xs bg-red-100 text-red-800 px-2 py-1 rounded-full font-medium">
-                            🚫 Temporar indisponibil
+                            🚫 {t('checkout.temporarilyBlocked')}
                           </span>
                         )}
                       </div>
                       {method.description && (
-                        <div className="text-sm text-gray-600 mt-1">{method.description}</div>
+                        <PaymentMethodName method={method} field="description">
+                          {(translatedDescription) => (
+                            <div className="text-sm text-gray-600 mt-1">{translatedDescription}</div>
+                          )}
+                        </PaymentMethodName>
                       )}
                       {isBlocked && (
                         <div className="text-xs text-red-600 mt-1 bg-red-50 p-2 rounded">
-                          Această metodă de plată este temporar blocată
+                          {t('checkout.blockedPayment')}
                         </div>
                       )}
                     </div>
@@ -1608,7 +1672,7 @@ export default function CheckoutPage() {
           <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200">
             <h2 className="text-xl font-bold mb-4 pb-3 border-b-2 border-blue-100 text-gray-800 flex items-center gap-2">
               <span className="text-2xl">🎟️</span>
-              Voucher
+              {t('checkout.voucher')}
             </h2>
             {!appliedVoucher ? (
               <div className="space-y-3">
@@ -1617,13 +1681,13 @@ export default function CheckoutPage() {
                   value={voucherCode}
                   onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
                   className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
-                  placeholder="Cod voucher"
+                  placeholder={t('checkout.voucherCode')}
                 />
                 <button
                   onClick={applyVoucher}
                   className="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium transition-colors shadow-sm"
                 >
-                  ✓ Aplică
+                  ✓ {t('checkout.apply')}
                 </button>
               </div>
             ) : (
@@ -1641,7 +1705,7 @@ export default function CheckoutPage() {
                   </button>
                 </div>
                 <p className="text-sm text-green-700 font-medium bg-green-50 p-3 rounded-lg">
-                  💰 Discount: -{appliedVoucher.discount.toFixed(2)} RON
+                  💰 {t('checkout.discount')}: -{appliedVoucher.discount.toFixed(2)} RON
                 </p>
               </div>
             )}
@@ -1651,25 +1715,25 @@ export default function CheckoutPage() {
           <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-6 rounded-lg shadow-md border-2 border-blue-300">
             <h2 className="text-xl font-bold mb-4 pb-3 border-b-2 border-blue-200 text-gray-800 flex items-center gap-2">
               <span className="text-2xl">💰</span>
-              Sumar comandă
+              {t('checkout.orderSummary')}
             </h2>
             <div className="space-y-3">
               <div className="flex justify-between text-gray-700 bg-white p-3 rounded-lg">
-                <span className="font-medium">Subtotal produse:</span>
+                <span className="font-medium">{t('checkout.subtotal')}:</span>
                 <span className="font-semibold">{cart.total.toFixed(2)} RON</span>
               </div>
               <div className="flex justify-between text-gray-700 bg-white p-3 rounded-lg">
-                <span className="font-medium">Livrare:</span>
+                <span className="font-medium">{t('checkout.delivery')}:</span>
                 <span className="font-semibold">{deliveryFee.toFixed(2)} RON</span>
               </div>
               {appliedVoucher && (
                 <div className="flex justify-between text-green-700 bg-green-50 p-3 rounded-lg border border-green-300">
-                  <span className="font-medium">Discount voucher:</span>
+                  <span className="font-medium">{t('checkout.voucherDiscount')}:</span>
                   <span className="font-semibold">-{appliedVoucher.discount.toFixed(2)} RON</span>
                 </div>
               )}
               <div className="border-t-2 border-blue-300 pt-3 flex justify-between text-xl font-bold bg-white p-4 rounded-lg shadow-sm">
-                <span className="text-gray-800">Total de plată:</span>
+                <span className="text-gray-800">{t('checkout.totalToPay')}:</span>
                 <span className="text-blue-600">
                   {(finalTotal + deliveryFee).toFixed(2)} RON
                 </span>
@@ -1679,7 +1743,7 @@ export default function CheckoutPage() {
               <div className="mt-4 p-4 bg-red-50 border-2 border-red-300 rounded-lg">
                 <p className="text-red-800 text-sm font-bold mb-2 flex items-center gap-2">
                   <span className="text-lg">⚠️</span>
-                  Probleme cu stocul:
+                  {t('checkout.stockIssues')}
                 </p>
                 <ul className="text-red-700 text-sm space-y-1">
                   {stockErrors.map((error, index) => (
@@ -1695,7 +1759,7 @@ export default function CheckoutPage() {
               <div className="mt-4 p-4 bg-orange-50 border-2 border-orange-400 rounded-lg">
                 <p className="text-orange-900 text-sm font-bold mb-2 flex items-center gap-2">
                   <span className="text-lg">🚫</span>
-                  Comenzile sunt temporar blocate
+                  {t('checkout.ordersBlocked')}
                 </p>
                 <p className="text-orange-800 text-sm">{blockReason}</p>
               </div>
@@ -1704,9 +1768,9 @@ export default function CheckoutPage() {
               <div className="mt-4 p-4 bg-yellow-50 border-2 border-yellow-400 rounded-lg">
                 <p className="text-yellow-900 text-sm font-bold mb-2 flex items-center gap-2">
                   <span className="text-lg">👁️</span>
-                  Cont Vizitator
+                  {t('checkout.guestAccount')}
                 </p>
-                <p className="text-yellow-800 text-sm">Nu poți plasa comenzi cu un cont de vizitator. Creează un cont real pentru a cumpăra.</p>
+                <p className="text-yellow-800 text-sm">{t('checkout.guestCannotOrder')}</p>
               </div>
             )}
             <button
@@ -1720,9 +1784,9 @@ export default function CheckoutPage() {
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   : 'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-105'
               }`}
-              title={user?.role === 'guest' ? 'Contul de vizitator nu poate plasa comenzi' : (isDeliveryBlocked ? blockReason : '')}
+              title={user?.role === 'guest' ? t('checkout.guestBlocked') : (isDeliveryBlocked ? blockReason : '')}
             >
-              {user?.role === 'guest' ? '🔒 Blocat pentru vizitatori' : (checking ? '🔄 Verificare stoc...' : isDeliveryBlocked ? '🚫 Comenzi blocate' : '✓ Continuă la verificare →')}
+              {user?.role === 'guest' ? `🔒 ${t('checkout.blockedForGuests')}` : (checking ? `🔄 ${t('checkout.checkingStock')}` : isDeliveryBlocked ? `🚫 ${t('checkout.ordersBlocked')}` : `✓ ${t('checkout.continueToReview')} →`)}
             </button>
           </div>
         </div>

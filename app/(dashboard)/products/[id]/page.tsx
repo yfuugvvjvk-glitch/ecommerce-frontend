@@ -4,12 +4,12 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { apiClient, favoritesAPI, cartAPI } from '@/lib/api-client';
 import { useTranslation } from '@/hooks/useTranslation';
-import { useDynamicTranslation } from '@/hooks/useDynamicTranslation';
 import { useCart } from '@/lib/cart-context';
 import { useAuth } from '@/lib/auth-context';
 import { Heart, ShoppingCart } from 'lucide-react';
 import CurrencyPrice from '@/components/CurrencyPrice';
 import { stripHtml } from '@/utils/stripHtml';
+import ProductItem from '@/components/ProductItem';
 
 export default function ProductDetailsPage() {
   const params = useParams();
@@ -21,28 +21,6 @@ export default function ProductDetailsPage() {
   const [isFavorite, setIsFavorite] = useState(false);
 
   const [selectedQuantity, setSelectedQuantity] = useState<number>(1);
-
-  // Dynamic translations for product
-  const { value: translatedTitle } = useDynamicTranslation(
-    'product',
-    params.id as string,
-    'title',
-    product?.title || ''
-  );
-
-  const { value: translatedDescription } = useDynamicTranslation(
-    'product',
-    params.id as string,
-    'description',
-    product?.description || ''
-  );
-
-  const { value: translatedContent } = useDynamicTranslation(
-    'product',
-    params.id as string,
-    'content',
-    product?.content || ''
-  );
 
   useEffect(() => {
     if (params.id) {
@@ -108,13 +86,13 @@ export default function ProductDetailsPage() {
         const response = await favoritesAPI.remove(params.id as string);
         console.log('Remove response:', response);
         setIsFavorite(false);
-        alert('Produs șters din favorite! ✓');
+        alert(t('productDetails.removedFromFavorites'));
       } else {
         console.log('Adding to favorites...');
         const response = await favoritesAPI.add(params.id as string);
         console.log('Add response:', response);
         setIsFavorite(true);
-        alert('Produs adăugat la favorite! ✓');
+        alert(t('productDetails.addedToFavorites'));
       }
       // Recheck favorite status to ensure consistency
       await checkIfFavorite();
@@ -139,7 +117,7 @@ export default function ProductDetailsPage() {
       // Actualizează indicatorul de coș
       await refreshCartCount();
       
-      alert(`Produs adăugat în coș! Cantitate: ${selectedQuantity} ${product.unitName || 'buc'}`);
+      alert(`${t('productDetails.addedToCart')} ${t('productDetails.quantity')}: ${selectedQuantity} ${product.unitName || 'buc'}`);
     } catch (error) {
       console.error('Failed to add to cart:', error);
       alert('Eroare la adăugarea în coș');
@@ -157,7 +135,7 @@ export default function ProductDetailsPage() {
   if (!product) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-2xl font-bold text-gray-800 mb-4">Produsul nu a fost găsit</h2>
+        <h2 className="text-2xl font-bold text-gray-800 mb-4">{t('productDetails.productNotFound')}</h2>
         <button onClick={() => router.back()} className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
           {t('back')}
         </button>
@@ -171,6 +149,8 @@ export default function ProductDetailsPage() {
         ← {t('back')}
       </button>
 
+      <ProductItem product={product}>
+        {(translatedTitle, translatedDescription) => (
       <div className="bg-white rounded-lg shadow-lg overflow-hidden">
         {/* Layout 2 coloane */}
         <div className="grid lg:grid-cols-2 gap-8 p-6">
@@ -181,23 +161,16 @@ export default function ProductDetailsPage() {
             <div className="relative flex items-center justify-center" style={{height: '350px'}}>
               <img
                 src={product.image || '/placeholder.jpg'}
-                alt={stripHtml(product.title)}
+                alt={stripHtml(translatedTitle)}
                 style={{ maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto', display: 'block' }}
               />
             </div>
 
             {/* Descrieri sub imagine */}
             <div className="space-y-4">
-              {product.description && (
-                <div>
-                  <div className="text-gray-600 leading-relaxed" dangerouslySetInnerHTML={{ __html: product.description }} />
-                </div>
-              )}
-
-              {/* Afișează content doar dacă este diferit de description */}
-              {product.content && product.content !== product.description && (
-                <div>
-                  <div className="text-gray-600 leading-relaxed whitespace-pre-wrap" dangerouslySetInnerHTML={{ __html: product.content }} />
+              {translatedDescription && (
+                <div className="bg-gray-50 border-2 border-gray-200 rounded-lg p-4">
+                  <div className="text-gray-700 leading-relaxed" dangerouslySetInnerHTML={{ __html: translatedDescription }} />
                 </div>
               )}
 
@@ -222,7 +195,7 @@ export default function ProductDetailsPage() {
               {product.advanceOrderDays > 0 && (
                 <div className="bg-orange-50 border border-orange-200 rounded-lg p-4">
                   <p className="text-sm text-orange-800">
-                    <strong>⚠️ Comandă în avans:</strong> Acest produs trebuie comandat cu minimum {product.advanceOrderDays} {product.advanceOrderDays === 1 ? 'zi' : 'zile'} înainte de livrare.
+                    <strong>⚠️ {t('productDetails.advanceOrder')}:</strong> {t('productDetails.advanceOrderDays')} {product.advanceOrderDays} {product.advanceOrderDays === 1 ? t('productDetails.day') : t('productDetails.days')} {t('productDetails.daysBefore')}.
                   </p>
                 </div>
               )}
@@ -234,11 +207,11 @@ export default function ProductDetailsPage() {
             
             {/* Header cu titlu și favorite */}
             <div className="flex items-start justify-between gap-4">
-              <h1 className="text-3xl font-bold text-gray-900 flex-1">{stripHtml(translatedTitle || product.title)}</h1>
+              <h1 className="text-3xl font-bold text-gray-900 flex-1">{stripHtml(translatedTitle)}</h1>
               <button
                 onClick={toggleFavorite}
                 className="flex-shrink-0 p-3 border-2 border-gray-300 rounded-full hover:border-red-500 hover:bg-red-50 transition"
-                title={isFavorite ? 'Șterge din favorite' : 'Adaugă la favorite'}
+                title={isFavorite ? t('productDetails.removeFromFavorites') : t('productDetails.addToFavorites')}
               >
                 <Heart className={`h-6 w-6 ${isFavorite ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} />
               </button>
@@ -258,15 +231,15 @@ export default function ProductDetailsPage() {
                     {/* Afișare cantități disponibile pentru per_unit */}
                     {product.availableQuantities && product.availableQuantities.length > 0 && (
                       <span className="block text-sm text-gray-500 mt-1">
-                        (cantități disponibile: {product.availableQuantities.join(', ')} {product.unitName})
+                        ({t('productDetails.rapidQuantities').toLowerCase()}: {product.availableQuantities.join(', ')} {product.unitName})
                       </span>
                     )}
                   </div>
                 ) : (
                   <span className="text-lg text-gray-600">
-                    / bucată
+                    / {t('productDetails.piece')}
                     <span className="block text-sm text-gray-500 mt-1">
-                      (fiecare = {
+                      ({t('productDetails.each')} = {
                         product.availableQuantities && product.availableQuantities.length > 0 
                           ? product.availableQuantities[0] 
                           : (product.minQuantity || 1)
@@ -300,7 +273,7 @@ export default function ProductDetailsPage() {
                 }`}>
                   <span className="text-lg">{product.stockStatus === 'available' ? '✓' : '✗'}</span>
                   <span className="font-semibold">
-                    {product.stockStatus === 'available' ? 'Disponibil' : 'Indisponibil'}
+                    {product.stockStatus === 'available' ? t('productDetails.available') : t('productDetails.unavailable')}
                   </span>
                 </div>
               ) : product.stock !== undefined ? (
@@ -309,7 +282,7 @@ export default function ProductDetailsPage() {
                   <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-800 rounded-full">
                     <span className="text-lg">✓</span>
                     <span className="font-semibold">
-                      În stoc: {((product.availableStock || product.stock) as number).toFixed(2)} {product.unitName || 'produse'}
+                      {t('productDetails.inStock')}: {((product.availableStock || product.stock) as number).toFixed(2)} {product.unitName || t('products')}
                     </span>
                   </div>
                 ) : (
@@ -323,7 +296,7 @@ export default function ProductDetailsPage() {
 
             {/* Calculator cantitate - afișat întotdeauna */}
             <div className="bg-white border-2 border-gray-300 rounded-xl p-5 shadow-sm">
-              <h3 className="text-lg font-semibold text-gray-800 mb-4">Selectează cantitatea</h3>
+              <h3 className="text-lg font-semibold text-gray-800 mb-4">{t('productDetails.selectQuantity')}</h3>
                 
                 {/* Butoane +/- */}
                 <div className="flex items-center gap-4 mb-4">
@@ -380,11 +353,11 @@ export default function ProductDetailsPage() {
                 <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg mb-4">
                   <div className="flex items-center justify-between">
                     <span className="text-sm text-gray-700">
-                      Cantitate: <strong className="text-gray-900">
+                      {t('productDetails.quantity')}: <strong className="text-gray-900">
                         {product.priceType === 'fixed' ? (
                           // Pentru fixed: afișăm numărul de bucăți și cantitatea totală în kg
                           <>
-                            {selectedQuantity} {selectedQuantity === 1 ? 'bucată' : 'bucăți'}
+                            {selectedQuantity} {selectedQuantity === 1 ? t('productDetails.piece') : t('productDetails.pieces')}
                             {product.availableQuantities && product.availableQuantities[0] && (
                               <span className="text-gray-600 ml-1">
                                 ({(selectedQuantity * product.availableQuantities[0]).toFixed(2)} {product.unitName || 'kg'})
@@ -410,7 +383,7 @@ export default function ProductDetailsPage() {
                 {/* Cantități rapide - doar dacă există availableQuantities */}
                 {product.availableQuantities && product.availableQuantities.length > 1 && (
                   <div>
-                    <p className="text-sm text-gray-600 mb-2">Cantități rapide:</p>
+                    <p className="text-sm text-gray-600 mb-2">{t('productDetails.rapidQuantities')}:</p>
                     <div className="grid grid-cols-3 gap-2">
                       {product.availableQuantities.slice(0, 6).map((quantity: number) => (
                         <button
@@ -438,7 +411,7 @@ export default function ProductDetailsPage() {
               className="w-full flex items-center justify-center gap-3 px-6 py-4 bg-blue-600 text-white text-lg font-semibold rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition shadow-lg"
             >
               <ShoppingCart className="h-6 w-6" />
-              Adaugă în coș
+              {t('productDetails.addToCart')}
             </button>
           </div>
         </div>
@@ -448,12 +421,15 @@ export default function ProductDetailsPage() {
           <ReviewsSection productId={params.id as string} />
         </div>
       </div>
+        )}
+      </ProductItem>
     </div>
   );
 }
 
 // Reviews Component  
 function ReviewsSection({ productId }: { productId: string }) {
+  const { t } = useTranslation();
   const { user } = useAuth();
   const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -486,7 +462,7 @@ function ReviewsSection({ productId }: { productId: string }) {
     // Check if user is authenticated
     const token = localStorage.getItem('token');
     if (!token) {
-      alert('Trebuie să fii autentificat pentru a lăsa o recenzie!');
+      alert(t('reviews.mustBeAuthenticated'));
       return;
     }
     
@@ -495,14 +471,14 @@ function ReviewsSection({ productId }: { productId: string }) {
     try {
       if (editingReview) {
         await apiClient.put(`/api/reviews/${editingReview.id}`, { rating, comment });
-        alert('Review actualizat!');
+        alert(t('reviews.reviewUpdated'));
       } else {
         await apiClient.post('/api/reviews', {
           dataItemId: productId,
           rating,
           comment,
         });
-        alert('Review adăugat cu succes!');
+        alert(t('reviews.reviewAdded'));
       }
       
       setShowForm(false);
@@ -527,11 +503,11 @@ function ReviewsSection({ productId }: { productId: string }) {
   };
 
   const handleDelete = async (reviewId: string) => {
-    if (!confirm('Sigur vrei să ștergi acest review?')) return;
+    if (!confirm(t('reviews.confirmDelete'))) return;
 
     try {
       await apiClient.delete(`/api/reviews/${reviewId}`);
-      alert('Review șters!');
+      alert(t('reviews.reviewDeleted'));
       fetchReviews();
     } catch (error: any) {
       console.error('Review delete error:', error);
@@ -548,7 +524,7 @@ function ReviewsSection({ productId }: { productId: string }) {
     <div className="bg-white rounded-lg shadow-md p-6 mt-6">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h2 className="text-2xl font-bold">⭐ Recenzii și Rating</h2>
+          <h2 className="text-2xl font-bold">⭐ {t('reviews.title')}</h2>
           <div className="flex items-center gap-2 mt-2">
             <span className="text-3xl font-bold text-yellow-500">{averageRating}</span>
             <div>
@@ -559,7 +535,7 @@ function ReviewsSection({ productId }: { productId: string }) {
                   </span>
                 ))}
               </div>
-              <p className="text-sm text-gray-600">{reviews.length} recenzii</p>
+              <p className="text-sm text-gray-600">{reviews.length} {t('reviews.reviewsCount')}</p>
             </div>
           </div>
         </div>
@@ -568,11 +544,11 @@ function ReviewsSection({ productId }: { productId: string }) {
             <button
               disabled
               className="px-6 py-3 bg-gray-300 text-gray-500 rounded-lg cursor-not-allowed"
-              title="Contul de vizitator nu poate lăsa recenzii"
+              title={t('productDetails.createAccountToReview')}
             >
-              🔒 Blocat pentru vizitatori
+              🔒 {t('productDetails.blockedForGuests')}
             </button>
-            <p className="text-xs text-gray-500 mt-1">Creează un cont pentru a lăsa recenzii</p>
+            <p className="text-xs text-gray-500 mt-1">{t('productDetails.createAccountToReview')}</p>
           </div>
         ) : (
           <button
@@ -584,7 +560,7 @@ function ReviewsSection({ productId }: { productId: string }) {
             }}
             className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
-            {showForm ? 'Anulează' : '✍️ Scrie recenzie'}
+            {showForm ? t('reviews.cancel') : `✍️ ${t('reviews.writeReview')}`}
           </button>
         )}
       </div>
@@ -592,10 +568,10 @@ function ReviewsSection({ productId }: { productId: string }) {
       {/* Review Form */}
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-gray-50 p-6 rounded-lg mb-6">
-          <h3 className="font-semibold mb-4">{editingReview ? 'Editează recenzia' : 'Adaugă recenzie'}</h3>
+          <h3 className="font-semibold mb-4">{editingReview ? t('reviews.editReview') : t('reviews.addReview')}</h3>
           
           <div className="mb-4">
-            <label className="block text-sm font-medium mb-2">Rating</label>
+            <label className="block text-sm font-medium mb-2">{t('reviews.rating')}</label>
             <div className="flex gap-2">
               {[1, 2, 3, 4, 5].map((star) => (
                 <button
@@ -611,13 +587,13 @@ function ReviewsSection({ productId }: { productId: string }) {
           </div>
 
           <div className="mb-4">
-            <label className="block text-sm font-medium mb-2">Comentariu</label>
+            <label className="block text-sm font-medium mb-2">{t('reviews.comment')}</label>
             <textarea
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500"
               rows={4}
-              placeholder="Scrie părerea ta despre acest produs..."
+              placeholder={t('reviews.commentPlaceholder')}
               required
             />
           </div>
@@ -627,17 +603,17 @@ function ReviewsSection({ productId }: { productId: string }) {
             disabled={submitting}
             className="w-full px-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
           >
-            {submitting ? 'Se salvează...' : editingReview ? 'Actualizează' : 'Publică recenzia'}
+            {submitting ? t('reviews.saving') : editingReview ? t('reviews.update') : t('reviews.publish')}
           </button>
         </form>
       )}
 
       {/* Reviews List */}
       {loading ? (
-        <div className="text-center py-8">Se încarcă recenziile...</div>
+        <div className="text-center py-8">{t('reviews.loading')}</div>
       ) : reviews.length === 0 ? (
         <div className="text-center py-8 text-gray-500">
-          <p>Nu există recenzii încă. Fii primul care lasă o recenzie!</p>
+          <p>{t('reviews.noReviews')}</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -669,13 +645,13 @@ function ReviewsSection({ productId }: { productId: string }) {
                       onClick={() => handleEdit(review)}
                       className="text-blue-600 hover:text-blue-800 text-sm"
                     >
-                      ✏️ Editează
+                      ✏️ {t('reviews.edit')}
                     </button>
                     <button
                       onClick={() => handleDelete(review.id)}
                       className="text-red-600 hover:text-red-800 text-sm"
                     >
-                      🗑️ Șterge
+                      🗑️ {t('reviews.delete')}
                     </button>
                   </div>
                 )}

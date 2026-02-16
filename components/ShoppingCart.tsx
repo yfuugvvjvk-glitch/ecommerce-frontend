@@ -5,8 +5,10 @@ import { cartAPI } from '@/lib/api-client';
 import { useRouter } from 'next/navigation';
 import { useCart } from '@/lib/cart-context';
 import { useAuth } from '@/lib/auth-context';
+import { useTranslation } from '@/hooks/useTranslation';
 import CurrencyPrice from './CurrencyPrice';
 import { stripHtml } from '@/utils/stripHtml';
+import ProductItem from './ProductItem';
 
 interface CartItem {
   id: string;
@@ -37,6 +39,7 @@ export default function ShoppingCart({ onClose }: { onClose?: () => void }) {
   const router = useRouter();
   const { refreshCartCount } = useCart();
   const { user } = useAuth();
+  const { t } = useTranslation();
   
   const isGuest = user?.role === 'guest';
 
@@ -76,7 +79,7 @@ export default function ShoppingCart({ onClose }: { onClose?: () => void }) {
   };
 
   const clearCart = async () => {
-    if (!confirm('Sigur vrei să golești coșul?')) return;
+    if (!confirm(t('cart.confirmClearCart'))) return;
     try {
       await cartAPI.clearCart();
       await fetchCart();
@@ -107,12 +110,12 @@ export default function ShoppingCart({ onClose }: { onClose?: () => void }) {
     return (
       <div className="p-6 text-center">
         <div className="text-6xl mb-4">🛒</div>
-        <p className="text-gray-600 mb-4">Coșul tău este gol</p>
+        <p className="text-gray-600 mb-4">{t('cart.emptyCart')}</p>
         <button
           onClick={onClose}
           className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
         >
-          Continuă cumpărăturile
+          {t('cart.continueShopping')}
         </button>
       </div>
     );
@@ -122,7 +125,7 @@ export default function ShoppingCart({ onClose }: { onClose?: () => void }) {
     <div className="flex flex-col h-full">
       <div className="flex justify-between items-center p-4 border-b">
         <h2 className="text-xl font-bold">
-          🛒 Coș ({cart.itemCount} {cart.itemCount === 1 ? 'produs' : 'produse'})
+          🛒 {t('cart.title')} ({cart.itemCount} {cart.itemCount === 1 ? t('cart.product') : t('cart.products')})
         </h2>
         {onClose && (
           <button
@@ -145,17 +148,27 @@ export default function ShoppingCart({ onClose }: { onClose?: () => void }) {
             <img
               src={item.dataItem.image}
               alt={item.dataItem.title}
-              className="w-20 h-20 object-cover rounded"
+              className="w-20 h-20 object-cover rounded cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => router.push(`/products/${item.dataItem.id}`)}
               onError={(e) => {
                 e.currentTarget.src = 'https://via.placeholder.com/80?text=No+Image';
               }}
             />
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
-                <h3 className="font-semibold">{stripHtml(item.dataItem.title)}</h3>
+                <ProductItem product={item.dataItem}>
+                  {(translatedTitle) => (
+                    <h3 
+                      className="font-semibold cursor-pointer hover:text-blue-600 transition-colors"
+                      onClick={() => router.push(`/products/${item.dataItem.id}`)}
+                    >
+                      {stripHtml(translatedTitle)}
+                    </h3>
+                  )}
+                </ProductItem>
                 {isGiftProduct && (
                   <span className="bg-green-100 text-green-800 px-2 py-0.5 rounded-full text-xs font-medium">
-                    🎁 CADOU
+                    🎁 {t('cart.gift')}
                   </span>
                 )}
               </div>
@@ -178,7 +191,7 @@ export default function ShoppingCart({ onClose }: { onClose?: () => void }) {
               {!isGiftProduct && item.dataItem.availableQuantities && Array.isArray(item.dataItem.availableQuantities) && item.dataItem.availableQuantities.length > 0 && (
                 <div className="mt-2 p-2 bg-blue-50 rounded">
                   <p className="text-xs font-medium text-blue-900 mb-1">
-                    📦 Cantități disponibile:
+                    📦 {t('cart.availableQuantities')}
                   </p>
                   <div className="flex flex-wrap gap-1">
                     {item.dataItem.availableQuantities.map((qty: number) => (
@@ -244,8 +257,8 @@ export default function ShoppingCart({ onClose }: { onClose?: () => void }) {
                 ) : (
                   // Afișare cantitate fixă pentru produse cadou
                   <div className="flex items-center gap-2 bg-green-50 rounded-lg border border-green-300 px-3 py-2">
-                    <span className="text-sm font-semibold text-green-800">Cantitate: {item.quantity}</span>
-                    <span className="text-xs text-green-600">(cadou - cantitate fixă)</span>
+                    <span className="text-sm font-semibold text-green-800">{t('cart.quantity')}: {item.quantity}</span>
+                    <span className="text-xs text-green-600">{t('cart.fixedQuantity')}</span>
                   </div>
                 )}
                 <button
@@ -257,9 +270,9 @@ export default function ShoppingCart({ onClose }: { onClose?: () => void }) {
                 </button>
               </div>
               <div className="mt-2 text-sm text-gray-600">
-                Subtotal: <span className="font-semibold text-gray-800">
+                {t('cart.subtotal')}: <span className="font-semibold text-gray-800">
                   {isGiftProduct ? (
-                    <span className="text-green-600 font-bold">GRATUIT</span>
+                    <span className="text-green-600 font-bold">{t('cart.free')}</span>
                   ) : (
                     <CurrencyPrice amount={item.dataItem.price * item.quantity} />
                   )}
@@ -272,7 +285,7 @@ export default function ShoppingCart({ onClose }: { onClose?: () => void }) {
 
       <div className="border-t p-4 bg-gray-50">
         <div className="flex justify-between items-center mb-4">
-          <span className="text-lg font-semibold">Total:</span>
+          <span className="text-lg font-semibold">{t('cart.total')}:</span>
           <span className="text-2xl font-bold text-blue-600">
             {cart.total.toFixed(2)} RON
           </span>
@@ -283,13 +296,13 @@ export default function ShoppingCart({ onClose }: { onClose?: () => void }) {
             onClick={clearCart}
             className="flex-1 px-4 py-3 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 font-medium"
           >
-            Golește coșul
+            {t('cart.clearCart')}
           </button>
           <button
             onClick={goToCheckout}
             className="flex-1 px-4 py-3 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium"
           >
-            Finalizează comanda
+            {t('cart.checkout')}
           </button>
         </div>
       </div>

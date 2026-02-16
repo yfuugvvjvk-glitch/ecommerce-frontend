@@ -6,6 +6,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useTranslation } from '@/hooks/useTranslation';
 import CurrencyPrice from './CurrencyPrice';
 import { stripHtml } from '@/utils/stripHtml';
+import ProductItem from './ProductItem';
 
 interface Product {
   id: string;
@@ -83,42 +84,40 @@ export default function NavigationHistory({ products }: NavigationHistoryProps) 
 
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
         {visibleProducts.map((product) => (
-          <Link
-            key={product.id}
-            href={`/products/${product.id}`}
-            className="group"
-          >
-            <div className="bg-gray-50 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
-              <div className="relative h-40 bg-gray-200">
-                <img
-                  src={product.image || '/placeholder.jpg'}
-                  alt={product.title}
-                  width="100%"
-                  height="100%"
-                  style={{ width: '100%', height: '100%' }}
-                  className="group-hover:scale-105 transition-transform"
-                />
-              </div>
-              <div className="p-3">
-                <h3 className="text-sm font-medium text-gray-800 group-hover:text-blue-600 break-words whitespace-normal overflow-visible mb-1">
-                  {stripHtml(product.title)}
-                </h3>
-                {product.description && (
-                  <p className="text-xs text-gray-600 line-clamp-2 mb-2">
-                    {stripHtml(product.description)}
-                  </p>
-                )}
-                <p className="text-sm font-bold text-blue-600">
-                  <CurrencyPrice amount={product.price} />
-                  {product.priceType === 'per_unit' ? (
-                    <span className="text-xs font-normal text-gray-600">/{product.unitName || 'buc'}</span>
-                  ) : product.priceType === 'fixed' ? (
-                    <span className="text-xs font-normal text-gray-600">/bucată</span>
-                  ) : null}
-                </p>
-              </div>
-            </div>
-          </Link>
+          <ProductItem key={product.id} product={product}>
+            {(translatedTitle, translatedDescription) => (
+              <Link
+                href={`/products/${product.id}`}
+                className="group"
+              >
+                <div className="bg-gray-50 rounded-lg overflow-hidden hover:shadow-md transition-shadow">
+                  <div className="relative h-40 bg-gray-200">
+                    <img
+                      src={product.image || '/placeholder.jpg'}
+                      alt={stripHtml(translatedTitle)}
+                      width="100%"
+                      height="100%"
+                      style={{ width: '100%', height: '100%' }}
+                      className="group-hover:scale-105 transition-transform"
+                    />
+                  </div>
+                  <div className="p-3">
+                    <h3 className="text-sm font-medium text-gray-800 group-hover:text-blue-600 break-words whitespace-normal overflow-visible mb-1">
+                      {stripHtml(translatedTitle)}
+                    </h3>
+                    <p className="text-sm font-bold text-blue-600">
+                      <CurrencyPrice amount={product.price} />
+                      {product.priceType === 'per_unit' ? (
+                        <span className="text-xs font-normal text-gray-600">/{product.unitName || 'buc'}</span>
+                      ) : product.priceType === 'fixed' ? (
+                        <span className="text-xs font-normal text-gray-600">/bucată</span>
+                      ) : null}
+                    </p>
+                  </div>
+                </div>
+              </Link>
+            )}
+          </ProductItem>
         ))}
       </div>
     </div>

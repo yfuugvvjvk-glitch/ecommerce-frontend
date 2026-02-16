@@ -3,11 +3,13 @@
 import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '@/lib/auth-context';
 import { apiClient } from '@/lib/api-client';
+import { useTranslation } from '@/hooks/useTranslation';
 import Avatar from '@/components/Avatar';
 import { User } from '@/types';
 
 export default function ProfilePage() {
   const { user, setUser } = useAuth();
+  const { t } = useTranslation();
   const [profile, setProfile] = useState<User | null>(null);
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -63,13 +65,13 @@ export default function ProfilePage() {
     // Validate file type
     const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
     if (!allowedTypes.includes(file.type)) {
-      setToast({ message: 'Tip fișier invalid. Doar JPG, PNG și GIF sunt permise.', type: 'error' });
+      setToast({ message: t('profile.invalidFileType'), type: 'error' });
       return;
     }
 
     // Validate file size (5MB)
     if (file.size > 5 * 1024 * 1024) {
-      setToast({ message: 'Fișierul este prea mare. Dimensiunea maximă este 5MB.', type: 'error' });
+      setToast({ message: t('profile.fileTooLarge'), type: 'error' });
       return;
     }
 
@@ -93,18 +95,18 @@ export default function ProfilePage() {
       if (setUser) {
         setUser(updatedProfile);
       }
-      setToast({ message: 'Avatar încărcat cu succes!', type: 'success' });
+      setToast({ message: t('profile.avatarUploadSuccess'), type: 'success' });
       // Force page reload to show new avatar everywhere
       setTimeout(() => window.location.reload(), 1000);
     } catch (error: any) {
-      setToast({ message: error.response?.data?.error || 'Eroare la încărcare avatar', type: 'error' });
+      setToast({ message: error.response?.data?.error || t('profile.errorUploadAvatar'), type: 'error' });
     } finally {
       setUploadingAvatar(false);
     }
   };
 
   const handleDeleteAvatar = async () => {
-    if (!confirm('Sigur vrei să ștergi avatarul?')) return;
+    if (!confirm(t('profile.confirmDeleteAvatar'))) return;
 
     setUploadingAvatar(true);
     try {
@@ -113,9 +115,9 @@ export default function ProfilePage() {
       if (setUser) {
         setUser(response.data.profile);
       }
-      setToast({ message: 'Avatar șters cu succes!', type: 'success' });
+      setToast({ message: t('profile.avatarDeleteSuccess'), type: 'success' });
     } catch (error: any) {
-      setToast({ message: error.response?.data?.error || 'Eroare la ștergere avatar', type: 'error' });
+      setToast({ message: error.response?.data?.error || t('profile.errorDeleteAvatar'), type: 'error' });
     } finally {
       setUploadingAvatar(false);
     }
@@ -130,9 +132,9 @@ export default function ProfilePage() {
         setUser(response.data);
       }
       setEditing(false);
-      setToast({ message: 'Profil actualizat cu succes!', type: 'success' });
+      setToast({ message: t('profile.profileUpdateSuccess'), type: 'success' });
     } catch (error: any) {
-      setToast({ message: error.response?.data?.error || 'Eroare la actualizare', type: 'error' });
+      setToast({ message: error.response?.data?.error || t('profile.errorUpdateProfile'), type: 'error' });
     }
   };
 
@@ -141,9 +143,9 @@ export default function ProfilePage() {
     try {
       await apiClient.post('/api/user/change-password', passwordData);
       setPasswordData({ oldPassword: '', newPassword: '' });
-      setToast({ message: 'Parolă schimbată cu succes!', type: 'success' });
+      setToast({ message: t('profile.passwordChangeSuccess'), type: 'success' });
     } catch (error: any) {
-      setToast({ message: error.response?.data?.error || 'Eroare la schimbare parolă', type: 'error' });
+      setToast({ message: error.response?.data?.error || t('profile.errorChangePassword'), type: 'error' });
     }
   };
 
@@ -157,7 +159,7 @@ export default function ProfilePage() {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <h1 className="text-3xl font-bold mb-6">👤 Profilul Meu</h1>
+      <h1 className="text-3xl font-bold mb-6">👤 {t('profile.title')}</h1>
 
       {toast && (
         <div className={`mb-4 p-4 rounded ${toast.type === 'success' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
@@ -168,12 +170,12 @@ export default function ProfilePage() {
       {/* Avatar Section */}
       {profile && (
         <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h2 className="text-xl font-bold mb-4">Avatar</h2>
+          <h2 className="text-xl font-bold mb-4">{t('profile.avatar')}</h2>
           <div className="flex items-center gap-6">
             <Avatar user={profile} size="lg" />
             <div className="flex-1">
               <p className="text-sm text-gray-600 mb-2">
-                Încarcă o imagine de profil (JPG, PNG, GIF - max 5MB)
+                {t('profile.uploadAvatar')}
               </p>
               <input
                 ref={fileInputRef}
@@ -188,7 +190,7 @@ export default function ProfilePage() {
                   disabled={uploadingAvatar}
                   className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
                 >
-                  {uploadingAvatar ? '📤 Se încarcă...' : '📷 Schimbă Avatar'}
+                  {uploadingAvatar ? `📤 ${t('profile.uploading')}` : `📷 ${t('profile.changeAvatar')}`}
                 </button>
                 {profile.avatar && (
                   <button
@@ -196,7 +198,7 @@ export default function ProfilePage() {
                     disabled={uploadingAvatar}
                     className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
                   >
-                    🗑️ Șterge Avatar
+                    🗑️ {t('profile.deleteAvatar')}
                   </button>
                 )}
               </div>
@@ -209,13 +211,13 @@ export default function ProfilePage() {
         {/* Profile Info */}
         <div className="bg-white rounded-lg shadow p-6">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-bold">Informații Personale</h2>
+            <h2 className="text-xl font-bold">{t('profile.personalInfo')}</h2>
             {!editing && (
               <button
                 onClick={() => setEditing(true)}
                 className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
               >
-                ✏️ Editează
+                ✏️ {t('profile.edit')}
               </button>
             )}
           </div>
@@ -223,39 +225,39 @@ export default function ProfilePage() {
           {!editing ? (
             <div className="space-y-4">
               <div>
-                <label className="text-sm text-gray-600">Nume</label>
+                <label className="text-sm text-gray-600">{t('profile.name')}</label>
                 <p className="font-semibold">{profile?.name}</p>
               </div>
               <div>
-                <label className="text-sm text-gray-600">Email</label>
+                <label className="text-sm text-gray-600">{t('profile.email')}</label>
                 <p className="font-semibold">{profile?.email}</p>
               </div>
               <div>
-                <label className="text-sm text-gray-600">Telefon</label>
-                <p className="font-semibold">{profile?.phone || 'Nu este setat'}</p>
+                <label className="text-sm text-gray-600">{t('profile.phone')}</label>
+                <p className="font-semibold">{profile?.phone || t('profile.notSet')}</p>
               </div>
               <div className="border-t pt-3">
-                <label className="text-sm text-gray-600 font-semibold">📍 Adresă de Livrare</label>
+                <label className="text-sm text-gray-600 font-semibold">📍 {t('profile.deliveryAddress')}</label>
                 {profile?.city || profile?.county || profile?.street ? (
                   <div className="mt-2 space-y-1">
-                    {profile?.city && <p className="text-sm"><span className="text-gray-600">Oraș:</span> {profile.city}</p>}
-                    {profile?.county && <p className="text-sm"><span className="text-gray-600">Județ:</span> {profile.county}</p>}
-                    {profile?.street && <p className="text-sm"><span className="text-gray-600">Stradă:</span> {profile.street} {profile?.streetNumber || ''}</p>}
-                    {profile?.addressDetails && <p className="text-sm"><span className="text-gray-600">Detalii:</span> {profile.addressDetails}</p>}
+                    {profile?.city && <p className="text-sm"><span className="text-gray-600">{t('profile.city')}:</span> {profile.city}</p>}
+                    {profile?.county && <p className="text-sm"><span className="text-gray-600">{t('profile.county')}:</span> {profile.county}</p>}
+                    {profile?.street && <p className="text-sm"><span className="text-gray-600">{t('profile.street')}:</span> {profile.street} {profile?.streetNumber || ''}</p>}
+                    {profile?.addressDetails && <p className="text-sm"><span className="text-gray-600">{t('profile.addressDetails')}:</span> {profile.addressDetails}</p>}
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-500 mt-1">Nu este setată</p>
+                  <p className="text-sm text-gray-500 mt-1">{t('profile.notSet')}</p>
                 )}
               </div>
               <div>
-                <label className="text-sm text-gray-600">Rol</label>
+                <label className="text-sm text-gray-600">{t('profile.role')}</label>
                 <p className="font-semibold capitalize">{profile?.role}</p>
               </div>
             </div>
           ) : (
             <form onSubmit={handleUpdateProfile} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Nume</label>
+                <label className="block text-sm font-medium mb-1">{t('profile.name')}</label>
                 <input
                   type="text"
                   value={formData.name}
@@ -265,7 +267,7 @@ export default function ProfilePage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Email</label>
+                <label className="block text-sm font-medium mb-1">{t('profile.email')}</label>
                 <input
                   type="email"
                   value={formData.email}
@@ -275,7 +277,7 @@ export default function ProfilePage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Telefon</label>
+                <label className="block text-sm font-medium mb-1">{t('profile.phone')}</label>
                 <input
                   type="tel"
                   value={formData.phone}
@@ -287,11 +289,11 @@ export default function ProfilePage() {
 
               {/* Adresă detaliată */}
               <div className="border-t pt-3">
-                <h3 className="text-sm font-semibold text-gray-700 mb-3">📍 Adresă de Livrare</h3>
+                <h3 className="text-sm font-semibold text-gray-700 mb-3">📍 {t('profile.deliveryAddress')}</h3>
                 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-sm font-medium mb-1">Oraș</label>
+                    <label className="block text-sm font-medium mb-1">{t('profile.city')}</label>
                     <input
                       type="text"
                       value={formData.city}
@@ -302,7 +304,7 @@ export default function ProfilePage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-1">Județ</label>
+                    <label className="block text-sm font-medium mb-1">{t('profile.county')}</label>
                     <input
                       type="text"
                       value={formData.county}
@@ -315,7 +317,7 @@ export default function ProfilePage() {
 
                 <div className="grid grid-cols-3 gap-3 mt-3">
                   <div className="col-span-2">
-                    <label className="block text-sm font-medium mb-1">Stradă</label>
+                    <label className="block text-sm font-medium mb-1">{t('profile.street')}</label>
                     <input
                       type="text"
                       value={formData.street}
@@ -326,7 +328,7 @@ export default function ProfilePage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium mb-1">Număr</label>
+                    <label className="block text-sm font-medium mb-1">{t('profile.streetNumber')}</label>
                     <input
                       type="text"
                       value={formData.streetNumber}
@@ -338,12 +340,12 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="mt-3">
-                  <label className="block text-sm font-medium mb-1">Detalii Adresă</label>
+                  <label className="block text-sm font-medium mb-1">{t('profile.addressDetails')}</label>
                   <input
                     type="text"
                     value={formData.addressDetails}
                     onChange={(e) => setFormData({ ...formData, addressDetails: e.target.value })}
-                    placeholder="Bloc, Scară, Etaj, Apartament, etc."
+                    placeholder={t('profile.addressDetailsPlaceholder')}
                     className="w-full px-4 py-2 border rounded focus:ring-2 focus:ring-blue-500"
                   />
                 </div>
@@ -354,7 +356,7 @@ export default function ProfilePage() {
                   type="submit"
                   className="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
                 >
-                  💾 Salvează
+                  💾 {t('profile.save')}
                 </button>
                 <button
                   type="button"
@@ -374,7 +376,7 @@ export default function ProfilePage() {
                   }}
                   className="flex-1 px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
                 >
-                  ❌ Anulează
+                  ❌ {t('profile.cancel')}
                 </button>
               </div>
             </form>
@@ -383,10 +385,10 @@ export default function ProfilePage() {
 
         {/* Change Password */}
         <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-bold mb-4">Schimbă Parola</h2>
+          <h2 className="text-xl font-bold mb-4">{t('profile.changePassword')}</h2>
           <form onSubmit={handleChangePassword} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium mb-1">Parola Veche</label>
+              <label className="block text-sm font-medium mb-1">{t('profile.oldPassword')}</label>
               <input
                 type="password"
                 value={passwordData.oldPassword}
@@ -396,7 +398,7 @@ export default function ProfilePage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1">Parola Nouă</label>
+              <label className="block text-sm font-medium mb-1">{t('profile.newPassword')}</label>
               <input
                 type="password"
                 value={passwordData.newPassword}
@@ -410,7 +412,7 @@ export default function ProfilePage() {
               type="submit"
               className="w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
             >
-              🔒 Schimbă Parola
+              🔒 {t('profile.changePasswordBtn')}
             </button>
           </form>
         </div>

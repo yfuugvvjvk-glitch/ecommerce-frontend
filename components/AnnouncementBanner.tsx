@@ -2,6 +2,7 @@
 
 import { X } from 'lucide-react';
 import { AnnouncementBannerConfig } from '@/types';
+import { useTranslation } from '@/hooks/useTranslation';
 
 interface AnnouncementBannerProps {
   config: AnnouncementBannerConfig;
@@ -9,8 +10,27 @@ interface AnnouncementBannerProps {
 }
 
 export default function AnnouncementBanner({ config, onClose }: AnnouncementBannerProps) {
+  const { locale } = useTranslation();
+  
+  // Get translated title and description based on locale
+  const getTranslatedText = (field: 'title' | 'description'): string => {
+    const baseText = config[field];
+    
+    if (locale === 'ro') return baseText;
+    
+    // Try to get translated version
+    const translatedField = `${field}${locale.charAt(0).toUpperCase() + locale.slice(1)}` as keyof AnnouncementBannerConfig;
+    const translatedText = config[translatedField];
+    
+    // Return translated text if available, otherwise fallback to Romanian
+    return (translatedText && typeof translatedText === 'string') ? translatedText : baseText;
+  };
+  
+  const title = getTranslatedText('title');
+  const description = getTranslatedText('description');
+  
   // Don't render if both title and description are empty
-  if (!config.title.trim() && !config.description.trim()) {
+  if (!title.trim() && !description.trim()) {
     return null;
   }
 
@@ -40,7 +60,7 @@ export default function AnnouncementBanner({ config, onClose }: AnnouncementBann
       {/* Content container with responsive padding */}
       <div className="p-4 sm:p-6 lg:p-8">
         {/* Title */}
-        {config.title.trim() && (
+        {title.trim() && (
           <h2
             id="banner-title"
             className="mb-3 break-words"
@@ -55,12 +75,12 @@ export default function AnnouncementBanner({ config, onClose }: AnnouncementBann
               borderRadius: '4px',
             }}
           >
-            {config.title}
+            {title}
           </h2>
         )}
 
         {/* Description */}
-        {config.description.trim() && (
+        {description.trim() && (
           <p
             id="banner-description"
             className="break-words whitespace-pre-wrap"
@@ -75,7 +95,7 @@ export default function AnnouncementBanner({ config, onClose }: AnnouncementBann
               borderRadius: '4px',
             }}
           >
-            {config.description}
+            {description}
           </p>
         )}
       </div>

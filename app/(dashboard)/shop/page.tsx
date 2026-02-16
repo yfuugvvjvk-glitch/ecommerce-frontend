@@ -6,9 +6,10 @@ import { dataAPI, categoryAPI } from '@/lib/api-client';
 import { useTranslation } from '@/hooks/useTranslation';
 import Link from 'next/link';
 import { stripHtml } from '@/utils/stripHtml';
+import ProductItem from '@/components/ProductItem';
 
 export default function ShopPage() {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const searchParams = useSearchParams();
   const [products, setProducts] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -32,7 +33,7 @@ export default function ShopPage() {
   useEffect(() => {
     fetchProducts();
     fetchCategories();
-  }, []);
+  }, [locale]);
 
   const fetchProducts = async () => {
     try {
@@ -318,15 +319,16 @@ export default function ShopPage() {
             {filteredProducts
               .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
               .map((product) => (
+            <ProductItem key={product.id} product={product}>
+              {(translatedTitle) => (
             <Link
-              key={product.id}
               href={`/products/${product.id}`}
               className="bg-white rounded-lg shadow hover:shadow-xl transition-all overflow-hidden"
             >
               <div className="relative h-64 bg-gray-200 flex items-center justify-center">
                 <img
                   src={product.image}
-                  alt={stripHtml(product.title)}
+                  alt={stripHtml(translatedTitle)}
                   width="100%"
                   height="100%"
                   style={{ width: '100%', height: '100%', display: 'block' }}
@@ -343,7 +345,7 @@ export default function ShopPage() {
 
               <div className="p-4">
                 <h3 className="font-semibold text-lg mb-2 break-words whitespace-normal overflow-visible min-h-[3.5rem]">
-                  {stripHtml(product.title)}
+                  {stripHtml(translatedTitle)}
                 </h3>
 
                 {/* Rating */}
@@ -353,10 +355,6 @@ export default function ShopPage() {
                     <span className="font-semibold">{product.averageRating.toFixed(1)}</span>
                     <span className="text-sm text-gray-500">({product.reviewCount || 0})</span>
                   </div>
-                )}
-
-                {product.description && (
-                  <div className="text-sm text-gray-600 mb-3 line-clamp-2" dangerouslySetInnerHTML={{ __html: product.description }} />
                 )}
 
                 <div className="mb-2">
@@ -397,6 +395,8 @@ export default function ShopPage() {
                 </div>
               </div>
             </Link>
+              )}
+            </ProductItem>
           ))}
         </div>
 

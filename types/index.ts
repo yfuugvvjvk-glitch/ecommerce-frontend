@@ -19,6 +19,7 @@ export interface Category {
   id: string;
   name: string;
   icon?: string;
+  parentId?: string | null;
 }
 
 export interface AvailabilitySchedule {
@@ -166,6 +167,16 @@ export interface AnnouncementBannerConfig {
   isActive: boolean;
   title: string;
   description: string;
+  titleEn?: string;
+  titleFr?: string;
+  titleDe?: string;
+  titleEs?: string;
+  titleIt?: string;
+  descriptionEn?: string;
+  descriptionFr?: string;
+  descriptionDe?: string;
+  descriptionEs?: string;
+  descriptionIt?: string;
   titleStyle: TextStyle;
   descriptionStyle: TextStyle;
 }

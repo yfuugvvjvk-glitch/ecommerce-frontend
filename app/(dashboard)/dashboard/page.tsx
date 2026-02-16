@@ -38,7 +38,7 @@ interface AnnouncementBannerConfig {
 }
 
 export default function DashboardPage() {
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [carouselItems, setCarouselItems] = useState<any[]>([]);
@@ -57,6 +57,19 @@ export default function DashboardPage() {
     fetchData();
     loadViewedProducts();
     fetchBannerConfig();
+  }, [locale]); // Re-fetch when locale changes
+
+  // Re-fetch carousel when language changes
+  useEffect(() => {
+    const handleLanguageChange = () => {
+      const locale = localStorage.getItem('language') || 'ro';
+      apiClient.get(`/api/carousel/active?locale=${locale}`)
+        .then(res => setCarouselItems(res.data || []))
+        .catch(error => console.error('Failed to fetch carousel items:', error));
+    };
+
+    window.addEventListener('languageChange', handleLanguageChange);
+    return () => window.removeEventListener('languageChange', handleLanguageChange);
   }, []);
 
   // Subscribe to real-time banner updates via WebSocket
@@ -228,8 +241,8 @@ export default function DashboardPage() {
         const user = JSON.parse(localStorage.getItem('user') || '{}');
         const isAdmin = user.role === 'admin';
         const categoriesUrl = isAdmin 
-          ? '/api/categories?showAll=true&includeSubcategories=true' 
-          : '/api/categories?includeSubcategories=true';
+          ? `/api/categories?showAll=true&includeSubcategories=true&locale=${locale}` 
+          : `/api/categories?includeSubcategories=true&locale=${locale}`;
         
         const categoriesRes = await apiClient.get(categoriesUrl);
         setCategories(categoriesRes.data);
@@ -250,9 +263,10 @@ export default function DashboardPage() {
         setCategories(uniqueCategories);
       }
 
-      // Fetch carousel items from new API
+      // Fetch carousel items from new API with locale
       try {
-        const carouselRes = await apiClient.get('/api/carousel/active');
+        const locale = localStorage.getItem('language') || 'ro';
+        const carouselRes = await apiClient.get(`/api/carousel/active?locale=${locale}`);
         setCarouselItems(carouselRes.data || []);
       } catch (error) {
         console.error('Failed to fetch carousel items:', error);
@@ -311,14 +325,14 @@ export default function DashboardPage() {
               {/* Search */}
               <div>
                 <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">
-                  🔍 Caută produse
+                  🔍 {t('searchProducts')}
                 </label>
                 <input
                   id="search"
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Caută după nume sau descriere..."
+                  placeholder={t('searchProducts')}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -326,7 +340,7 @@ export default function DashboardPage() {
               {/* Sort */}
               <div>
                 <label htmlFor="sort" className="block text-sm font-medium text-gray-700 mb-2">
-                  📊 Sortează după
+                  📊 {t('sortBy')}
                 </label>
                 <select
                   id="sort"
@@ -334,11 +348,11 @@ export default function DashboardPage() {
                   onChange={(e) => setSortBy(e.target.value)}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value="newest">Cele mai noi</option>
-                  <option value="name">Nume (A-Z)</option>
-                  <option value="price-asc">Preț crescător</option>
-                  <option value="price-desc">Preț descrescător</option>
-                  <option value="popularity">Popularitate</option>
+                  <option value="newest">{t('newest')}</option>
+                  <option value="name">{t('nameAZ')}</option>
+                  <option value="price-asc">{t('priceAsc')}</option>
+                  <option value="price-desc">{t('priceDesc')}</option>
+                  <option value="popularity">{t('popularity')}</option>
                 </select>
               </div>
             </div>
@@ -348,7 +362,7 @@ export default function DashboardPage() {
               <div className="flex flex-wrap gap-2 items-center">
                 {(searchQuery || sortBy !== 'newest') && (
                   <>
-                    <span className="text-sm text-gray-600">Filtre active:</span>
+                    <span className="text-sm text-gray-600">{t('activeFilters')}:</span>
                     {searchQuery && (
                       <button
                         onClick={() => setSearchQuery('')}
@@ -372,13 +386,13 @@ export default function DashboardPage() {
                       }}
                       className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm hover:bg-gray-200 transition"
                     >
-                      Șterge toate
+                      {t('clearAll')}
                     </button>
                   </>
                 )}
               </div>
               <span className="text-sm text-gray-600 font-medium">
-                {selectedCategory ? filteredProducts.length : products.slice(0, 10).length} produse
+                {selectedCategory ? filteredProducts.length : products.slice(0, 10).length} {t('productsCount')}
               </span>
             </div>
           </div>
@@ -432,17 +446,17 @@ export default function DashboardPage() {
                 disabled={currentPage === 1}
                 className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                ← Anterior
+                ← {t('previous')}
               </button>
               <span className="px-4 py-2 text-gray-700">
-                Pagina {currentPage} din {Math.ceil(filteredProducts.length / itemsPerPage)}
+                {t('page')} {currentPage} din {Math.ceil(filteredProducts.length / itemsPerPage)}
               </span>
               <button
                 onClick={() => setCurrentPage(prev => Math.min(Math.ceil(filteredProducts.length / itemsPerPage), prev + 1))}
                 disabled={currentPage >= Math.ceil(filteredProducts.length / itemsPerPage)}
                 className="px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Următor →
+                {t('next')} →
               </button>
             </div>
           )}

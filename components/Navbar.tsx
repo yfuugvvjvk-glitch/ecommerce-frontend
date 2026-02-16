@@ -13,6 +13,7 @@ import { SITE_CONFIG } from '@/lib/site-config';
 
 // Inline Clock Component for Navbar
 function RomanianClockInline() {
+  const { locale } = useTranslation();
   const [time, setTime] = useState<Date | null>(null);
 
   useEffect(() => {
@@ -25,14 +26,26 @@ function RomanianClockInline() {
 
   if (!time) return null;
 
-  const romanianTime = time.toLocaleTimeString('ro-RO', {
+  // Map locale to language code for date formatting
+  const localeMap: Record<string, string> = {
+    'ro': 'ro-RO',
+    'en': 'en-US',
+    'fr': 'fr-FR',
+    'de': 'de-DE',
+    'es': 'es-ES',
+    'it': 'it-IT'
+  };
+
+  const dateLocale = localeMap[locale] || 'ro-RO';
+
+  const romanianTime = time.toLocaleTimeString(dateLocale, {
     timeZone: 'Europe/Bucharest',
     hour: '2-digit',
     minute: '2-digit',
     second: '2-digit',
   });
 
-  const romanianDate = time.toLocaleDateString('ro-RO', {
+  const romanianDate = time.toLocaleDateString(dateLocale, {
     timeZone: 'Europe/Bucharest',
     weekday: 'short',
     day: 'numeric',
@@ -115,7 +128,7 @@ export default function Navbar({ cartItemCount = 0 }: NavbarProps) {
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-3 hover:scale-105 transition-transform">
             <img src="/images/logo.jpg" className="h-12 w-12 rounded-full shadow-md border-2 border-blue-300" />
-            <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent hidden sm:block">{SITE_CONFIG.name}</span>
+            <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent hidden sm:block">{t('siteName')}</span>
           </Link>
 
           {/* Clock - Next to Logo */}
@@ -244,7 +257,7 @@ export default function Navbar({ cartItemCount = 0 }: NavbarProps) {
                           onClick={() => setIsDropdownOpen(false)}
                           className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 font-medium rounded-lg mx-1"
                         >
-                          ⭐ Recenziile Mele
+                          ⭐ {t('myReviews')}
                         </Link>
                         <Link
                           href="/orders"
@@ -258,14 +271,7 @@ export default function Navbar({ cartItemCount = 0 }: NavbarProps) {
                           onClick={() => setIsDropdownOpen(false)}
                           className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 font-medium rounded-lg mx-1"
                         >
-                          💳 Cardurile Mele
-                        </Link>
-                        <Link
-                          href="/chat"
-                          onClick={() => setIsDropdownOpen(false)}
-                          className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 font-medium rounded-lg mx-1"
-                        >
-                          💬 Chat & Mesagerie
+                          💳 {t('myCards')}
                         </Link>
                         <Link
                           href="/vouchers"
@@ -286,7 +292,7 @@ export default function Navbar({ cartItemCount = 0 }: NavbarProps) {
                           onClick={() => setIsDropdownOpen(false)}
                           className="block px-4 py-2 text-sm text-gray-700 hover:bg-blue-50 font-medium rounded-lg mx-1"
                         >
-                          📄 Facturile Mele
+                          📄 {t('myInvoices')}
                         </Link>
                         {user.role === 'admin' && (
                           <>
