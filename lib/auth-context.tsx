@@ -9,7 +9,7 @@ interface AuthContextType {
   setUser: (user: User | null) => void;
   token: string | null;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, name: string) => Promise<void>;
+  register: (email: string, password: string, name: string, phone?: string, city?: string, county?: string, street?: string, streetNumber?: string, addressDetails?: string) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
 }
@@ -65,17 +65,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('token', data.token);
   };
 
-  const register = async (email: string, password: string, name: string) => {
+  const register = async (email: string, password: string, name: string, phone?: string, city?: string, county?: string, street?: string, streetNumber?: string, addressDetails?: string) => {
     const response = await fetch(`${API_URL}/api/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, name }),
+      body: JSON.stringify({ 
+        email, 
+        password, 
+        name,
+        phone,
+        city,
+        county,
+        street,
+        streetNumber,
+        addressDetails
+      }),
     });
 
     if (!response.ok) {
       const error = await response.json();
       throw new Error(error.error || 'Registration failed');
     }
+    
+    // Return response data for redirect
+    return await response.json();
   };
 
   const logout = () => {

@@ -6,6 +6,8 @@ import { apiClient } from '@/lib/api-client';
 import { useTranslation } from '@/hooks/useTranslation';
 import Avatar from '@/components/Avatar';
 import { User } from '@/types';
+import ChangeEmailModal from '@/components/profile/ChangeEmailModal';
+import ChangePhoneModal from '@/components/profile/ChangePhoneModal';
 
 export default function ProfilePage() {
   const { user, setUser } = useAuth();
@@ -31,6 +33,8 @@ export default function ProfilePage() {
     newPassword: '',
   });
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [showPhoneModal, setShowPhoneModal] = useState(false);
 
   useEffect(() => {
     fetchProfile();
@@ -167,6 +171,24 @@ export default function ProfilePage() {
         </div>
       )}
 
+      {/* Modale pentru schimbare email/telefon */}
+      {profile && (
+        <>
+          <ChangeEmailModal
+            isOpen={showEmailModal}
+            onClose={() => setShowEmailModal(false)}
+            currentEmail={profile.email}
+            onSuccess={fetchProfile}
+          />
+          <ChangePhoneModal
+            isOpen={showPhoneModal}
+            onClose={() => setShowPhoneModal(false)}
+            currentPhone={profile.phone || ''}
+            onSuccess={fetchProfile}
+          />
+        </>
+      )}
+
       {/* Avatar Section */}
       {profile && (
         <div className="bg-white rounded-lg shadow p-6 mb-6">
@@ -230,11 +252,27 @@ export default function ProfilePage() {
               </div>
               <div>
                 <label className="text-sm text-gray-600">{t('profile.email')}</label>
-                <p className="font-semibold">{profile?.email}</p>
+                <div className="flex items-center justify-between">
+                  <p className="font-semibold">{profile?.email}</p>
+                  <button
+                    onClick={() => setShowEmailModal(true)}
+                    className="text-sm text-blue-600 hover:text-blue-700 underline"
+                  >
+                    Schimbă
+                  </button>
+                </div>
               </div>
               <div>
                 <label className="text-sm text-gray-600">{t('profile.phone')}</label>
-                <p className="font-semibold">{profile?.phone || t('profile.notSet')}</p>
+                <div className="flex items-center justify-between">
+                  <p className="font-semibold">{profile?.phone || t('profile.notSet')}</p>
+                  <button
+                    onClick={() => setShowPhoneModal(true)}
+                    className="text-sm text-blue-600 hover:text-blue-700 underline"
+                  >
+                    Schimbă
+                  </button>
+                </div>
               </div>
               <div className="border-t pt-3">
                 <label className="text-sm text-gray-600 font-semibold">📍 {t('profile.deliveryAddress')}</label>
