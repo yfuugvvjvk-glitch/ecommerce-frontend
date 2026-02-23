@@ -147,9 +147,9 @@ export default function Navbar({ cartItemCount = 0 }: NavbarProps) {
           </div>
 
           {/* Center - Search and Links */}
-          <div className="hidden md:flex items-center space-x-6 flex-1 max-w-2xl mx-8">
-            {/* Search Bar */}
-            <form onSubmit={handleSearch} className="flex-1 max-w-md">
+          <div className="hidden md:flex items-center space-x-4 flex-1 max-w-4xl mx-6">
+            {/* Search Bar - Mai mare */}
+            <form onSubmit={handleSearch} className="flex-1 max-w-xl">
               <div className="relative">
                 <input
                   type="text"
@@ -164,16 +164,16 @@ export default function Navbar({ cartItemCount = 0 }: NavbarProps) {
             </form>
 
             {/* Center Links */}
-            <div className="flex items-center space-x-6">
+            <div className="flex items-center space-x-4">
               <Link
                 href="/contact"
-                className="text-gray-700 hover:text-blue-600 font-semibold text-lg transition-colors hover:scale-110 transform"
+                className="text-gray-700 hover:text-blue-600 font-semibold text-base transition-colors hover:scale-110 transform whitespace-nowrap"
               >
                 {t('contact')}
               </Link>
               <Link
                 href="/about"
-                className="text-gray-700 hover:text-blue-600 font-semibold text-lg transition-colors hover:scale-110 transform"
+                className="text-gray-700 hover:text-blue-600 font-semibold text-base transition-colors hover:scale-110 transform whitespace-nowrap"
               >
                 {t('about')}
               </Link>
