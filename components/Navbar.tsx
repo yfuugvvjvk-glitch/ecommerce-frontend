@@ -71,13 +71,22 @@ interface NavbarProps {
 export default function Navbar({ cartItemCount = 0 }: NavbarProps) {
   const { user, logout } = useAuth();
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const { config: siteConfig } = useSiteConfig();
   const [searchQuery, setSearchQuery] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [currentDate, setCurrentDate] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Get translated site name based on current locale
+  const getSiteName = () => {
+    const localeKey = `site_name_${locale}`;
+    if (locale !== 'ro' && siteConfig[localeKey]) {
+      return siteConfig[localeKey];
+    }
+    return siteConfig.site_name || t('siteName');
+  };
 
   // Update date every second
   useEffect(() => {
@@ -129,7 +138,7 @@ export default function Navbar({ cartItemCount = 0 }: NavbarProps) {
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-3 hover:scale-105 transition-transform">
             <img src="/images/logo.jpg" className="h-12 w-12 rounded-full shadow-md border-2 border-blue-300" />
-            <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent hidden sm:block">{siteConfig.site_name || t('siteName')}</span>
+            <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent hidden sm:block">{getSiteName()}</span>
           </Link>
 
           {/* Clock - Next to Logo */}
@@ -147,7 +156,8 @@ export default function Navbar({ cartItemCount = 0 }: NavbarProps) {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={t('search')}
-                  className="w-full px-4 py-3 pl-12 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm transition-all"
+                  className="w-full px-4 py-3 pl-12 text-base border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm transition-all"
+                  style={{ fontSize: '16px', minHeight: '48px' }}
                 />
                 <Search className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
               </div>
@@ -353,7 +363,8 @@ export default function Navbar({ cartItemCount = 0 }: NavbarProps) {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={t('search')}
-                  className="w-full px-4 py-3 pl-12 border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 shadow-sm"
+                  className="w-full px-4 py-3 pl-12 text-base border-2 border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 shadow-sm"
+                  style={{ fontSize: '16px', minHeight: '48px' }}
                 />
                 <Search className="absolute left-4 top-3.5 h-5 w-5 text-gray-400" />
               </div>

@@ -119,6 +119,19 @@
   "next": "Următor",
   "page": "Pagina",
   "siteName": "Din ograda mea direct pe masa ta",
+  "siteNameShort": "Din ograda mea",
+  "paymentMethods": {
+    "bankCard": "Card Bancar",
+    "bankCardDesc": "Plată cu cardul bancar (Visa, MasterCard)",
+    "cashOnDelivery": "Numerar la Livrare",
+    "cashOnDeliveryDesc": "Plată în numerar la primirea comenzii"
+  },
+  "vouchers": {
+    "welcomeVoucher": "Voucher de bun venit - 10% reducere"
+  },
+  "carousel": {
+    "freshness": "Adevărata prospețime vine din natură"
+  },
   "physicalStore": "Magazin fizic:",
   "monday": "Luni",
   "tuesday": "Marți",

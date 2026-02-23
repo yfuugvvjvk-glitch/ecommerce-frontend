@@ -119,6 +119,19 @@
   "next": "Next",
   "page": "Page",
   "siteName": "From My Yard Directly to Your Table",
+  "siteNameShort": "From My Yard",
+  "paymentMethods": {
+    "bankCard": "Bank Card",
+    "bankCardDesc": "Payment by bank card (Visa, MasterCard)",
+    "cashOnDelivery": "Cash on Delivery",
+    "cashOnDeliveryDesc": "Cash payment upon receipt of order"
+  },
+  "vouchers": {
+    "welcomeVoucher": "Welcome voucher - 10% discount"
+  },
+  "carousel": {
+    "freshness": "True freshness comes from nature"
+  },
   "physicalStore": "Physical store:",
   "monday": "Monday",
   "tuesday": "Tuesday",

@@ -15,7 +15,7 @@ import ProductItem from '@/components/ProductItem';
 export default function ProductDetailsPage() {
   const params = useParams();
   const router = useRouter();
-  const { t } = useTranslation();
+  const { t, locale } = useTranslation();
   const { refreshCartCount } = useCart();
   const [product, setProduct] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -30,7 +30,7 @@ export default function ProductDetailsPage() {
       // Track viewed product
       trackViewedProduct(params.id as string);
     }
-  }, [params.id]);
+  }, [params.id, locale]); // Re-fetch când se schimbă limba
 
   useEffect(() => {
     // Set default quantity when product loads

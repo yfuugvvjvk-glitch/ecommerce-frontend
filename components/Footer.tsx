@@ -12,6 +12,24 @@ export default function Footer() {
   const [aboutContent, setAboutContent] = useState<string>('');
   const [currentDate, setCurrentDate] = useState('');
 
+  // Get translated site name based on current locale
+  const getSiteName = () => {
+    const localeKey = `site_name_${locale}`;
+    if (locale !== 'ro' && siteConfig[localeKey]) {
+      return siteConfig[localeKey];
+    }
+    return siteConfig.site_name || t('siteName');
+  };
+
+  // Get translated about content based on current locale
+  const getAboutContent = () => {
+    const localeKey = `about_us_${locale}`;
+    if (locale !== 'ro' && siteConfig[localeKey]) {
+      return siteConfig[localeKey];
+    }
+    return siteConfig.about_us || t('pages.aboutFarmContent');
+  };
+
   useEffect(() => {
     fetchContactInfo();
     
@@ -105,7 +123,7 @@ export default function Footer() {
       });
       
       // Set about content from siteConfig
-      setAboutContent(siteConfig.about_us || t('pages.aboutFarmContent'));
+      setAboutContent(getAboutContent());
     } catch (error) {
       console.error('Failed to fetch contact info:', error);
       // Set defaults on error
@@ -115,7 +133,7 @@ export default function Footer() {
         address: siteConfig.contact_address || 'Str. Garii nr. 69, Galați, România',
         schedule: `${t('physicalStore')} ${t('monday')} - ${t('friday')}: 9:00 - 18:00\n${t('onlineStoreSchedule')}`
       });
-      setAboutContent(siteConfig.about_us || t('pages.aboutFarmContent'));
+      setAboutContent(getAboutContent());
     }
   };
 
@@ -129,7 +147,7 @@ export default function Footer() {
               {t('pages.aboutUs')}
             </h3>
             <p className="text-gray-700 text-base leading-relaxed">
-              {aboutContent || t('pages.aboutFarmContent')}
+              {aboutContent || getAboutContent()}
             </p>
           </div>
 
@@ -196,7 +214,7 @@ export default function Footer() {
 
         <div className="border-t border-gray-300 mt-10 pt-8 text-center">
           <p className="text-gray-600 text-base font-medium">
-            {currentDate} {siteConfig.site_name || t('siteName')}.
+            {currentDate} {getSiteName()}.
           </p>
         </div>
       </div>
