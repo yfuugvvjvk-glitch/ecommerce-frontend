@@ -31,6 +31,11 @@ export default function Footer() {
   };
 
   useEffect(() => {
+    // Update about content when locale changes
+    setAboutContent(getAboutContent());
+  }, [locale, siteConfig]);
+
+  useEffect(() => {
     fetchContactInfo();
     
     // Update date every second
@@ -56,7 +61,7 @@ export default function Footer() {
       clearInterval(interval);
       window.removeEventListener('siteConfigUpdated', handleConfigUpdate);
     };
-  }, [locale, siteConfig]); // Re-fetch when locale or siteConfig changes
+  }, []);
 
   const fetchContactInfo = async () => {
     try {
