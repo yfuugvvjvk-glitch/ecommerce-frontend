@@ -179,6 +179,8 @@ export default function DeliveryScheduleManager() {
         apiClient.get('/api/public/delivery-locations') // Endpoint public pentru locații
       ]);
       
+      console.log('Fetched schedules:', schedulesRes.data);
+      
       setSchedules(schedulesRes.data || []);
       setFilteredSchedules(schedulesRes.data || []);
       setBlockRules(blockRulesRes.data || []);
@@ -237,19 +239,35 @@ export default function DeliveryScheduleManager() {
         specialDates: editingSchedule?.specialDates || []
       };
 
+      console.log('Saving schedule data:', scheduleData);
+
       if (editingSchedule) {
         // UPDATE existing schedule
-        await apiClient.put(`/api/admin/delivery-schedules/${editingSchedule.id}`, scheduleData);
+        const response = await apiClient.put(`/api/admin/delivery-schedules/${editingSchedule.id}`, scheduleData);
+        console.log('Update response:', response);
         alert('Programul de livrare a fost actualizat cu succes!');
       } else {
         // CREATE new schedule
-        await apiClient.post('/api/admin/delivery-schedules', scheduleData);
+        const response = await apiClient.post('/api/admin/delivery-schedules', scheduleData);
+        console.log('Create response:', response);
         alert('Programul de livrare a fost creat cu succes!');
       }
       
+      // Închide modalul și resetează formularul
       setShowModal(false);
+      setEditingSchedule(null);
       resetForm();
-      fetchData();
+      
+      // Resetează filtrele pentru a vedea toate programele
+      setSearchTerm('');
+      setStatusFilter('all');
+      setCurrentPage(1);
+      
+      // Forțează reîncărcarea datelor după un delay mai mare
+      setTimeout(async () => {
+        await fetchData();
+        console.log('Data refreshed after save');
+      }, 800);
     } catch (error) {
       console.error('Error saving schedule:', error);
       alert('Eroare la salvarea programului de livrare');
@@ -281,10 +299,27 @@ export default function DeliveryScheduleManager() {
         return;
       }
 
+      // Validare: blockFrom și blockUntil sunt obligatorii
+      if (!blockRuleForm.blockFrom || !blockRuleForm.blockUntil) {
+        alert('Perioada de blocare (de la și până la) este obligatorie');
+        return;
+      }
+
       const ruleData = {
-        ...blockRuleForm,
+        name: blockRuleForm.name,
+        isActive: blockRuleForm.isActive || false,
+        blockNewOrders: blockRuleForm.blockNewOrders || false,
+        blockReason: blockRuleForm.blockReason || '',
+        blockFrom: blockRuleForm.blockFrom || '',
+        blockUntil: blockRuleForm.blockUntil || '',
+        blockedPaymentMethods: blockRuleForm.blockedPaymentMethods || [],
+        blockedDeliveryLocations: blockRuleForm.blockedDeliveryLocations || [],
+        minimumOrderValue: blockRuleForm.minimumOrderValue || 0,
+        maximumOrderValue: blockRuleForm.maximumOrderValue || undefined,
         createdAt: editingBlockRule?.createdAt || new Date().toISOString()
       };
+
+      console.log('Saving block rule with data:', ruleData);
 
       if (editingBlockRule) {
         // UPDATE
@@ -298,7 +333,11 @@ export default function DeliveryScheduleManager() {
 
       setShowBlockRuleModal(false);
       resetBlockRuleForm();
-      fetchData();
+      
+      // Forțează reîncărcarea datelor după un mic delay
+      setTimeout(() => {
+        fetchData();
+      }, 500);
     } catch (error) {
       console.error('Error saving block rule:', error);
       alert('Eroare la salvarea regulii de blocare');
@@ -592,7 +631,10 @@ export default function DeliveryScheduleManager() {
                             ...schedule,
                             isActive: !schedule.isActive
                           });
-                          fetchData();
+                          // Forțează reîncărcarea după un mic delay
+                          setTimeout(() => {
+                            fetchData();
+                          }, 300);
                         } catch (error) {
                           console.error('Error toggling schedule:', error);
                           alert('Eroare la schimbarea statusului');
@@ -610,10 +652,12 @@ export default function DeliveryScheduleManager() {
                     <button
                       onClick={() => {
                         setEditingSchedule(schedule);
+                        // Păstrează doar primul slot de timp pentru simplificare
+                        const firstSlot = schedule.deliveryTimeSlots[0] || { startTime: '09:00', endTime: '21:00', maxOrders: 999 };
                         setScheduleForm({
                           name: schedule.name,
                           deliveryDays: schedule.deliveryDays,
-                          deliveryTimeSlots: schedule.deliveryTimeSlots,
+                          deliveryTimeSlots: [firstSlot], // Doar primul slot
                           isActive: schedule.isActive,
                           blockOrdersAfter: schedule.blockOrdersAfter,
                           advanceOrderDays: schedule.advanceOrderDays
@@ -748,16 +792,22 @@ export default function DeliveryScheduleManager() {
                       onClick={() => {
                         console.log('Editing rule:', rule);
                         setEditingBlockRule(rule);
+                        // Asigură-te că toate câmpurile sunt setate corect
                         setBlockRuleForm({
-                          ...rule,
+                          name: rule.name,
+                          isActive: rule.isActive,
                           blockNewOrders: rule.blockNewOrders || false,
                           blockReason: rule.blockReason || '',
                           blockFrom: rule.blockFrom || '',
                           blockUntil: rule.blockUntil || '',
                           blockedPaymentMethods: rule.blockedPaymentMethods || [],
-                          blockedDeliveryLocations: rule.blockedDeliveryLocations || [], // Schimbat
+                          blockedDeliveryLocations: rule.blockedDeliveryLocations || [],
                           minimumOrderValue: rule.minimumOrderValue || 0,
                           maximumOrderValue: rule.maximumOrderValue || undefined
+                        });
+                        console.log('Block rule form set to:', {
+                          name: rule.name,
+                          blockNewOrders: rule.blockNewOrders
                         });
                         setShowBlockRuleModal(true);
                       }}
@@ -863,9 +913,13 @@ export default function DeliveryScheduleManager() {
                         type="time"
                         value={scheduleForm.deliveryTimeSlots[0]?.startTime || '09:00'}
                         onChange={(e) => {
-                          const newSlots = [...scheduleForm.deliveryTimeSlots];
-                          newSlots[0] = { ...newSlots[0], startTime: e.target.value };
-                          setScheduleForm({...scheduleForm, deliveryTimeSlots: newSlots});
+                          // Păstrează doar UN slot de timp
+                          const newSlot = {
+                            startTime: e.target.value,
+                            endTime: scheduleForm.deliveryTimeSlots[0]?.endTime || '21:00',
+                            maxOrders: 999
+                          };
+                          setScheduleForm({...scheduleForm, deliveryTimeSlots: [newSlot]});
                         }}
                         className="w-full border rounded px-3 py-2"
                       />
@@ -876,9 +930,13 @@ export default function DeliveryScheduleManager() {
                         type="time"
                         value={scheduleForm.deliveryTimeSlots[0]?.endTime || '21:00'}
                         onChange={(e) => {
-                          const newSlots = [...scheduleForm.deliveryTimeSlots];
-                          newSlots[0] = { ...newSlots[0], endTime: e.target.value };
-                          setScheduleForm({...scheduleForm, deliveryTimeSlots: newSlots});
+                          // Păstrează doar UN slot de timp
+                          const newSlot = {
+                            startTime: scheduleForm.deliveryTimeSlots[0]?.startTime || '09:00',
+                            endTime: e.target.value,
+                            maxOrders: 999
+                          };
+                          setScheduleForm({...scheduleForm, deliveryTimeSlots: [newSlot]});
                         }}
                         className="w-full border rounded px-3 py-2"
                       />

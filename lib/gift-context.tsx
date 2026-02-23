@@ -60,15 +60,19 @@ export function GiftProvider({ children }: { children: ReactNode }) {
     setError(null);
 
     try {
+      console.log('🎁 [Frontend] Starting gift evaluation...');
       const response = await apiClient.post('/api/cart/evaluate-gift-rules');
+      console.log('🎁 [Frontend] Gift evaluation response:', response.data);
       
       if (response.data.success) {
+        console.log('🎁 [Frontend] Eligible rules:', response.data.eligibleRules);
         setEligibleRules(response.data.eligibleRules || []);
       } else {
         setError('Failed to evaluate gift rules');
       }
     } catch (err: any) {
-      console.error('Failed to evaluate gifts:', err);
+      console.error('❌ [Frontend] Failed to evaluate gifts:', err);
+      console.error('❌ [Frontend] Error response:', err.response?.data);
       
       // Handle specific error codes from backend
       if (err.response?.data?.error) {

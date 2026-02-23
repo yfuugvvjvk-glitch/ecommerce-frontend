@@ -166,28 +166,63 @@ export default function GiftRuleForm({ initialData, ruleId, onSubmit, onCancel }
     e.preventDefault();
     
     if (!validate()) {
+      // Scroll to first error
+      const firstError = document.querySelector('.text-red-500');
+      if (firstError) {
+        firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      
+      // Show alert with validation errors
+      const errorMessages = Object.values(errors).join('\n');
+      alert(`Vă rugăm să corectați următoarele erori:\n\n${errorMessages}`);
       return;
     }
 
     setLoading(true);
     try {
+      // Clean conditions - remove id field and undefined values
+      const cleanConditions = formData.conditions.map(condition => {
+        const cleaned: any = {
+          type: condition.type
+        };
+        
+        // Only add fields that have values
+        if (condition.minAmount !== undefined && condition.minAmount !== null) {
+          cleaned.minAmount = Number(condition.minAmount);
+        }
+        if (condition.productId) {
+          cleaned.productId = condition.productId;
+        }
+        if (condition.minQuantity !== undefined && condition.minQuantity !== null) {
+          cleaned.minQuantity = Number(condition.minQuantity);
+        }
+        if (condition.categoryId) {
+          cleaned.categoryId = condition.categoryId;
+        }
+        if (condition.minCategoryAmount !== undefined && condition.minCategoryAmount !== null) {
+          cleaned.minCategoryAmount = Number(condition.minCategoryAmount);
+        }
+        
+        return cleaned;
+      });
+      
       // Transform data for backend
       const submitData: any = {
         name: formData.name,
         description: formData.description,
-        priority: formData.priority,
+        priority: Number(formData.priority),
         isActive: formData.isActive,
         conditionLogic: formData.conditionLogic,
-        conditions: formData.conditions,
+        conditions: cleanConditions,
         giftProductIds: formData.giftProductIds,
       };
       
       // Only add optional fields if they have values
       if (formData.maxUsesPerCustomer) {
-        submitData.maxUsesPerCustomer = formData.maxUsesPerCustomer;
+        submitData.maxUsesPerCustomer = Number(formData.maxUsesPerCustomer);
       }
       if (formData.maxTotalUses) {
-        submitData.maxTotalUses = formData.maxTotalUses;
+        submitData.maxTotalUses = Number(formData.maxTotalUses);
       }
       if (formData.validFrom) {
         submitData.validFrom = new Date(formData.validFrom).toISOString();
@@ -196,9 +231,10 @@ export default function GiftRuleForm({ initialData, ruleId, onSubmit, onCancel }
         submitData.validUntil = new Date(formData.validUntil).toISOString();
       }
       
+      console.log('📤 Submitting gift rule:', JSON.stringify(submitData, null, 2));
       await onSubmit(submitData);
     } catch (error) {
-      console.error('Form submission error:', error);
+      console.error('❌ Form submission error:', error);
     } finally {
       setLoading(false);
     }

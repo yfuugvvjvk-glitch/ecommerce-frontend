@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import { apiClient } from '@/lib/api-client';
+import { useWebSocket } from '@/lib/useWebSocket';
 
 interface Page {
   id: string;
@@ -12,8 +13,6 @@ interface Page {
   metaTitle?: string;
   metaDescription?: string;
   isPublished: boolean;
-  createdAt: string;
-  updatedAt: string;
 }
 
 export default function DynamicPage() {
@@ -23,23 +22,42 @@ export default function DynamicPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchPage = async () => {
-      try {
-        setLoading(true);
-        const response = await apiClient.get(`/api/public/pages/${slug}`);
-        setPage(response.data);
-      } catch (err: any) {
-        console.error('Error fetching page:', err);
-        setError(err.response?.data?.error || 'Pagina nu a fost găsită');
-      } finally {
-        setLoading(false);
+  // WebSocket pentru actualizări în timp real
+  useWebSocket({
+    onContentUpdate: (data) => {
+      console.log('📝 Content update received:', data);
+      // Reîncarcă pagina când se modifică
+      if (data.type === 'page_updated' || data.type === 'content_updated') {
+        fetchPage();
       }
-    };
-
-    if (slug) {
-      fetchPage();
     }
+  });
+
+  const fetchPage = async () => {
+    try {
+      setLoading(true);
+      console.log('Fetching page with slug:', slug);
+      
+      // Încearcă să obții pagina din baza de date
+      const response = await apiClient.get(`/api/public/pages/${slug}`);
+      console.log('Page data:', response.data);
+      
+      if (response.data && response.data.isPublished) {
+        setPage(response.data);
+        setError(null);
+      } else {
+        setError('Pagina nu este publicată');
+      }
+    } catch (err: any) {
+      console.error('Error fetching page:', err);
+      setError('Pagina nu a fost găsită');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPage();
   }, [slug]);
 
   if (loading) {
@@ -71,19 +89,17 @@ export default function DynamicPage() {
       <article className="max-w-4xl mx-auto">
         <header className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-4">{page.title}</h1>
-          <div className="text-sm text-gray-500">
-            Ultima actualizare: {new Date(page.updatedAt).toLocaleDateString('ro-RO', {
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric'
-            })}
-          </div>
+          {page.metaDescription && (
+            <p className="text-xl text-gray-600">{page.metaDescription}</p>
+          )}
         </header>
 
-        <div 
-          className="prose prose-lg max-w-none"
-          dangerouslySetInnerHTML={{ __html: page.content }}
-        />
+        <div className="prose prose-lg max-w-none">
+          <div 
+            className="text-gray-700 leading-relaxed"
+            dangerouslySetInnerHTML={{ __html: page.content }}
+          />
+        </div>
       </article>
     </div>
   );

@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useTranslation } from '@/hooks/useTranslation';
+import { useSiteConfig } from '@/hooks/useSiteConfig';
 
 export default function ContactPage() {
   const { t, locale } = useTranslation();
+  const { config: siteConfig } = useSiteConfig();
   const [pageContent, setPageContent] = useState<any>(null);
   const [contactInfo, setContactInfo] = useState<any>(null);
   const [deliveryLocations, setDeliveryLocations] = useState<any[]>([]);
@@ -18,7 +20,7 @@ export default function ContactPage() {
     fetchDeliveryLocations();
     fetchPaymentMethods();
     fetchDeliverySchedule();
-  }, [locale, t]);
+  }, [locale, t, siteConfig]); // Added siteConfig dependency
 
   const fetchContactInfo = async () => {
     try {
@@ -29,14 +31,6 @@ export default function ContactPage() {
       if (locationsResponse.ok) {
         const locations = await locationsResponse.json();
         mainLocation = locations.find((loc: any) => loc.isMainLocation);
-      }
-
-      // Fetch site config (fallback source)
-      const configResponse = await fetch('/api/public/site-config?keys=contact_email,contact_phone,contact_address,business_hours');
-      let siteConfig = null;
-      
-      if (configResponse.ok) {
-        siteConfig = await configResponse.json();
       }
 
       // Parse schedule from mainLocation if available
@@ -98,18 +92,18 @@ export default function ContactPage() {
 
       // Combine data with priority: mainLocation > siteConfig > defaults
       setContactInfo({
-        email: mainLocation?.email || siteConfig?.contact_email || 'crys.cristi@yahoo.com',
-        phone: mainLocation?.phone || siteConfig?.contact_phone || '+40753615752',
-        address: mainLocation?.address || siteConfig?.contact_address || 'Str. Garii nr. 69, Galați, România',
+        email: mainLocation?.email || siteConfig.contact_email || 'crys.cristi@yahoo.com',
+        phone: mainLocation?.phone || siteConfig.contact_phone || '+40753615752',
+        address: mainLocation?.address || siteConfig.contact_address || 'Str. Garii nr. 69, Galați, România',
         schedule: scheduleText || `${t('storeHours')} ${t('monday')} - ${t('friday')}: 9:00 - 18:00\n${t('onlineStoreSchedule')}`
       });
     } catch (error) {
       console.error('Failed to fetch contact info:', error);
-      // Set defaults on error
+      // Set defaults on error using siteConfig
       setContactInfo({
-        email: 'crys.cristi@yahoo.com',
-        phone: '+40753615752',
-        address: 'Str. Garii nr. 69, Galați, România',
+        email: siteConfig.contact_email || 'crys.cristi@yahoo.com',
+        phone: siteConfig.contact_phone || '+40753615752',
+        address: siteConfig.contact_address || 'Str. Garii nr. 69, Galați, România',
         schedule: `${t('storeHours')} ${t('monday')} - ${t('friday')}: 9:00 - 18:00\n${t('onlineStoreSchedule')}`
       });
     } finally {

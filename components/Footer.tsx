@@ -2,18 +2,18 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { SITE_CONFIG } from '@/lib/site-config';
+import { useSiteConfig } from '@/hooks/useSiteConfig';
 import { useTranslation } from '@/hooks/useTranslation';
 
 export default function Footer() {
   const { t, locale } = useTranslation();
+  const { config: siteConfig } = useSiteConfig();
   const [contactInfo, setContactInfo] = useState<any>(null);
   const [aboutContent, setAboutContent] = useState<string>('');
   const [currentDate, setCurrentDate] = useState('');
 
   useEffect(() => {
     fetchContactInfo();
-    fetchAboutContent();
     
     // Update date every second
     const updateDate = () => {
@@ -27,8 +27,18 @@ export default function Footer() {
     updateDate(); // Initial update
     const interval = setInterval(updateDate, 1000); // Update every second
     
-    return () => clearInterval(interval);
-  }, [locale]); // Re-fetch when locale changes
+    // Listen for config updates
+    const handleConfigUpdate = () => {
+      fetchContactInfo();
+    };
+    
+    window.addEventListener('siteConfigUpdated', handleConfigUpdate);
+    
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('siteConfigUpdated', handleConfigUpdate);
+    };
+  }, [locale, siteConfig]); // Re-fetch when locale or siteConfig changes
 
   const fetchContactInfo = async () => {
     try {
@@ -39,14 +49,6 @@ export default function Footer() {
       if (locationsResponse.ok) {
         const locations = await locationsResponse.json();
         mainLocation = locations.find((loc: any) => loc.isMainLocation);
-      }
-
-      // Fetch site config (fallback source)
-      const configResponse = await fetch('/api/public/site-config?keys=contact_email,contact_phone,contact_address,business_hours');
-      let siteConfig = null;
-      
-      if (configResponse.ok) {
-        siteConfig = await configResponse.json();
       }
 
       // Parse schedule from mainLocation if available
@@ -96,39 +98,24 @@ export default function Footer() {
 
       // Combine data with priority: mainLocation > siteConfig > defaults
       setContactInfo({
-        email: mainLocation?.email || siteConfig?.contact_email || 'crys.cristi@yahoo.com',
-        phone: mainLocation?.phone || siteConfig?.contact_phone || '+40753615752',
-        address: mainLocation?.address || siteConfig?.contact_address || 'Str. Garii nr. 69, Galați, România',
+        email: mainLocation?.email || siteConfig.contact_email || 'crys.cristi@yahoo.com',
+        phone: mainLocation?.phone || siteConfig.contact_phone || '+40753615752',
+        address: mainLocation?.address || siteConfig.contact_address || 'Str. Garii nr. 69, Galați, România',
         schedule: scheduleText || `${t('physicalStore')} ${t('monday')} - ${t('friday')}: 9:00 - 18:00\n${t('onlineStoreSchedule')}`
       });
+      
+      // Set about content from siteConfig
+      setAboutContent(siteConfig.about_us || t('pages.aboutFarmContent'));
     } catch (error) {
       console.error('Failed to fetch contact info:', error);
       // Set defaults on error
       setContactInfo({
-        email: 'crys.cristi@yahoo.com',
-        phone: '+40753615752',
-        address: 'Str. Garii nr. 69, Galați, România',
+        email: siteConfig.contact_email || 'crys.cristi@yahoo.com',
+        phone: siteConfig.contact_phone || '+40753615752',
+        address: siteConfig.contact_address || 'Str. Garii nr. 69, Galați, România',
         schedule: `${t('physicalStore')} ${t('monday')} - ${t('friday')}: 9:00 - 18:00\n${t('onlineStoreSchedule')}`
       });
-    }
-  };
-
-  const fetchAboutContent = async () => {
-    try {
-      const response = await fetch('/api/public/pages/despre');
-      if (response.ok) {
-        const page = await response.json();
-        if (page?.content) {
-          // Extract plain text from HTML content (first 300 characters)
-          const tempDiv = document.createElement('div');
-          tempDiv.innerHTML = page.content;
-          const plainText = tempDiv.textContent || tempDiv.innerText || '';
-          setAboutContent(plainText.substring(0, 300) + (plainText.length > 300 ? '...' : ''));
-        }
-      }
-      // Silently ignore 404 errors - page doesn't exist yet
-    } catch (error) {
-      // Silently ignore errors - use default content
+      setAboutContent(siteConfig.about_us || t('pages.aboutFarmContent'));
     }
   };
 
@@ -209,7 +196,7 @@ export default function Footer() {
 
         <div className="border-t border-gray-300 mt-10 pt-8 text-center">
           <p className="text-gray-600 text-base font-medium">
-            {currentDate} {t('siteName')}.
+            {currentDate} {siteConfig.site_name || t('siteName')}.
           </p>
         </div>
       </div>

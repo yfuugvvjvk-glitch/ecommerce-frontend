@@ -80,8 +80,26 @@ export default function MediaManager() {
   const fetchCarouselItems = async () => {
     try {
       setCarouselLoading(true);
-      const response = await apiClient.get('/api/carousel?includeInactive=true');
-      setCarouselItems(response.data || []);
+      const response = await apiClient.get('/api/carousel/all?includeInactive=true');
+      console.log('📦 Fetched carousel items:', response.data?.length || 0);
+      if (response.data && response.data.length > 0) {
+        console.log('🔍 First item sample:', {
+          id: response.data[0].id,
+          type: response.data[0].type,
+          hasMedia: !!response.data[0].Media,
+          mediaUrl: response.data[0].Media?.url,
+          hasProduct: !!response.data[0].DataItem
+        });
+      }
+      
+      // Transform data: Media -> media, DataItem -> product
+      const transformedItems = (response.data || []).map((item: any) => ({
+        ...item,
+        media: item.Media || item.media,
+        product: item.DataItem || item.product
+      }));
+      
+      setCarouselItems(transformedItems);
     } catch (error) {
       console.error('Error fetching carousel items:', error);
       setCarouselItems([]);
@@ -134,6 +152,17 @@ export default function MediaManager() {
   };
 
   const handleEditCarouselItem = (item: any) => {
+    console.log('🔍 Editing carousel item:', {
+      id: item.id,
+      type: item.type,
+      hasMedia: !!item.media,
+      mediaUrl: item.media?.url,
+      mediaId: item.mediaId,
+      hasProduct: !!item.product,
+      productImage: item.product?.image,
+      imageUrl: item.imageUrl
+    });
+
     // Create a deep copy to ensure independent editing
     const defaultTitleStyle = {
       color: '#ffffff',
@@ -1046,18 +1075,33 @@ export default function MediaManager() {
                             src={item.product.image}
                             alt={displayTitle}
                             className="w-20 h-20 object-cover rounded"
+                            onError={(e) => {
+                              console.error('Failed to load product image:', item.product?.image);
+                              e.currentTarget.src = '/placeholder.jpg';
+                            }}
                           />
                         ) : item.type === 'media' && item.media?.url ? (
                           <img
                             src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}${item.media.url}`}
                             alt={displayTitle}
                             className="w-20 h-20 object-cover rounded"
+                            onError={(e) => {
+                              console.error('Failed to load media image:', {
+                                mediaUrl: item.media?.url,
+                                fullUrl: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}${item.media?.url}`
+                              });
+                              e.currentTarget.src = '/placeholder.jpg';
+                            }}
                           />
                         ) : item.imageUrl ? (
                           <img
                             src={item.imageUrl}
                             alt={displayTitle}
                             className="w-20 h-20 object-cover rounded"
+                            onError={(e) => {
+                              console.error('Failed to load custom image:', item.imageUrl);
+                              e.currentTarget.src = '/placeholder.jpg';
+                            }}
                           />
                         ) : (
                           <div className="w-20 h-20 bg-gray-200 rounded flex items-center justify-center">
@@ -1369,22 +1413,43 @@ export default function MediaManager() {
                       src={editingCarouselItem.product.image}
                       alt="Preview"
                       className="w-full h-full object-cover"
+                      onError={(e) => {
+                        console.error('Failed to load product image:', editingCarouselItem.product?.image);
+                        e.currentTarget.style.display = 'none';
+                      }}
                     />
                   ) : editingCarouselItem.type === 'media' && editingCarouselItem.media?.url ? (
                     <img
                       src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}${editingCarouselItem.media.url}`}
                       alt="Preview"
                       className="w-full h-full object-cover"
+                      onError={(e) => {
+                        console.error('Failed to load media image:', {
+                          mediaUrl: editingCarouselItem.media?.url,
+                          fullUrl: `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}${editingCarouselItem.media?.url}`,
+                          apiUrl: process.env.NEXT_PUBLIC_API_URL
+                        });
+                        e.currentTarget.style.display = 'none';
+                      }}
                     />
                   ) : editingCarouselItem.imageUrl ? (
                     <img
                       src={editingCarouselItem.imageUrl}
                       alt="Preview"
                       className="w-full h-full object-cover"
+                      onError={(e) => {
+                        console.error('Failed to load custom image:', editingCarouselItem.imageUrl);
+                        e.currentTarget.style.display = 'none';
+                      }}
                     />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-white text-6xl">
                       📷
+                      <div className="absolute bottom-4 text-sm text-gray-400">
+                        {editingCarouselItem.type === 'media' && !editingCarouselItem.media?.url && 'Media URL lipsește'}
+                        {editingCarouselItem.type === 'product' && !editingCarouselItem.product?.image && 'Imagine produs lipsește'}
+                        {editingCarouselItem.type === 'custom' && !editingCarouselItem.imageUrl && 'Image URL lipsește'}
+                      </div>
                     </div>
                   )}
 

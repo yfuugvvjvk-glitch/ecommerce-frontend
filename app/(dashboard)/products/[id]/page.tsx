@@ -9,6 +9,7 @@ import { useAuth } from '@/lib/auth-context';
 import { Heart, ShoppingCart } from 'lucide-react';
 import CurrencyPrice from '@/components/CurrencyPrice';
 import { stripHtml } from '@/utils/stripHtml';
+import { formatUnitName } from '@/utils/formatUnitName';
 import ProductItem from '@/components/ProductItem';
 
 export default function ProductDetailsPage() {
@@ -117,7 +118,7 @@ export default function ProductDetailsPage() {
       // Actualizează indicatorul de coș
       await refreshCartCount();
       
-      alert(`${t('productDetails.addedToCart')} ${t('productDetails.quantity')}: ${selectedQuantity} ${product.unitName || 'buc'}`);
+      alert(`${t('productDetails.addedToCart')} ${t('productDetails.quantity')}: ${selectedQuantity} ${formatUnitName(selectedQuantity, product.unitName)}`);
     } catch (error) {
       console.error('Failed to add to cart:', error);
       alert('Eroare la adăugarea în coș');
@@ -357,7 +358,7 @@ export default function ProductDetailsPage() {
                         {product.priceType === 'fixed' ? (
                           // Pentru fixed: afișăm numărul de bucăți și cantitatea totală în kg
                           <>
-                            {selectedQuantity} {selectedQuantity === 1 ? t('productDetails.piece') : t('productDetails.pieces')}
+                            {selectedQuantity} {formatUnitName(selectedQuantity, 'bucată')}
                             {product.availableQuantities && product.availableQuantities[0] && (
                               <span className="text-gray-600 ml-1">
                                 ({(selectedQuantity * product.availableQuantities[0]).toFixed(2)} {product.unitName || 'kg'})
@@ -366,7 +367,7 @@ export default function ProductDetailsPage() {
                           </>
                         ) : (
                           // Pentru per_unit: afișăm cantitatea în unități de măsură
-                          `${selectedQuantity.toFixed(2)} ${product.unitName || 'buc'}`
+                          `${selectedQuantity.toFixed(2)} ${formatUnitName(selectedQuantity, product.unitName)}`
                         )}
                       </strong>
                     </span>

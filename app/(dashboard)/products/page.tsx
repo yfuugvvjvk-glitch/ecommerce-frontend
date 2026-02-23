@@ -10,6 +10,7 @@ import AddToCartButton from '@/components/AddToCartButton';
 import { dataAPI, apiClient, categoryAPI } from '@/lib/api-client';
 import { stripHtml } from '@/utils/stripHtml';
 import ProductItem from '@/components/ProductItem';
+import { getShortUnitName, formatUnitName } from '@/utils/formatUnitName';
 
 export default function ProductsPage() {
   const { token, user } = useAuth();
@@ -483,7 +484,7 @@ export default function ProductsPage() {
                       {product.price.toFixed(2)} lei
                     </span>
                     {(product as any).priceType === 'per_unit' ? (
-                      <span className="text-sm font-normal text-gray-600">/{(product as any).unitName || 'buc'}</span>
+                      <span className="text-sm font-normal text-gray-600">/{getShortUnitName((product as any).unitName)}</span>
                     ) : (product as any).priceType === 'fixed' ? (
                       <span className="text-sm font-normal text-gray-600">/bucată</span>
                     ) : null}
@@ -504,7 +505,7 @@ export default function ProductsPage() {
                           product.stock > 0 ? 'text-green-600' : 'text-red-600'
                         }`}
                       >
-                        {product.stock > 0 ? `Stoc: ${product.stock.toFixed(2)} ${(product as any).unitName || 'produse'}` : 'Stoc epuizat'}
+                        {product.stock > 0 ? `Stoc: ${product.stock.toFixed(2)} ${formatUnitName(product.stock, (product as any).unitName)}` : 'Stoc epuizat'}
                       </span>
                     )}
                     {(product as any).stockDisplayMode === 'status_only' && (

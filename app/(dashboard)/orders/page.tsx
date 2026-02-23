@@ -192,12 +192,16 @@ export default function OrdersPage() {
               <div className="mt-4 text-sm text-gray-600 space-y-1">
                 <p><strong>{t('orders.shippingAddress')}:</strong> {order.shippingAddress}</p>
                 <p><strong>{t('orders.paymentMethod')}:</strong> {
-                  order.paymentMethod === 'cash' ? t('orders.cash') :
-                  order.paymentMethod === 'card' ? t('orders.card') :
-                  t('orders.transfer')
+                  order.paymentMethod === 'cash' ? '💵 ' + t('orders.cash') :
+                  order.paymentMethod === 'card' ? '💳 ' + t('orders.card') :
+                  order.paymentMethod === 'transfer' ? '🏦 ' + t('orders.transfer') :
+                  order.paymentMethod
                 }</p>
                 <p><strong>{t('orders.deliveryMethod')}:</strong> {
-                  order.deliveryMethod === 'courier' ? t('orders.courier') : t('orders.pickup')
+                  order.DeliveryLocation?.name ? '🚚 ' + order.DeliveryLocation.name :
+                  order.deliveryMethod === 'courier' ? '🚚 ' + t('orders.courier') :
+                  order.deliveryMethod === 'pickup' ? '🏪 ' + t('orders.pickup') :
+                  order.deliveryMethod
                 }</p>
               </div>
             </div>

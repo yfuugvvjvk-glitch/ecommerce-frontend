@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { Heart } from 'lucide-react';
 import CurrencyPrice from '@/components/CurrencyPrice';
 import ProductTitle from '@/components/ProductTitle';
+import { formatUnitName } from '@/utils/formatUnitName';
 
 export default function FavoritesPage() {
   const { t } = useTranslation();
@@ -108,7 +109,7 @@ export default function FavoritesPage() {
                   </p>
                   {favorite.dataItem?.priceType === 'fixed' && favorite.dataItem?.availableQuantities && favorite.dataItem?.availableQuantities[0] > 1 && (
                     <p className="text-xs text-gray-500">
-                      {favorite.dataItem?.availableQuantities[0]} {favorite.dataItem?.unitName}/buc
+                      {favorite.dataItem?.availableQuantities[0]} {formatUnitName(favorite.dataItem?.availableQuantities[0], favorite.dataItem?.unitName)}/buc
                     </p>
                   )}
                 </div>

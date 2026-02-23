@@ -115,12 +115,33 @@ export default function Carousel({ items, autoPlayInterval = 5000 }: CarouselPro
     (currentItem.type === 'media' && currentItem.media?.description) ||
     currentItem.description || '';
 
-  // Get image URL
-  const imageUrl = currentItem.type === 'product' && currentItem.product?.image
-    ? currentItem.product.image
-    : currentItem.type === 'media' && currentItem.media?.url
-    ? `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}${currentItem.media.url}`
-    : currentItem.imageUrl || '/placeholder.jpg';
+  // Get image URL - FIX: asigură-te că media.url există
+  let imageUrl = '/placeholder.jpg'; // Default
+  
+  if (currentItem.type === 'product' && currentItem.product?.image) {
+    imageUrl = currentItem.product.image;
+  } else if (currentItem.type === 'media') {
+    if (currentItem.media?.url) {
+      // Media URL din baza de date
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      imageUrl = `${baseUrl}${currentItem.media.url}`;
+      console.log('🖼️ Carousel media URL constructed:', {
+        baseUrl,
+        mediaUrl: currentItem.media.url,
+        finalUrl: imageUrl,
+        mediaId: currentItem.media.id
+      });
+    } else if (currentItem.imageUrl) {
+      // Fallback la imageUrl dacă media.url nu există
+      imageUrl = currentItem.imageUrl;
+      console.warn('⚠️ Using fallback imageUrl:', imageUrl);
+    } else {
+      console.error('❌ No media URL available for carousel item:', currentItem.id);
+    }
+  } else if (currentItem.imageUrl) {
+    // Custom type sau fallback
+    imageUrl = currentItem.imageUrl;
+  }
 
   // Get text styles - support both old and new format
   let titleStyle, descriptionStyle, linkStyle, overlayBackground;
@@ -218,6 +239,15 @@ export default function Carousel({ items, autoPlayInterval = 5000 }: CarouselPro
             height="100%"
             style={{ width: '100%', height: '100%', display: 'block' }}
             className="hover:scale-105 transition-transform duration-300"
+            onError={(e) => {
+              console.error('❌ Failed to load carousel image:', {
+                src: imageUrl,
+                itemType: currentItem.type,
+                itemId: currentItem.id,
+                mediaId: currentItem.type === 'media' ? currentItem.media?.id : null
+              });
+              // Don't replace with placeholder to see the broken image
+            }}
           />
           
           {/* Text Overlay with Custom Styling - Centrat Jos */}

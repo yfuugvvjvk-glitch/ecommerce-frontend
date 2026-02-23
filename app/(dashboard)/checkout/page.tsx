@@ -1776,7 +1776,7 @@ export default function CheckoutPage() {
             <button
               onClick={() => setShowReview(true)}
               disabled={submitting || checking || stockErrors.length > 0 || isDeliveryBlocked ||
-                       (useCustomAddress && !shippingAddress.trim()) ||
+                       (useCustomAddress && (!customCity.trim() || !customCounty.trim() || !customStreet.trim() || !customStreetNumber.trim() || isAddressValid === false)) ||
                        (!useCustomAddress && !selectedDeliveryLocation) ||
                        user?.role === 'guest'}
               className={`w-full mt-4 px-6 py-4 rounded-lg font-bold text-lg transition-all duration-200 shadow-lg ${

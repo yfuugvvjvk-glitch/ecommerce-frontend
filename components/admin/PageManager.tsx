@@ -86,7 +86,13 @@ export default function PageManager({ pageId, onClose }: PageManagerProps) {
 
     try {
       setSaving(true);
-      await apiClient.put(`/api/admin/content/pages/${pageId}`, {
+      console.log('Saving page:', {
+        pageId,
+        title: page.title,
+        content: page.content
+      });
+      
+      const response = await apiClient.put(`/api/admin/content/pages/${pageId}`, {
         title: page.title,
         content: page.content,
         metaTitle: page.metaTitle,
@@ -94,10 +100,18 @@ export default function PageManager({ pageId, onClose }: PageManagerProps) {
         template: page.template
       });
       
-      setToast({ message: 'Pagina a fost salvată!', type: 'success' });
-      fetchPage(); // Refresh to get updated data
+      console.log('Save response:', response.data);
+      
+      setToast({ message: 'Pagina a fost salvată cu succes!', type: 'success' });
+      
+      // Forțează reîncărcarea după un delay
+      setTimeout(async () => {
+        await fetchPage();
+        console.log('Page refreshed after save');
+      }, 500);
     } catch (error: any) {
       console.error('Error saving page:', error);
+      console.error('Error details:', error.response?.data);
       setToast({ 
         message: error.response?.data?.error || 'Eroare la salvarea paginii', 
         type: 'error' 

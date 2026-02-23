@@ -18,6 +18,7 @@ export default function AboutPage() {
   const [deliveryLocations, setDeliveryLocations] = useState<any[]>([]);
   const [paymentMethods, setPaymentMethods] = useState<any[]>([]);
   const [giftRules, setGiftRules] = useState<any[]>([]);
+  const [vouchers, setVouchers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -26,6 +27,7 @@ export default function AboutPage() {
     fetchDeliveryLocations();
     fetchPaymentMethods();
     fetchGiftRules();
+    fetchVouchers();
   }, []);
 
   const fetchContactInfo = async () => {
@@ -86,10 +88,24 @@ export default function AboutPage() {
       const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/public/gift-rules`);
       if (response.ok) {
         const rules = await response.json();
+        console.log('🎁 Gift rules loaded:', rules);
         setGiftRules(rules);
       }
     } catch (error) {
       console.error('Failed to fetch gift rules:', error);
+    }
+  };
+
+  const fetchVouchers = async () => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/api/public/vouchers`);
+      if (response.ok) {
+        const vouchersData = await response.json();
+        console.log('🎟️ Vouchers loaded:', vouchersData);
+        setVouchers(vouchersData);
+      }
+    } catch (error) {
+      console.error('Failed to fetch vouchers:', error);
     }
   };
 
@@ -274,6 +290,76 @@ export default function AboutPage() {
           </div>
         </div>
 
+        {/* Vouchere */}
+        <div className="bg-white rounded-xl shadow-lg p-8 border border-gray-100">
+          <div className="flex items-center mb-6">
+            <div className="bg-pink-100 p-3 rounded-lg mr-3">
+              <span className="text-4xl">🎟️</span>
+            </div>
+            <h2 className="text-3xl font-bold text-gray-800">{t('pages.vouchers')}</h2>
+          </div>
+          
+          <div className="text-gray-700 leading-relaxed space-y-4">
+            {vouchers.length > 0 ? (
+              <div className="grid md:grid-cols-2 gap-6 mt-6">
+                {vouchers.map((voucher) => {
+                  const now = new Date();
+                  const validUntil = voucher.validUntil ? new Date(voucher.validUntil) : null;
+                  const isExpired = validUntil && now > validUntil;
+                  
+                  return (
+                  <div key={voucher.id} className="p-5 bg-gradient-to-r from-pink-50 to-pink-100 rounded-lg border-l-4 border-pink-500 hover:shadow-lg transition-shadow">
+                    <div className="flex items-center mb-3">
+                      <span className="text-3xl mr-2">🎟️</span>
+                      <h3 className="font-bold text-gray-800 text-lg">{voucher.code}</h3>
+                    </div>
+                    
+                    {voucher.description && (
+                      <p className="text-gray-600 text-sm mb-3">{voucher.description}</p>
+                    )}
+                    
+                    <div className="space-y-2 text-sm">
+                      <p className="text-green-600 font-semibold">
+                        💰 {voucher.discountType === 'percentage' 
+                          ? `${voucher.discountValue}% reducere` 
+                          : `${voucher.discountValue} RON reducere`}
+                      </p>
+                      
+                      {voucher.minPurchase && (
+                        <p className="text-gray-700">
+                          <strong>Comandă minimă:</strong> {voucher.minPurchase} RON
+                        </p>
+                      )}
+                      
+                      {validUntil && (
+                        <p className="text-gray-700">
+                          <strong>Valabil până:</strong> {validUntil.toLocaleDateString('ro-RO')}
+                        </p>
+                      )}
+                      
+                      {!isExpired ? (
+                        <span className="inline-block px-3 py-1 bg-green-500 text-white text-xs rounded-full font-medium">
+                          ✓ Activ
+                        </span>
+                      ) : (
+                        <span className="inline-block px-3 py-1 bg-gray-400 text-white text-xs rounded-full font-medium">
+                          Expirat
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                )})}
+              </div>
+            ) : (
+              <div className="p-5 bg-gradient-to-r from-pink-50 to-pink-100 rounded-lg text-center border border-pink-200">
+                <span className="text-4xl block mb-3">🎟️</span>
+                <h3 className="font-bold text-gray-800 text-lg">{t('pages.vouchers')}</h3>
+                <p className="text-gray-600 text-sm mt-2">{t('pages.vouchersDesc')}</p>
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Produse Cadou */}
         <div className="bg-white rounded-xl shadow-lg p-8 border border-gray-100">
           <div className="flex items-center mb-6">
@@ -286,14 +372,19 @@ export default function AboutPage() {
           <div className="text-gray-700 leading-relaxed space-y-4">
             {giftRules.length > 0 ? (
               <div className="grid md:grid-cols-2 gap-6 mt-6">
-                {giftRules.map((rule) => (
+                {giftRules.map((rule) => {
+                  const now = new Date();
+                  const validFrom = rule.validFrom ? new Date(rule.validFrom) : null;
+                  const validUntil = rule.validUntil ? new Date(rule.validUntil) : null;
+                  
+                  const isNotYetValid = validFrom && now < validFrom;
+                  const isExpired = validUntil && now > validUntil;
+                  const isCurrentlyValid = !isNotYetValid && !isExpired;
+                  
+                  return (
                   <div key={rule.id} className="p-5 bg-gradient-to-r from-yellow-50 to-yellow-100 rounded-lg border-l-4 border-yellow-500 hover:shadow-lg transition-shadow">
                     <div className="flex items-center mb-3">
-                      <span className="text-3xl mr-2">
-                        {rule.giftType === 'voucher' ? '🎟️' : 
-                         rule.giftType === 'free_product' ? '🎁' : 
-                         rule.giftType === 'discount' ? '💰' : '🎉'}
-                      </span>
+                      <span className="text-3xl mr-2">🎁</span>
                       <h3 className="font-bold text-gray-800 text-lg">{rule.name}</h3>
                     </div>
                     
@@ -302,33 +393,13 @@ export default function AboutPage() {
                     )}
                     
                     <div className="space-y-2 text-sm">
-                      {rule.minOrderValue > 0 && (
-                        <p className="text-gray-700">
-                          <strong>{t('pages.minOrder')}:</strong> {rule.minOrderValue} RON
-                        </p>
-                      )}
-                      
-                      {rule.giftType === 'voucher' && rule.voucherValue && (
-                        <p className="text-green-600 font-semibold">
-                          💵 {t('pages.voucherValue')}: {rule.voucherValue} RON
-                        </p>
-                      )}
-                      
-                      {rule.giftType === 'free_product' && rule.freeProductId && (
-                        <p className="text-green-600 font-semibold">
-                          🎁 {t('pages.freeGiftProduct')}
-                        </p>
-                      )}
-                      
-                      {rule.giftType === 'discount' && rule.discountPercentage && (
-                        <p className="text-green-600 font-semibold">
-                          💰 {t('pages.discount')}: {rule.discountPercentage}%
-                        </p>
-                      )}
-                      
-                      {rule.isActive ? (
+                      {isCurrentlyValid ? (
                         <span className="inline-block px-3 py-1 bg-green-500 text-white text-xs rounded-full font-medium">
                           ✓ {t('pages.active')}
+                        </span>
+                      ) : isNotYetValid ? (
+                        <span className="inline-block px-3 py-1 bg-yellow-500 text-white text-xs rounded-full font-medium">
+                          ⏳ {t('pages.comingSoon')}
                         </span>
                       ) : (
                         <span className="inline-block px-3 py-1 bg-gray-400 text-white text-xs rounded-full font-medium">
@@ -337,7 +408,7 @@ export default function AboutPage() {
                       )}
                     </div>
                   </div>
-                ))}
+                )})}
               </div>
             ) : (
               <div className="grid md:grid-cols-2 gap-6 mt-6">

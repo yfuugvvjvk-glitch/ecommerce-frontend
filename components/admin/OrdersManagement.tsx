@@ -440,8 +440,17 @@ export default function OrdersManagement() {
             </div>
             <div className="text-sm text-gray-600 mb-3">
               <p><strong>Adresă:</strong> {order.shippingAddress}</p>
-              <p><strong>Plată:</strong> {order.paymentMethod}</p>
-              <p><strong>Livrare:</strong> {order.deliveryMethod}</p>
+              <p><strong>Plată:</strong> {
+                order.paymentMethod === 'cash' ? '💵 Numerar la livrare' :
+                order.paymentMethod === 'card' ? '💳 Card bancar' :
+                order.paymentMethod === 'transfer' ? '🏦 Transfer bancar' :
+                order.paymentMethod
+              }</p>
+              <p><strong>Livrare:</strong> {
+                order.deliveryMethod === 'courier' ? '🚚 Livrare cu curier' :
+                order.deliveryMethod === 'pickup' ? '🏪 Ridicare personală' :
+                order.deliveryMethod
+              }</p>
             </div>
             <div className="flex gap-2 justify-end">
               <button

@@ -255,17 +255,31 @@ export default function ContentManager() {
 
   const handleUpdateConfig = async (key: string, value: any, type: string = 'text') => {
     try {
-      console.log('Updating config:', { key, value, type });
+      console.log('📝 Updating config:', { key, value, type });
       const response = await apiClient.put(`/api/admin/site-config/${key}`, {
         value,
         type,
         isPublic: true
       });
-      console.log('Config updated successfully:', response.data);
+      console.log('✅ Config updated successfully:', response.data);
+      
+      // Refresh local state
       await fetchSiteConfigs();
-      setToast({ message: 'Configurația a fost actualizată!', type: 'success' });
+      
+      // Emit event to notify other components - with delay to ensure backend is updated
+      setTimeout(() => {
+        if (typeof window !== 'undefined') {
+          console.log('🔔 Emitting siteConfigUpdated event');
+          const event = new CustomEvent('siteConfigUpdated', { 
+            detail: { key, value } 
+          });
+          window.dispatchEvent(event);
+        }
+      }, 100);
+      
+      setToast({ message: '✅ Configurația a fost actualizată!', type: 'success' });
     } catch (error: any) {
-      console.error('Error updating config:', error);
+      console.error('❌ Error updating config:', error);
       console.error('Error details:', error.response?.data);
       setToast({ 
         message: error.response?.data?.error || 'Eroare la actualizarea configurației', 

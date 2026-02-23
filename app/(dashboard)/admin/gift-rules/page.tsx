@@ -154,7 +154,16 @@ export default function GiftRulesPage() {
                 </td>
               </tr>
             ) : (
-              rules.map((rule) => (
+              rules.map((rule) => {
+                const now = new Date();
+                const validFrom = rule.validFrom ? new Date(rule.validFrom) : null;
+                const validUntil = rule.validUntil ? new Date(rule.validUntil) : null;
+                
+                const isNotYetValid = validFrom && now < validFrom;
+                const isExpired = validUntil && now > validUntil;
+                const isCurrentlyValid = rule.isActive && !isNotYetValid && !isExpired;
+                
+                return (
                 <tr key={rule.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4">
                     <div className="text-sm font-medium text-gray-900">{rule.name}</div>
@@ -165,15 +174,32 @@ export default function GiftRulesPage() {
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span
-                      className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        rule.isActive
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-gray-100 text-gray-800'
-                      }`}
-                    >
-                      {rule.isActive ? 'Activ' : 'Inactiv'}
-                    </span>
+                    <div className="flex flex-col gap-1">
+                      <span
+                        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                          rule.isActive
+                            ? 'bg-green-100 text-green-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`}
+                      >
+                        {rule.isActive ? 'Activ' : 'Inactiv'}
+                      </span>
+                      {isNotYetValid && (
+                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-yellow-100 text-yellow-800">
+                          ⏳ Începe {formatDate(rule.validFrom)}
+                        </span>
+                      )}
+                      {isExpired && (
+                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">
+                          ⏰ Expirat
+                        </span>
+                      )}
+                      {isCurrentlyValid && (
+                        <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
+                          ✓ Valabil acum
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                     {rule.priority}
@@ -213,7 +239,7 @@ export default function GiftRulesPage() {
                     </button>
                   </td>
                 </tr>
-              ))
+              )})
             )}
           </tbody>
         </table>

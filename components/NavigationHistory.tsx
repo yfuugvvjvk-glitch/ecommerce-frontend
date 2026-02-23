@@ -7,6 +7,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 import CurrencyPrice from './CurrencyPrice';
 import { stripHtml } from '@/utils/stripHtml';
 import ProductItem from './ProductItem';
+import { getShortUnitName } from '@/utils/formatUnitName';
 
 interface Product {
   id: string;
@@ -108,7 +109,7 @@ export default function NavigationHistory({ products }: NavigationHistoryProps) 
                     <p className="text-sm font-bold text-blue-600">
                       <CurrencyPrice amount={product.price} />
                       {product.priceType === 'per_unit' ? (
-                        <span className="text-xs font-normal text-gray-600">/{product.unitName || 'buc'}</span>
+                        <span className="text-xs font-normal text-gray-600">/{getShortUnitName(product.unitName)}</span>
                       ) : product.priceType === 'fixed' ? (
                         <span className="text-xs font-normal text-gray-600">/bucată</span>
                       ) : null}

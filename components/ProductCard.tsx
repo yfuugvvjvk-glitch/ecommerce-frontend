@@ -5,6 +5,7 @@ import { Heart } from 'lucide-react';
 import { useDynamicTranslation } from '@/hooks/useDynamicTranslation';
 import CurrencyPrice from './CurrencyPrice';
 import { stripHtml } from '@/utils/stripHtml';
+import { formatUnitName } from '@/utils/formatUnitName';
 
 interface Product {
   id: string;
@@ -90,7 +91,7 @@ export default function ProductCard({ product, onFavoriteToggle, isFavorite }: P
           )}
           {product.priceType === 'fixed' && product.availableQuantities && product.availableQuantities[0] > 1 && (
             <p className="text-xs text-gray-500">
-              {product.availableQuantities[0]} {product.unitName} per produs
+              {product.availableQuantities[0]} {formatUnitName(product.availableQuantities[0], product.unitName)} per produs
             </p>
           )}
         </div>

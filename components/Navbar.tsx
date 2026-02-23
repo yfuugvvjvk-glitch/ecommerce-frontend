@@ -9,7 +9,7 @@ import LanguageSwitcher from './LanguageSwitcher';
 import { useTranslation } from '@/hooks/useTranslation';
 import CurrencySelector from './CurrencySelector';
 import { ShoppingCart, Search, Menu, X } from 'lucide-react';
-import { SITE_CONFIG } from '@/lib/site-config';
+import { useSiteConfig } from '@/hooks/useSiteConfig';
 
 // Inline Clock Component for Navbar
 function RomanianClockInline() {
@@ -72,6 +72,7 @@ export default function Navbar({ cartItemCount = 0 }: NavbarProps) {
   const { user, logout } = useAuth();
   const router = useRouter();
   const { t } = useTranslation();
+  const { config: siteConfig } = useSiteConfig();
   const [searchQuery, setSearchQuery] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -128,7 +129,7 @@ export default function Navbar({ cartItemCount = 0 }: NavbarProps) {
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-3 hover:scale-105 transition-transform">
             <img src="/images/logo.jpg" className="h-12 w-12 rounded-full shadow-md border-2 border-blue-300" />
-            <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent hidden sm:block">{t('siteName')}</span>
+            <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent hidden sm:block">{siteConfig.site_name || t('siteName')}</span>
           </Link>
 
           {/* Clock - Next to Logo */}

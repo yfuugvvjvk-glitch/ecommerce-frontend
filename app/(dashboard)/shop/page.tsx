@@ -7,6 +7,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 import Link from 'next/link';
 import { stripHtml } from '@/utils/stripHtml';
 import ProductItem from '@/components/ProductItem';
+import { formatUnitName, getShortUnitName } from '@/utils/formatUnitName';
 
 export default function ShopPage() {
   const { t, locale } = useTranslation();
@@ -363,7 +364,7 @@ export default function ShopPage() {
                       {product.price.toFixed(2)} lei
                     </span>
                     {product.priceType === 'per_unit' ? (
-                      <span className="text-sm font-normal text-gray-600">/{product.unitName || 'buc'}</span>
+                      <span className="text-sm font-normal text-gray-600">/{getShortUnitName(product.unitName)}</span>
                     ) : product.priceType === 'fixed' ? (
                       <span className="text-sm font-normal text-gray-600">/bucată</span>
                     ) : null}

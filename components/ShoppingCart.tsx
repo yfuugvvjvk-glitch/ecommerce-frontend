@@ -9,6 +9,7 @@ import { useTranslation } from '@/hooks/useTranslation';
 import CurrencyPrice from './CurrencyPrice';
 import { stripHtml } from '@/utils/stripHtml';
 import ProductItem from './ProductItem';
+import { formatUnitName } from '@/utils/formatUnitName';
 
 interface CartItem {
   id: string;
@@ -204,7 +205,7 @@ export default function ShoppingCart({ onClose }: { onClose?: () => void }) {
                             : 'bg-white text-blue-700 border border-blue-300 hover:bg-blue-100'
                         }`}
                       >
-                        {qty} {item.dataItem.unitName || 'buc'}
+                        {qty} {formatUnitName(qty, item.dataItem.unitName)}
                       </button>
                     ))}
                   </div>

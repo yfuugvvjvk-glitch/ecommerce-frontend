@@ -13,6 +13,7 @@ import CurrencyPrice from '@/components/CurrencyPrice';
 import AnnouncementBanner from '@/components/AnnouncementBanner';
 import { stripHtml } from '@/utils/stripHtml';
 import ProductItem from '@/components/ProductItem';
+import { getShortUnitName } from '@/utils/formatUnitName';
 
 interface Category {
   id: string;
@@ -64,7 +65,15 @@ export default function DashboardPage() {
     const handleLanguageChange = () => {
       const locale = localStorage.getItem('language') || 'ro';
       apiClient.get(`/api/carousel/active?locale=${locale}`)
-        .then(res => setCarouselItems(res.data || []))
+        .then(res => {
+          // Transform data: Media -> media, DataItem -> product
+          const transformedItems = (res.data || []).map((item: any) => ({
+            ...item,
+            media: item.Media || item.media,
+            product: item.DataItem || item.product
+          }));
+          setCarouselItems(transformedItems);
+        })
         .catch(error => console.error('Failed to fetch carousel items:', error));
     };
 
@@ -267,7 +276,25 @@ export default function DashboardPage() {
       try {
         const locale = localStorage.getItem('language') || 'ro';
         const carouselRes = await apiClient.get(`/api/carousel/active?locale=${locale}`);
-        setCarouselItems(carouselRes.data || []);
+        console.log('🎠 Dashboard carousel data:', {
+          count: carouselRes.data?.length || 0,
+          firstItem: carouselRes.data?.[0] ? {
+            id: carouselRes.data[0].id,
+            type: carouselRes.data[0].type,
+            hasMedia: !!carouselRes.data[0].Media,
+            mediaUrl: carouselRes.data[0].Media?.url,
+            hasProduct: !!carouselRes.data[0].DataItem
+          } : null
+        });
+        
+        // Transform data: Media -> media, DataItem -> product
+        const transformedItems = (carouselRes.data || []).map((item: any) => ({
+          ...item,
+          media: item.Media || item.media,
+          product: item.DataItem || item.product
+        }));
+        
+        setCarouselItems(transformedItems);
       } catch (error) {
         console.error('Failed to fetch carousel items:', error);
       }
@@ -426,7 +453,7 @@ export default function DashboardPage() {
                   <p className="text-lg font-bold text-blue-600 mt-1">
                     <CurrencyPrice amount={product.price} />
                     {product.priceType === 'per_unit' ? (
-                      <span className="text-sm font-normal text-gray-600">/{product.unitName || 'buc'}</span>
+                      <span className="text-sm font-normal text-gray-600">/{getShortUnitName(product.unitName)}</span>
                     ) : product.priceType === 'fixed' ? (
                       <span className="text-sm font-normal text-gray-600">/bucată</span>
                     ) : null}
